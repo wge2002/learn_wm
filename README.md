@@ -6,6 +6,7 @@
   <a href="https://galilai-group.github.io/stable-worldmodel/"><img alt="Documentation" src="https://img.shields.io/badge/Docs-blue.svg"/></a>
   <a href="https://github.com/galilai-group/stable-worldmodel"><img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/galilai-group/stable-worldmodel/tests.yaml?label=Tests"/></a>
   <a href="https://pypi.python.org/pypi/stable-worldmodel/#history"><img alt="PyPI" src="https://img.shields.io/pypi/v/stable-worldmodel.svg"/></a>
+  <a href="https://arxiv.org/abs/2605.21800v1" target="_blank" style="margin: 2px;"><img alt="ArXiv" src="https://img.shields.io/badge/arXiv-2605.21800-b5212f?logo=arxiv" style="display: inline-block; vertical-align: middle;"/></a>
   <a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"/></a>
   <a href="https://github.com/astral-sh/ruff"><img alt="Ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json"/></a>
 </p>
@@ -16,6 +17,7 @@
   <a href="#environments"><b>Environments</b></a> ·
   <a href="#solvers-and-baselines"><b>Solvers & Baselines</b></a> ·
   <a href="https://galilai-group.github.io/stable-worldmodel/"><b>Documentation</b></a> ·
+  <a href="https://arxiv.org/abs/2605.21800v1"><b>Paper</b></a> ·
   <a href="#citation"><b>Citation</b></a>
 </p>
 
@@ -281,16 +283,16 @@ The full documentation lives at [galilai-group.github.io/stable-worldmodel](http
 ## Citation
 
 ```bibtex
-@misc{maes_lelidec2026swm-1,
-  title  = {stable-worldmodel-v1: Reproducible World Modeling Research and Evaluation},
-  author = {Lucas Maes and Quentin Le Lidec and Dan Haramati and
-            Nassim Massaudi and Damien Scieur and Yann LeCun and
-            Randall Balestriero},
+@misc{maes2026stableworldmodelplatformreproducibleworld,
+  title  = {stable-worldmodel: A Platform for Reproducible World Modeling Research and Evaluation},
+  author = {Lucas Maes and Quentin Le Lidec and Luiz Facury and Nassim Massaudi and
+            Ayush Chaurasia and Francesco Capuano and Richard Gao and Taj Gillin and
+            Dan Haramati and Damien Scieur and Yann LeCun and Randall Balestriero},
   year   = {2026},
-  eprint = {2602.08968},
+  eprint = {2605.21800},
   archivePrefix = {arXiv},
-  primaryClass = {cs.AI},
-  url    = {https://arxiv.org/abs/2602.08968},
+  primaryClass = {cs.LG},
+  url    = {https://arxiv.org/abs/2605.21800},
 }
 ```
 

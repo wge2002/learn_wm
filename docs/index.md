@@ -118,18 +118,16 @@ After you have installed stable-worldmodel, try the [Quick Start Guide](quick_st
 
 ## Citation
 
-If you wish to cite our [pre-print](https://arxiv.org/abs/2602.08968):
+If you wish to cite our [pre-print](https://arxiv.org/abs/2605.21800v1):
 
 ```bibtex
-@misc{maes_lelidec2026swm-1,
-      title={stable-worldmodel-v1: Reproducible World Modeling Research and Evaluation}, 
-      author = {Lucas Maes and Quentin Le Lidec and Dan Haramati and
-                Nassim Massaudi and Damien Scieur and Yann LeCun and
-                Randall Balestriero},
+@misc{maes2026stableworldmodelplatformreproducibleworld,
+      title={stable-worldmodel: A Platform for Reproducible World Modeling Research and Evaluation}, 
+      author={Lucas Maes and Quentin Le Lidec and Luiz Facury and Nassim Massaudi and Ayush Chaurasia and Francesco Capuano and Richard Gao and Taj Gillin and Dan Haramati and Damien Scieur and Yann LeCun and Randall Balestriero},
       year={2026},
-      eprint={2602.08968},
+      eprint={2605.21800},
       archivePrefix={arXiv},
-      primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2602.08968}, 
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2605.21800}, 
 }
 ```
