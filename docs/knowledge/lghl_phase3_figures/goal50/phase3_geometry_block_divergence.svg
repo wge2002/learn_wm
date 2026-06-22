@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="430" viewBox="0 0 780 430">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="390.0" y="26" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#222">Phase 3 Geometry Replay State Divergence</text>
+<line x1="70" y1="372" x2="625" y2="372" stroke="#222" stroke-width="1.2"/>
+<line x1="70" y1="54" x2="70" y2="372" stroke="#222" stroke-width="1.2"/>
+<line x1="70" y1="372.0" x2="625" y2="372.0" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="376.0" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0.0</text>
+<line x1="70" y1="308.4" x2="625" y2="308.4" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="312.4" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">11.4</text>
+<line x1="70" y1="244.8" x2="625" y2="244.8" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="248.8" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">22.8</text>
+<line x1="70" y1="181.2" x2="625" y2="181.2" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="185.2" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">34.1</text>
+<line x1="70" y1="117.6" x2="625" y2="117.6" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="121.6" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">45.5</text>
+<line x1="70" y1="54.0" x2="625" y2="54.0" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="58.0" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">56.9</text>
+<line x1="70.0" y1="372" x2="70.0" y2="377" stroke="#222"/>
+<text x="70.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">0</text>
+<line x1="125.5" y1="372" x2="125.5" y2="377" stroke="#222"/>
+<text x="125.5" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">1</text>
+<line x1="181.0" y1="372" x2="181.0" y2="377" stroke="#222"/>
+<text x="181.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">2</text>
+<line x1="236.5" y1="372" x2="236.5" y2="377" stroke="#222"/>
+<text x="236.5" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">3</text>
+<line x1="292.0" y1="372" x2="292.0" y2="377" stroke="#222"/>
+<text x="292.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">4</text>
+<line x1="347.5" y1="372" x2="347.5" y2="377" stroke="#222"/>
+<text x="347.5" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">5</text>
+<line x1="403.0" y1="372" x2="403.0" y2="377" stroke="#222"/>
+<text x="403.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">6</text>
+<line x1="458.5" y1="372" x2="458.5" y2="377" stroke="#222"/>
+<text x="458.5" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">7</text>
+<line x1="514.0" y1="372" x2="514.0" y2="377" stroke="#222"/>
+<text x="514.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">8</text>
+<line x1="569.5" y1="372" x2="569.5" y2="377" stroke="#222"/>
+<text x="569.5" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">9</text>
+<line x1="625.0" y1="372" x2="625.0" y2="377" stroke="#222"/>
+<text x="625.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">10</text>
+<text x="347.5" y="414" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#333">k</text>
+<text transform="translate(20 213.0) rotate(-90)" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#333">block xy L2</text>
+<path d="M70.0,370.9 L125.5,324.0 L181.0,287.7 L236.5,256.3 L292.0,223.0 L347.5,192.3 L403.0,167.2 L458.5,147.7 L514.0,124.3 L569.5,99.6 L625.0,78.0" fill="none" stroke="#1f77b4" stroke-width="2.4"/>
+<circle cx="70.0" cy="370.9" r="3.5" fill="#1f77b4"/>
+<circle cx="125.5" cy="324.0" r="3.5" fill="#1f77b4"/>
+<circle cx="181.0" cy="287.7" r="3.5" fill="#1f77b4"/>
+<circle cx="236.5" cy="256.3" r="3.5" fill="#1f77b4"/>
+<circle cx="292.0" cy="223.0" r="3.5" fill="#1f77b4"/>
+<circle cx="347.5" cy="192.3" r="3.5" fill="#1f77b4"/>
+<circle cx="403.0" cy="167.2" r="3.5" fill="#1f77b4"/>
+<circle cx="458.5" cy="147.7" r="3.5" fill="#1f77b4"/>
+<circle cx="514.0" cy="124.3" r="3.5" fill="#1f77b4"/>
+<circle cx="569.5" cy="99.6" r="3.5" fill="#1f77b4"/>
+<circle cx="625.0" cy="78.0" r="3.5" fill="#1f77b4"/>
+<line x1="649" y1="72" x2="671" y2="72" stroke="#1f77b4" stroke-width="2.4"/>
+<text x="679" y="76" font-family="Arial, sans-serif" font-size="13" fill="#333">geometry vs ID replay</text>
+<path d="M70.0,371.6 L125.5,324.4 L181.0,288.0 L236.5,256.6 L292.0,223.1 L347.5,192.5 L403.0,166.8 L458.5,146.9 L514.0,123.4 L569.5,98.6 L625.0,77.6" fill="none" stroke="#d62728" stroke-width="2.4"/>
+<circle cx="70.0" cy="371.6" r="3.5" fill="#d62728"/>
+<circle cx="125.5" cy="324.4" r="3.5" fill="#d62728"/>
+<circle cx="181.0" cy="288.0" r="3.5" fill="#d62728"/>
+<circle cx="236.5" cy="256.6" r="3.5" fill="#d62728"/>
+<circle cx="292.0" cy="223.1" r="3.5" fill="#d62728"/>
+<circle cx="347.5" cy="192.5" r="3.5" fill="#d62728"/>
+<circle cx="403.0" cy="166.8" r="3.5" fill="#d62728"/>
+<circle cx="458.5" cy="146.9" r="3.5" fill="#d62728"/>
+<circle cx="514.0" cy="123.4" r="3.5" fill="#d62728"/>
+<circle cx="569.5" cy="98.6" r="3.5" fill="#d62728"/>
+<circle cx="625.0" cy="77.6" r="3.5" fill="#d62728"/>
+<line x1="649" y1="96" x2="671" y2="96" stroke="#d62728" stroke-width="2.4"/>
+<text x="679" y="100" font-family="Arial, sans-serif" font-size="13" fill="#333">geometry vs dataset state</text>
+</svg>

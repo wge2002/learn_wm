@@ -1,0 +1,15 @@
+{
+  "n_frames": 142394,
+  "n_pairs": 112394,
+  "ae_recon_mse": 0.08301455243457136,
+  "ridge_pairs": 1002,
+  "mode_separation": 2.0717074871063232,
+  "within_branch_spread": 2.251180410385132,
+  "cont_pred_err_to_true": 0.6866939663887024,
+  "disc_pred_err_to_true": 0.5386954545974731,
+  "cont_dist_to_nearest_mode": 2.158365488052368,
+  "disc_dist_to_nearest_mode": 2.2541611194610596,
+  "cont_blur": 0.9587705530559163,
+  "disc_blur": 1.001324064504494,
+  "branch_clf_acc": 0.9141716566866267
+}

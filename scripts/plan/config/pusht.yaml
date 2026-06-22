@@ -30,6 +30,7 @@ eval:
   eval_budget: 50
   img_size: 224
   dataset_name: pusht_expert_train.h5
+  video: true
   callables:
     # -- set state
     - method: _set_state
@@ -41,6 +42,7 @@ eval:
       args:
         goal_state:
           value: goal_state
+  reset_options: null
 
 compile: false
 bf16: false

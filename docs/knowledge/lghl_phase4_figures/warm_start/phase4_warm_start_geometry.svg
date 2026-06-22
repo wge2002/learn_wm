@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="430" viewBox="0 0 820 430">
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="410.0" y="27" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#222">Phase 4 Warm Start Ablation (geometry)</text>
+<line x1="72" y1="358" x2="675" y2="358" stroke="#222"/>
+<line x1="72" y1="54" x2="72" y2="358" stroke="#222"/>
+<line x1="72" y1="358.0" x2="675" y2="358.0" stroke="#e7e7e7"/>
+<text x="62" y="362.0" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0</text>
+<line x1="72" y1="297.2" x2="675" y2="297.2" stroke="#e7e7e7"/>
+<text x="62" y="301.2" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">7</text>
+<line x1="72" y1="236.4" x2="675" y2="236.4" stroke="#e7e7e7"/>
+<text x="62" y="240.4" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">14</text>
+<line x1="72" y1="175.6" x2="675" y2="175.6" stroke="#e7e7e7"/>
+<text x="62" y="179.6" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">21</text>
+<line x1="72" y1="114.8" x2="675" y2="114.8" stroke="#e7e7e7"/>
+<text x="62" y="118.8" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">28</text>
+<line x1="72" y1="54.0" x2="675" y2="54.0" stroke="#e7e7e7"/>
+<text x="62" y="58.0" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">35</text>
+<text x="172.5" y="388" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#333">R=1</text>
+<rect x="106.5" y="254.9" width="49.0" height="103.1" fill="#1f77b4"/>
+<text x="131.0" y="249.9" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#333">12</text>
+<rect x="169.4" y="289.3" width="49.0" height="68.7" fill="#ff7f0e"/>
+<text x="193.9" y="284.3" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#333">8</text>
+<text x="373.5" y="388" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#333">R=3</text>
+<rect x="307.5" y="151.9" width="49.0" height="206.1" fill="#1f77b4"/>
+<text x="332.0" y="146.9" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#333">24</text>
+<rect x="370.4" y="289.3" width="49.0" height="68.7" fill="#ff7f0e"/>
+<text x="394.9" y="284.3" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#333">8</text>
+<text x="574.5" y="388" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#333">R=5</text>
+<rect x="508.5" y="100.4" width="49.0" height="257.6" fill="#1f77b4"/>
+<text x="533.0" y="95.4" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#333">30</text>
+<rect x="571.4" y="134.7" width="49.0" height="223.3" fill="#ff7f0e"/>
+<text x="595.9" y="129.7" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#333">26</text>
+<text x="373.5" y="415" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#333">receding horizon R</text>
+<text transform="translate(22 206.0) rotate(-90)" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#333">success rate (%)</text>
+<rect x="697" y="65" width="16" height="12" fill="#1f77b4"/>
+<text x="721" y="75" font-family="Arial, sans-serif" font-size="13" fill="#333">warm</text>
+<rect x="697" y="89" width="16" height="12" fill="#ff7f0e"/>
+<text x="721" y="99" font-family="Arial, sans-serif" font-size="13" fill="#333">cold</text>
+</svg>

@@ -1,0 +1,12 @@
+=== Stage 1b: TwoRoom LATENT multimodal junction ===
+frames=142394 pairs=112394 ridge_pairs=1002 ae_recon=0.0830
+latent mode separation (up vs down branch) = 2.072
+branch classifier acc at ridge = 0.91
+
+prediction error to TRUE next-latent at ridge (lower=better):
+  continuous     : 0.687
+  discrete-anchor: 0.539
+
+BLUR test - dist to nearest real branch / within-branch spread (sep=2.07 within=2.25; ~1=on a mode, >>1=between modes=blur):
+  continuous     : 0.96
+  discrete-anchor: 1.00

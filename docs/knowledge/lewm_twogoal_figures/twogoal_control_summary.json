@@ -1,0 +1,20 @@
+{
+  "n_train": 400,
+  "n_eval": 128,
+  "n_samples": 512,
+  "horizon": 8,
+  "mid": 4,
+  "lam": 1.0,
+  "latent_dim": 192,
+  "mid_waypoint_sep_AB": 5.650211334228516,
+  "waypoint_betweenness_continuous": 1.0155913829803467,
+  "waypoint_betweenness_discrete": 1.000110387802124,
+  "term_base": 233.59011840820312,
+  "term_continuous": 238.20248413085938,
+  "term_discrete": 238.12655639648438,
+  "reach_base": 0.5,
+  "reach_continuous": 0.46875,
+  "reach_discrete": 0.453125,
+  "discrete_minus_continuous_term": -0.07593505084514618,
+  "elapsed_sec": 34.7
+}

@@ -1,0 +1,11 @@
+=== Stage 2b (Exp2b): FAITHFUL reach controller (latent->xy probe) ===
+frames=174309 pairs=114362 ae_recon=0.0945 probe_xy_mae=0.3px delta=10 eval_eps=200
+
+success_rate from cross-room RIDGE starts (subgoal decoded->xy, drive straight):
+  continuous subgoal          :  19.5%   (blur->wall; wall-stuck 68%)
+  DISCRETE (recompute door)   :  15.5%   (commit->door; wall-stuck 76%)
+  discrete (commit once @t0)  :  22.0%   (ablation; wall-stuck 66%)
+  expert oracle               : 100.0%   (ceiling)
+
+  >>> discrete(recompute) - continuous = -4.0 points
+      (commit-once vs recompute = +6.5, isolates the lock-far-door confound)

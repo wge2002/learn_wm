@@ -250,6 +250,7 @@ class World:
                 callables,
                 video,
                 mode,
+                options,
             )
         mode = reset_mode or 'auto'
         return self._evaluate(episodes, seed, options, video, mode)
@@ -499,6 +500,7 @@ class World:
         callables,
         video,
         mode,
+        options=None,
     ) -> dict:
         n = len(episodes_idx)
         assert n == self.num_envs
@@ -510,7 +512,7 @@ class World:
             goal_offset,
         )
 
-        self.reset(seed=init_state.get('seed'))
+        self.reset(seed=init_state.get('seed'), options=options)
 
         if callables:
             merged = {**init_state, **goal_state}
@@ -524,10 +526,16 @@ class World:
         for src, dst_prefix in [(init_state, ''), (goal_state, '')]:
             for k, v in src.items():
                 key = dst_prefix + k if dst_prefix else k
+                if key in ('pixels', 'goal'):
+                    continue
                 if key in self.infos or key in goal_state:
                     self.infos[key] = np.broadcast_to(
                         v[:, None, ...], shape_prefix + v.shape[1:]
                     ).copy()
+
+        _refresh_dataset_rendered_images(
+            self.envs.envs, self.infos, init_state, goal_state
+        )
 
         goal_snapshot = {k: self.infos[k].copy() for k in goal_state}
 
@@ -612,3 +620,47 @@ def _apply_callables(env, callables, init_state):
             else:
                 prepared[name] = data.get('value')
         getattr(env, method)(**prepared)
+
+
+def _refresh_dataset_rendered_images(envs, infos, init_state, goal_state):
+    """Render dataset-defined start/goal images from the live env state.
+
+    Dataset-driven eval uses tabular state/action data to seed the simulator.
+    If the dataset also contains pixels, blindly copying those pixels back into
+    ``infos`` hides reset-time variations such as FoV color/geometry shifts.
+    For pixel-conditioned policies, refresh ``pixels`` and ``goal`` from the
+    actual env after applying dataset states and reset options.
+    """
+
+    if 'pixels' not in infos:
+        return
+    if 'state' not in init_state:
+        return
+
+    init_states = init_state['state']
+    goal_states = goal_state.get('goal_state')
+    can_refresh_goal = 'goal' in infos and goal_states is not None
+
+    for i, env in enumerate(envs):
+        raw = env.unwrapped
+        if not hasattr(raw, '_set_state') or not hasattr(raw, 'render'):
+            continue
+
+        if can_refresh_goal:
+            _set_goal_pose_from_state(raw, goal_states[i])
+            raw._set_state(goal_states[i])
+            goal_img = raw.render()
+            infos['goal'][i, 0] = goal_img
+            if hasattr(raw, '_goal'):
+                raw._goal = goal_img
+
+        raw._set_state(init_states[i])
+        infos['pixels'][i, 0] = raw.render()
+
+
+def _set_goal_pose_from_state(env, state):
+    if not hasattr(env, 'goal_pose'):
+        return
+    if state is None or len(state) < 5:
+        return
+    env.goal_pose = np.asarray([state[2], state[3], state[4]])

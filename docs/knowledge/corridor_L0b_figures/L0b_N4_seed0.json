@@ -1,0 +1,15 @@
+{
+  "N": 4,
+  "seed": 0,
+  "codes": 2,
+  "n_frames": 118844,
+  "ae_recon_mse": 0.00011914438033380197,
+  "probe_xy_mae_px": 0.24808269739151,
+  "probe_door_acc": 0.9346234749684477,
+  "results": {
+    "oracle": 100.0,
+    "continuous": 77.5,
+    "D0": 49.0
+  },
+  "D0_minus_continuous": -28.5
+}

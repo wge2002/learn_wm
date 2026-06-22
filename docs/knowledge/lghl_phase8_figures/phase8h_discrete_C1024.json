@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "policy": "quentinll/lewm-pusht",
+    "dataset_name": "pusht_expert_train.h5",
+    "env_name": "swm/PushT-v1",
+    "proposer_dir": "outputs/lghl_phase8g_proposer",
+    "proposer_tag": "discrete_C1024",
+    "output_dir": "outputs/lghl_phase8h_discrete_C1024",
+    "num_samples": 120,
+    "db_size": 3000,
+    "db_seed": 123,
+    "eval_ks": "0",
+    "plan_horizons": "3,5",
+    "lam": 0.5,
+    "knn_m": 4,
+    "goal_offset": 50,
+    "action_block": 5,
+    "num_candidates": 256,
+    "candidate_scale": 1.0,
+    "img_size": 224,
+    "batch_size": 32,
+    "seed": 42,
+    "device": "cuda",
+    "cache_dir": null
+  },
+  "rows": [
+    {
+      "k": 0,
+      "plan_h": 3,
+      "subgoal": "none",
+      "lam": 0.0,
+      "expert_rank": 112.79166412353516,
+      "top1_vs_ideal": 1.0,
+      "waypoint_mse_to_oracle": 0.0
+    },
+    {
+      "k": 0,
+      "plan_h": 3,
+      "subgoal": "oracle",
+      "lam": 0.5,
+      "expert_rank": 63.099998474121094,
+      "top1_vs_ideal": 0.48333333333333334,
+      "waypoint_mse_to_oracle": 0.0
+    },
+    {
+      "k": 0,
+      "plan_h": 3,
+      "subgoal": "retrieval",
+      "lam": 0.5,
+      "expert_rank": 93.0,
+      "top1_vs_ideal": 0.5,
+      "waypoint_mse_to_oracle": 0.20190739631652832
+    },
+    {
+      "k": 0,
+      "plan_h": 3,
+      "subgoal": "trained",
+      "lam": 0.5,
+      "expert_rank": 87.31666564941406,
+      "top1_vs_ideal": 0.525,
+      "waypoint_mse_to_oracle": 0.06917455047369003
+    },
+    {
+      "k": 0,
+      "plan_h": 5,
+      "subgoal": "none",
+      "lam": 0.0,
+      "expert_rank": 90.57499694824219,
+      "top1_vs_ideal": 1.0,
+      "waypoint_mse_to_oracle": 0.0
+    },
+    {
+      "k": 0,
+      "plan_h": 5,
+      "subgoal": "oracle",
+      "lam": 0.5,
+      "expert_rank": 23.558332443237305,
+      "top1_vs_ideal": 0.48333333333333334,
+      "waypoint_mse_to_oracle": 0.0
+    },
+    {
+      "k": 0,
+      "plan_h": 5,
+      "subgoal": "retrieval",
+      "lam": 0.5,
+      "expert_rank": 45.28333282470703,
+      "top1_vs_ideal": 0.4666666666666667,
+      "waypoint_mse_to_oracle": 0.24542272090911865
+    },
+    {
+      "k": 0,
+      "plan_h": 5,
+      "subgoal": "trained",
+      "lam": 0.5,
+      "expert_rank": 74.16666412353516,
+      "top1_vs_ideal": 0.5083333333333333,
+      "waypoint_mse_to_oracle": 0.20416094362735748
+    }
+  ]
+}

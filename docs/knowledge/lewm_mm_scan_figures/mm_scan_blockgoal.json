@@ -1,0 +1,13 @@
+{
+  "n_frames": 2336736,
+  "state_dim": 7,
+  "horizon": 15,
+  "knn": 40,
+  "sg_radius": 0.030822986098275863,
+  "anchors_used": 287,
+  "frac_bimodal_BIC": 0.0,
+  "frac_strong_multimodal(sep>2)": 0.0,
+  "median_sep_ratio": 0.0,
+  "p90_sep_ratio": 0.0,
+  "examples": []
+}

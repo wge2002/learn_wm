@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="520" viewBox="0 0 860 520">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="74" y="32" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#111827">Phase 5 ID H=5: warm/cold success vs R</text>
+<line x1="74" x2="682" y1="448.00" y2="448.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="452.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">0</text>
+<line x1="74" x2="682" y1="370.00" y2="370.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="374.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">17</text>
+<line x1="74" x2="682" y1="292.00" y2="292.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="296.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">34</text>
+<line x1="74" x2="682" y1="214.00" y2="214.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="218.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">51</text>
+<line x1="74" x2="682" y1="136.00" y2="136.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="140.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">68</text>
+<line x1="74" x2="682" y1="58.00" y2="58.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="62.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">85</text>
+<line x1="74" x2="682" y1="448" y2="448" stroke="#111827" stroke-width="1.4"/>
+<line x1="74" x2="74" y1="58" y2="448" stroke="#111827" stroke-width="1.4"/>
+<line x1="74.00" x2="74.00" y1="448" y2="454" stroke="#111827"/>
+<text x="74.00" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#111827">R=1</text>
+<line x1="276.67" x2="276.67" y1="448" y2="454" stroke="#111827"/>
+<text x="276.67" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#111827">R=2</text>
+<line x1="479.33" x2="479.33" y1="448" y2="454" stroke="#111827"/>
+<text x="479.33" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#111827">R=3</text>
+<line x1="682.00" x2="682.00" y1="448" y2="454" stroke="#111827"/>
+<text x="682.00" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#111827">R=5</text>
+<text x="378.0" y="502" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#111827">receding horizon R</text>
+<text transform="translate(20,253.0) rotate(-90)" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#111827">success rate (%)</text>
+<polyline points="74.00,356.24 276.67,337.88 479.33,264.47 682.00,99.29" fill="none" stroke="#2563eb" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="74.00" cy="356.24" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="276.67" cy="337.88" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="479.33" cy="264.47" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="682.00" cy="99.29" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="1.5"/>
+<polyline points="74.00,347.06 276.67,356.24 479.33,374.59 682.00,99.29" fill="none" stroke="#dc2626" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="74.00" cy="347.06" r="4" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="276.67" cy="356.24" r="4" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="479.33" cy="374.59" r="4" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="682.00" cy="99.29" r="4" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+<line x1="706" x2="730" y1="68" y2="68" stroke="#2563eb" stroke-width="3"/>
+<circle cx="718" cy="68" r="4" fill="#2563eb"/>
+<text x="740" y="72" font-family="Arial, sans-serif" font-size="13" fill="#111827">warm start</text>
+<line x1="706" x2="730" y1="94" y2="94" stroke="#dc2626" stroke-width="3"/>
+<circle cx="718" cy="94" r="4" fill="#dc2626"/>
+<text x="740" y="98" font-family="Arial, sans-serif" font-size="13" fill="#111827">cold start</text>
+</svg>

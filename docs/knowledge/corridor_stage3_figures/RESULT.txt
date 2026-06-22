@@ -1,0 +1,15 @@
+=== Stage 3 testbed: multi-junction one-way corridor maze ===
+validation: MULTIMODAL continuous-BC should decay with horizon N while
+the UNIMODAL control (fixed door) stays flat => decay is from blur, not length.
+
+  N |  oracle |  MULTI BC |  UNI BC | ridge bimodal
+--------------------------------------------------------
+  1 |  100.0% |    100.0% |  100.0% | up=0.50 OK
+  2 |  100.0% |     87.3% |  100.0% | up=0.50 OK
+  3 |  100.0% |     99.3% |  100.0% | up=0.50 OK
+  4 |  100.0% |     93.0% |  100.0% | up=0.50 OK
+  5 |  100.0% |     72.7% |  100.0% | up=0.50 OK
+
+PASS if: oracle~100% all N; MULTI BC decays as N grows; UNI BC stays ~flat.
+(=> the testbed's binding constraint is multimodal commitment, compounding
+ over the horizon -- exactly where a discrete commitment token should pay off.)

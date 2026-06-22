@@ -1,0 +1,14 @@
+{
+  "ridge_n": 1189,
+  "ridge_action_y_mean": 0.03445196524262428,
+  "ridge_action_y_absmean": 0.8126158714294434,
+  "ridge_frac_up": 0.47771236333052985,
+  "ridge_frac_down": 0.5222876366694701,
+  "bic_1comp": 2912.0482104027565,
+  "bic_2comp": -338.1653626649836,
+  "bimodal_2comp_better": true,
+  "continuous_pred_action_y_absmean_at_ridge": 0.32249554991722107,
+  "success_continuous": 72.66666666666667,
+  "success_anchor_discrete": 100.0,
+  "success_expert_oracle": 100.0
+}

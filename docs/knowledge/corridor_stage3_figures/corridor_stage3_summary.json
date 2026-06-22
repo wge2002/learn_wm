@@ -1,0 +1,89 @@
+{
+  "per_N": {
+    "1": {
+      "max_steps": 80,
+      "multimodal": {
+        "oracle": 100.0,
+        "continuous_bc": 100.0,
+        "ridge_frac_up": 0.4950865953634834,
+        "ridge_bimodal": true,
+        "ridge_n": 36838
+      },
+      "unimodal": {
+        "oracle": 100.0,
+        "continuous_bc": 100.0,
+        "ridge_frac_up": 0.9145709453930501,
+        "ridge_bimodal": false,
+        "ridge_n": 36662
+      }
+    },
+    "2": {
+      "max_steps": 120,
+      "multimodal": {
+        "oracle": 100.0,
+        "continuous_bc": 87.33333333333333,
+        "ridge_frac_up": 0.5013013960430279,
+        "ridge_bimodal": true,
+        "ridge_n": 54941
+      },
+      "unimodal": {
+        "oracle": 100.0,
+        "continuous_bc": 100.0,
+        "ridge_frac_up": 0.9144001550487758,
+        "ridge_bimodal": false,
+        "ridge_n": 30958
+      }
+    },
+    "3": {
+      "max_steps": 160,
+      "multimodal": {
+        "oracle": 100.0,
+        "continuous_bc": 99.33333333333333,
+        "ridge_frac_up": 0.4999503158492441,
+        "ridge_bimodal": true,
+        "ridge_n": 70445
+      },
+      "unimodal": {
+        "oracle": 100.0,
+        "continuous_bc": 100.0,
+        "ridge_frac_up": 0.9160887656033287,
+        "ridge_bimodal": false,
+        "ridge_n": 27398
+      }
+    },
+    "4": {
+      "max_steps": 200,
+      "multimodal": {
+        "oracle": 100.0,
+        "continuous_bc": 93.0,
+        "ridge_frac_up": 0.49870919947919007,
+        "ridge_bimodal": true,
+        "ridge_n": 89092
+      },
+      "unimodal": {
+        "oracle": 100.0,
+        "continuous_bc": 100.0,
+        "ridge_frac_up": 0.9177470005636524,
+        "ridge_bimodal": false,
+        "ridge_n": 24838
+      }
+    },
+    "5": {
+      "max_steps": 240,
+      "multimodal": {
+        "oracle": 100.0,
+        "continuous_bc": 72.66666666666667,
+        "ridge_frac_up": 0.5002359696385732,
+        "ridge_bimodal": true,
+        "ridge_n": 101708
+      },
+      "unimodal": {
+        "oracle": 100.0,
+        "continuous_bc": 100.0,
+        "ridge_frac_up": 0.928251310671402,
+        "ridge_bimodal": false,
+        "ridge_n": 23652
+      }
+    }
+  }
+}

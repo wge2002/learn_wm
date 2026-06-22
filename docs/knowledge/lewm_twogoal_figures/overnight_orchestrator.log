@@ -1,0 +1,38 @@
+=== overnight start Mon Jun 22 00:58:30 CST 2026 ===
+>>> Mon Jun 22 00:58:30 CST 2026 running smoke : --goal-pairing far --n-train 50 --n-eval 24 --n-samples 128 --pred-epochs 30 --horizon 8
+<<< Mon Jun 22 00:58:44 CST 2026 done smoke rc=0
+mid-waypoint A/B sep=5.78  | between-ness continuous=1.41 discrete=1.42 (~1 blur/~0 commit)
+  discrete - continuous : +0.25 (negative = discrete better)
+reach rate (<= baseline median): base 0.50 / cont 0.46 / disc 0.46
+smoke OK -> full sweep
+>>> Mon Jun 22 00:58:44 CST 2026 running far_H8_s0 : --goal-pairing far --horizon 8 --seed 0 --n-train 400 --n-eval 128 --n-samples 512 --pred-epochs 200 --lam 1.0
+<<< Mon Jun 22 00:59:26 CST 2026 done far_H8_s0 rc=0
+mid-waypoint A/B sep=5.22  | between-ness continuous=0.95 discrete=0.96 (~1 blur/~0 commit)
+  discrete - continuous : +0.21 (negative = discrete better)
+reach rate (<= baseline median): base 0.50 / cont 0.45 / disc 0.44
+>>> Mon Jun 22 00:59:26 CST 2026 running far_H8_s1 : --goal-pairing far --horizon 8 --seed 1 --n-train 400 --n-eval 128 --n-samples 512 --pred-epochs 200 --lam 1.0
+<<< Mon Jun 22 01:00:08 CST 2026 done far_H8_s1 rc=0
+mid-waypoint A/B sep=5.22  | between-ness continuous=0.99 discrete=0.99 (~1 blur/~0 commit)
+  discrete - continuous : +0.37 (negative = discrete better)
+reach rate (<= baseline median): base 0.50 / cont 0.45 / disc 0.47
+>>> Mon Jun 22 01:00:08 CST 2026 running far_H8_s2 : --goal-pairing far --horizon 8 --seed 2 --n-train 400 --n-eval 128 --n-samples 512 --pred-epochs 200 --lam 1.0
+<<< Mon Jun 22 01:00:49 CST 2026 done far_H8_s2 rc=0
+mid-waypoint A/B sep=5.65  | between-ness continuous=1.02 discrete=1.00 (~1 blur/~0 commit)
+  discrete - continuous : -0.08 (negative = discrete better)
+reach rate (<= baseline median): base 0.50 / cont 0.47 / disc 0.45
+>>> Mon Jun 22 01:00:49 CST 2026 running far_H16_s0 : --goal-pairing far --horizon 16 --seed 0 --n-train 400 --n-eval 128 --n-samples 512 --pred-epochs 200 --lam 1.0
+<<< Mon Jun 22 01:01:50 CST 2026 done far_H16_s0 rc=0
+mid-waypoint A/B sep=7.83  | between-ness continuous=0.63 discrete=0.60 (~1 blur/~0 commit)
+  discrete - continuous : -0.91 (negative = discrete better)
+reach rate (<= baseline median): base 0.50 / cont 0.46 / disc 0.48
+>>> Mon Jun 22 01:01:50 CST 2026 running far_H16_s1 : --goal-pairing far --horizon 16 --seed 1 --n-train 400 --n-eval 128 --n-samples 512 --pred-epochs 200 --lam 1.0
+<<< Mon Jun 22 01:02:52 CST 2026 done far_H16_s1 rc=0
+mid-waypoint A/B sep=7.68  | between-ness continuous=0.70 discrete=0.67 (~1 blur/~0 commit)
+  discrete - continuous : -1.18 (negative = discrete better)
+reach rate (<= baseline median): base 0.50 / cont 0.45 / disc 0.44
+>>> Mon Jun 22 01:02:52 CST 2026 running far_H16_s2 : --goal-pairing far --horizon 16 --seed 2 --n-train 400 --n-eval 128 --n-samples 512 --pred-epochs 200 --lam 1.0
+<<< Mon Jun 22 01:03:53 CST 2026 done far_H16_s2 rc=0
+mid-waypoint A/B sep=8.14  | between-ness continuous=0.64 discrete=0.67 (~1 blur/~0 commit)
+  discrete - continuous : +0.68 (negative = discrete better)
+reach rate (<= baseline median): base 0.50 / cont 0.44 / disc 0.43
+=== overnight done Mon Jun 22 01:03:53 CST 2026 ===

@@ -1,0 +1,14 @@
+{
+  "n_frames": 174309,
+  "n_pairs": 114362,
+  "ae_recon_mse": 0.09454751836464685,
+  "probe_xy_mae_px": 0.2629395127296448,
+  "success_continuous": 19.5,
+  "wallstuck_continuous": 67.5,
+  "success_discrete_recompute": 15.5,
+  "wallstuck_discrete_recompute": 76.5,
+  "success_discrete_once": 22.0,
+  "wallstuck_discrete_once": 66.0,
+  "success_expert_oracle": 100.0,
+  "discrete_recompute_minus_continuous": -4.0
+}

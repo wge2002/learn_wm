@@ -1,0 +1,13 @@
+{
+  "N": 3,
+  "seed": 2,
+  "codes": 2,
+  "n_frames": 101452,
+  "ae_recon_mse": 0.053013468861433446,
+  "results": {
+    "oracle": 100.0,
+    "continuous": 69.0,
+    "D0": 6.5
+  },
+  "D0_minus_continuous": -62.5
+}

@@ -1,0 +1,9 @@
+=== Stage 1d (Exp1): UNSUPERVISED discrete mode discovery (MCL, no labels) ===
+controlled configs=50  branch sep=2.20
+
+BETWEEN-NESS at ridge (dist to nearest branch / half-sep; ~1=blur, ~0=committed):
+  continuous single-head     : 0.88   (blur)
+  UNSUP MCL committed head   : 0.28   (the discovered head commits onto a branch)
+
+MCL specialization purity (winning head vs true door) = 0.99
+  (>>0.5 => the 2 heads genuinely discovered the up/down branches with NO labels)

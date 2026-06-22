@@ -1,0 +1,10 @@
+=== Stage 2 (Exp2): discrete commitment subgoal for LATENT planning ===
+frames=174309 pairs=114362 ae_recon=0.0930 delta=10 eval_eps=200
+
+success_rate from cross-room RIDGE starts (subgoal-conditioned policy):
+  continuous-prediction subgoal :  64.0%   (blur -> wall; wall-stuck 5%)
+  DISCRETE-commitment subgoal   :  50.0%   (commit -> door; wall-stuck 6%)
+  direct-goal subgoal (diag)    :  54.0%   (goal across wall; wall-stuck 30%)
+  expert oracle (state waypoint): 100.0%   (ceiling)
+
+  >>> discrete - continuous = -14.0 points  (the latent analog of Stage 1's +27)

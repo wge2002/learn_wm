@@ -1,0 +1,13 @@
+{
+  "n_frames": 174309,
+  "n_pairs": 114362,
+  "ae_recon_mse": 0.09299905457917382,
+  "success_continuous_subgoal": 64.0,
+  "wallstuck_continuous": 5.0,
+  "success_discrete_subgoal": 50.0,
+  "wallstuck_discrete": 6.0,
+  "success_direct_goal": 54.0,
+  "wallstuck_direct": 30.0,
+  "success_expert_oracle": 100.0,
+  "discrete_minus_continuous": -14.0
+}

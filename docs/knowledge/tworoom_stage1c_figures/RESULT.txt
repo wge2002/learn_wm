@@ -1,0 +1,18 @@
+=== Stage 1c: TwoRoom LATENT junction, GENUINE bimodal (stochastic branch) ===
+frames=174309 pairs=114362 ridge=1635 ae_recon=0.0727 delta=10
+branch clf acc at ridge = 0.70 (~0.5 expected = genuinely ambiguous input)
+latent mode separation = 1.95, within-branch spread = 2.16, sep/within = 0.90
+
+prediction error to TRUE next-latent at ridge (lower=better):
+  continuous     : 1.233
+  discrete-anchor: 1.051
+
+BLUR aggregate (dist to nearest branch / within-spread; ~1=mode, >>1=blur):
+  continuous     : 0.91
+  discrete-anchor: 0.96
+
+=== CONTROLLED conditional eval (40 fixed ridge configs x repeated rolls) ===
+branch separation sep=2.51, within-branch spread=0.15, sep/within=16.5
+BETWEEN-NESS = dist to nearest branch / (sep/2)  [THE clean test]:
+  continuous     : 0.76   (~1.0 = stuck exactly between the two branches = blur)
+  discrete-anchor: 0.26   (~0.0 = committed onto a branch)

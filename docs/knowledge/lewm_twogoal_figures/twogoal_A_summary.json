@@ -1,0 +1,14 @@
+{
+  "n_starts": 64,
+  "n_samples": 512,
+  "horizon": 8,
+  "topk": 5,
+  "action_dim": 2,
+  "mean_sep": 6.618167400360107,
+  "mean_within": 3.5579380989074707,
+  "median_sep_over_within": 1.637649416923523,
+  "mean_sep_over_within": 1.910783290863037,
+  "frac_separated(ratio>2)": 0.40625,
+  "mean_midpoint_betweenness": 1.0,
+  "elapsed_sec": 10.2
+}

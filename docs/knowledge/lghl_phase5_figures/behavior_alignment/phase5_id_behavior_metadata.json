@@ -1,0 +1,45 @@
+{
+  "policy": "quentinll/lewm-pusht",
+  "dataset_name": "pusht_expert_train.h5",
+  "env_name": "swm/PushT-v1",
+  "num_eval": 50,
+  "goal_offsets": [
+    5,
+    10,
+    15,
+    25,
+    50
+  ],
+  "eval_budget": 50,
+  "horizons": [
+    1,
+    2,
+    3,
+    5,
+    8,
+    10
+  ],
+  "receding": [
+    1,
+    2,
+    3,
+    5,
+    8,
+    10
+  ],
+  "receding_mode": "diagonal",
+  "warm_start": [
+    true
+  ],
+  "action_block": 5,
+  "seed": 42,
+  "device": "cuda",
+  "solver": {
+    "batch_size": 1,
+    "num_samples": 300,
+    "var_scale": 1.0,
+    "n_steps": 30,
+    "topk": 30
+  },
+  "elapsed_sec": 1643.3236470222473
+}

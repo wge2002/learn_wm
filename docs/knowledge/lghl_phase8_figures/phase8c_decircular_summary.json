@@ -1,0 +1,514 @@
+{
+  "meta": {
+    "policy": "quentinll/lewm-pusht",
+    "dataset_name": "pusht_expert_train.h5",
+    "env_name": "swm/PushT-v1",
+    "bank_path": "outputs/lghl_phase7_manifold/id_latent_bank.npy",
+    "output_dir": "outputs/lghl_phase8c_decircular",
+    "num_samples": 120,
+    "eval_ks": "0,5,8",
+    "plan_horizons": "2,3,5",
+    "lam": 0.5,
+    "alphas": "0.3,0.5",
+    "goal_offset": 50,
+    "action_block": 5,
+    "num_candidates": 256,
+    "candidate_scale": 1.0,
+    "knn_m": 8,
+    "img_size": 224,
+    "batch_size": 32,
+    "seed": 42,
+    "device": "cuda",
+    "cache_dir": null,
+    "shift": "id"
+  },
+  "rows": [
+    {
+      "k": 0,
+      "plan_h": 2,
+      "subgoal": "none",
+      "lam": 0.0,
+      "expert_rank": 111.75,
+      "top1_vs_ideal": 1.0,
+      "regret": 0.0
+    },
+    {
+      "k": 0,
+      "plan_h": 2,
+      "subgoal": "oracle",
+      "lam": 0.5,
+      "expert_rank": 50.08333206176758,
+      "top1_vs_ideal": 0.39166666666666666,
+      "regret": 0.043501194566488266
+    },
+    {
+      "k": 0,
+      "plan_h": 2,
+      "subgoal": "interp_goal_a0.3",
+      "lam": 0.5,
+      "expert_rank": 134.7916717529297,
+      "top1_vs_ideal": 0.45,
+      "regret": 0.028979873284697533
+    },
+    {
+      "k": 0,
+      "plan_h": 2,
+      "subgoal": "interp_raw_a0.3",
+      "lam": 0.5,
+      "expert_rank": 143.99166870117188,
+      "top1_vs_ideal": 0.5583333333333333,
+      "regret": 0.019201088696718216
+    },
+    {
+      "k": 0,
+      "plan_h": 2,
+      "subgoal": "interp_goal_a0.5",
+      "lam": 0.5,
+      "expert_rank": 134.1999969482422,
+      "top1_vs_ideal": 0.5833333333333334,
+      "regret": 0.014266690239310265
+    },
+    {
+      "k": 0,
+      "plan_h": 2,
+      "subgoal": "interp_raw_a0.5",
+      "lam": 0.5,
+      "expert_rank": 134.48333740234375,
+      "top1_vs_ideal": 0.6833333333333333,
+      "regret": 0.010815213434398174
+    },
+    {
+      "k": 0,
+      "plan_h": 3,
+      "subgoal": "none",
+      "lam": 0.0,
+      "expert_rank": 106.19999694824219,
+      "top1_vs_ideal": 1.0,
+      "regret": 0.0
+    },
+    {
+      "k": 0,
+      "plan_h": 3,
+      "subgoal": "oracle",
+      "lam": 0.5,
+      "expert_rank": 60.75833511352539,
+      "top1_vs_ideal": 0.49166666666666664,
+      "regret": 0.03657042235136032
+    },
+    {
+      "k": 0,
+      "plan_h": 3,
+      "subgoal": "interp_goal_a0.3",
+      "lam": 0.5,
+      "expert_rank": 124.59166717529297,
+      "top1_vs_ideal": 0.6083333333333333,
+      "regret": 0.02325526438653469
+    },
+    {
+      "k": 0,
+      "plan_h": 3,
+      "subgoal": "interp_raw_a0.3",
+      "lam": 0.5,
+      "expert_rank": 127.82499694824219,
+      "top1_vs_ideal": 0.6333333333333333,
+      "regret": 0.012730523012578487
+    },
+    {
+      "k": 0,
+      "plan_h": 3,
+      "subgoal": "interp_goal_a0.5",
+      "lam": 0.5,
+      "expert_rank": 120.2750015258789,
+      "top1_vs_ideal": 0.6666666666666666,
+      "regret": 0.015282402746379375
+    },
+    {
+      "k": 0,
+      "plan_h": 3,
+      "subgoal": "interp_raw_a0.5",
+      "lam": 0.5,
+      "expert_rank": 121.4000015258789,
+      "top1_vs_ideal": 0.7,
+      "regret": 0.008442600257694721
+    },
+    {
+      "k": 0,
+      "plan_h": 5,
+      "subgoal": "none",
+      "lam": 0.0,
+      "expert_rank": 66.9000015258789,
+      "top1_vs_ideal": 1.0,
+      "regret": 0.0
+    },
+    {
+      "k": 0,
+      "plan_h": 5,
+      "subgoal": "oracle",
+      "lam": 0.5,
+      "expert_rank": 18.40833282470703,
+      "top1_vs_ideal": 0.44166666666666665,
+      "regret": 0.07211490720510483
+    },
+    {
+      "k": 0,
+      "plan_h": 5,
+      "subgoal": "interp_goal_a0.3",
+      "lam": 0.5,
+      "expert_rank": 145.6666717529297,
+      "top1_vs_ideal": 0.425,
+      "regret": 0.07550875097513199
+    },
+    {
+      "k": 0,
+      "plan_h": 5,
+      "subgoal": "interp_raw_a0.3",
+      "lam": 0.5,
+      "expert_rank": 142.65834045410156,
+      "top1_vs_ideal": 0.475,
+      "regret": 0.047573987394571304
+    },
+    {
+      "k": 0,
+      "plan_h": 5,
+      "subgoal": "interp_goal_a0.5",
+      "lam": 0.5,
+      "expert_rank": 127.13333129882812,
+      "top1_vs_ideal": 0.5416666666666666,
+      "regret": 0.04086672514677048
+    },
+    {
+      "k": 0,
+      "plan_h": 5,
+      "subgoal": "interp_raw_a0.5",
+      "lam": 0.5,
+      "expert_rank": 126.31666564941406,
+      "top1_vs_ideal": 0.6166666666666667,
+      "regret": 0.023324433714151382
+    },
+    {
+      "k": 5,
+      "plan_h": 2,
+      "subgoal": "none",
+      "lam": 0.0,
+      "expert_rank": 51.983333587646484,
+      "top1_vs_ideal": 0.5583333333333333,
+      "regret": 0.08947351574897766
+    },
+    {
+      "k": 5,
+      "plan_h": 2,
+      "subgoal": "oracle",
+      "lam": 0.5,
+      "expert_rank": 35.44166564941406,
+      "top1_vs_ideal": 0.4166666666666667,
+      "regret": 0.10842487961053848
+    },
+    {
+      "k": 5,
+      "plan_h": 2,
+      "subgoal": "interp_goal_a0.3",
+      "lam": 0.5,
+      "expert_rank": 63.06666564941406,
+      "top1_vs_ideal": 0.3333333333333333,
+      "regret": 0.1406097263097763
+    },
+    {
+      "k": 5,
+      "plan_h": 2,
+      "subgoal": "interp_raw_a0.3",
+      "lam": 0.5,
+      "expert_rank": 59.91666793823242,
+      "top1_vs_ideal": 0.4166666666666667,
+      "regret": 0.11883365362882614
+    },
+    {
+      "k": 5,
+      "plan_h": 2,
+      "subgoal": "interp_goal_a0.5",
+      "lam": 0.5,
+      "expert_rank": 55.05833435058594,
+      "top1_vs_ideal": 0.4,
+      "regret": 0.11628749221563339
+    },
+    {
+      "k": 5,
+      "plan_h": 2,
+      "subgoal": "interp_raw_a0.5",
+      "lam": 0.5,
+      "expert_rank": 56.66666793823242,
+      "top1_vs_ideal": 0.475,
+      "regret": 0.10237891972064972
+    },
+    {
+      "k": 5,
+      "plan_h": 3,
+      "subgoal": "none",
+      "lam": 0.0,
+      "expert_rank": 38.44166564941406,
+      "top1_vs_ideal": 0.5166666666666667,
+      "regret": 0.13526327908039093
+    },
+    {
+      "k": 5,
+      "plan_h": 3,
+      "subgoal": "oracle",
+      "lam": 0.5,
+      "expert_rank": 28.200000762939453,
+      "top1_vs_ideal": 0.49166666666666664,
+      "regret": 0.13904349505901337
+    },
+    {
+      "k": 5,
+      "plan_h": 3,
+      "subgoal": "interp_goal_a0.3",
+      "lam": 0.5,
+      "expert_rank": 48.92499923706055,
+      "top1_vs_ideal": 0.425,
+      "regret": 0.14979945123195648
+    },
+    {
+      "k": 5,
+      "plan_h": 3,
+      "subgoal": "interp_raw_a0.3",
+      "lam": 0.5,
+      "expert_rank": 44.67499923706055,
+      "top1_vs_ideal": 0.45,
+      "regret": 0.13923753798007965
+    },
+    {
+      "k": 5,
+      "plan_h": 3,
+      "subgoal": "interp_goal_a0.5",
+      "lam": 0.5,
+      "expert_rank": 39.46666717529297,
+      "top1_vs_ideal": 0.4583333333333333,
+      "regret": 0.14942802488803864
+    },
+    {
+      "k": 5,
+      "plan_h": 3,
+      "subgoal": "interp_raw_a0.5",
+      "lam": 0.5,
+      "expert_rank": 42.224998474121094,
+      "top1_vs_ideal": 0.43333333333333335,
+      "regret": 0.1514315903186798
+    },
+    {
+      "k": 5,
+      "plan_h": 5,
+      "subgoal": "none",
+      "lam": 0.0,
+      "expert_rank": 15.574999809265137,
+      "top1_vs_ideal": 0.625,
+      "regret": 0.15432146191596985
+    },
+    {
+      "k": 5,
+      "plan_h": 5,
+      "subgoal": "oracle",
+      "lam": 0.5,
+      "expert_rank": 13.391666412353516,
+      "top1_vs_ideal": 0.6416666666666667,
+      "regret": 0.14646539092063904
+    },
+    {
+      "k": 5,
+      "plan_h": 5,
+      "subgoal": "interp_goal_a0.3",
+      "lam": 0.5,
+      "expert_rank": 43.43333435058594,
+      "top1_vs_ideal": 0.39166666666666666,
+      "regret": 0.2968255877494812
+    },
+    {
+      "k": 5,
+      "plan_h": 5,
+      "subgoal": "interp_raw_a0.3",
+      "lam": 0.5,
+      "expert_rank": 36.78333282470703,
+      "top1_vs_ideal": 0.475,
+      "regret": 0.23194916546344757
+    },
+    {
+      "k": 5,
+      "plan_h": 5,
+      "subgoal": "interp_goal_a0.5",
+      "lam": 0.5,
+      "expert_rank": 26.491666793823242,
+      "top1_vs_ideal": 0.5083333333333333,
+      "regret": 0.22983665764331818
+    },
+    {
+      "k": 5,
+      "plan_h": 5,
+      "subgoal": "interp_raw_a0.5",
+      "lam": 0.5,
+      "expert_rank": 31.075000762939453,
+      "top1_vs_ideal": 0.5416666666666666,
+      "regret": 0.2081449180841446
+    },
+    {
+      "k": 8,
+      "plan_h": 2,
+      "subgoal": "none",
+      "lam": 0.0,
+      "expert_rank": 32.53333282470703,
+      "top1_vs_ideal": 0.30833333333333335,
+      "regret": 0.1851806938648224
+    },
+    {
+      "k": 8,
+      "plan_h": 2,
+      "subgoal": "oracle",
+      "lam": 0.5,
+      "expert_rank": 30.116666793823242,
+      "top1_vs_ideal": 0.3333333333333333,
+      "regret": 0.17655855417251587
+    },
+    {
+      "k": 8,
+      "plan_h": 2,
+      "subgoal": "interp_goal_a0.3",
+      "lam": 0.5,
+      "expert_rank": 39.84166717529297,
+      "top1_vs_ideal": 0.21666666666666667,
+      "regret": 0.1816168576478958
+    },
+    {
+      "k": 8,
+      "plan_h": 2,
+      "subgoal": "interp_raw_a0.3",
+      "lam": 0.5,
+      "expert_rank": 37.54166793823242,
+      "top1_vs_ideal": 0.225,
+      "regret": 0.18523359298706055
+    },
+    {
+      "k": 8,
+      "plan_h": 2,
+      "subgoal": "interp_goal_a0.5",
+      "lam": 0.5,
+      "expert_rank": 36.266666412353516,
+      "top1_vs_ideal": 0.3,
+      "regret": 0.17285725474357605
+    },
+    {
+      "k": 8,
+      "plan_h": 2,
+      "subgoal": "interp_raw_a0.5",
+      "lam": 0.5,
+      "expert_rank": 33.75833511352539,
+      "top1_vs_ideal": 0.2833333333333333,
+      "regret": 0.18206419050693512
+    },
+    {
+      "k": 8,
+      "plan_h": 3,
+      "subgoal": "none",
+      "lam": 0.0,
+      "expert_rank": 66.65833282470703,
+      "top1_vs_ideal": 0.2,
+      "regret": 0.18062157928943634
+    },
+    {
+      "k": 8,
+      "plan_h": 3,
+      "subgoal": "oracle",
+      "lam": 0.5,
+      "expert_rank": 54.375,
+      "top1_vs_ideal": 0.19166666666666668,
+      "regret": 0.18307922780513763
+    },
+    {
+      "k": 8,
+      "plan_h": 3,
+      "subgoal": "interp_goal_a0.3",
+      "lam": 0.5,
+      "expert_rank": 71.69166564941406,
+      "top1_vs_ideal": 0.18333333333333332,
+      "regret": 0.1954565942287445
+    },
+    {
+      "k": 8,
+      "plan_h": 3,
+      "subgoal": "interp_raw_a0.3",
+      "lam": 0.5,
+      "expert_rank": 70.30833435058594,
+      "top1_vs_ideal": 0.15,
+      "regret": 0.18881501257419586
+    },
+    {
+      "k": 8,
+      "plan_h": 3,
+      "subgoal": "interp_goal_a0.5",
+      "lam": 0.5,
+      "expert_rank": 63.18333435058594,
+      "top1_vs_ideal": 0.20833333333333334,
+      "regret": 0.18285496532917023
+    },
+    {
+      "k": 8,
+      "plan_h": 3,
+      "subgoal": "interp_raw_a0.5",
+      "lam": 0.5,
+      "expert_rank": 63.16666793823242,
+      "top1_vs_ideal": 0.15,
+      "regret": 0.18080201745033264
+    },
+    {
+      "k": 8,
+      "plan_h": 5,
+      "subgoal": "none",
+      "lam": 0.0,
+      "expert_rank": 138.26666259765625,
+      "top1_vs_ideal": 0.15833333333333333,
+      "regret": 0.23103481531143188
+    },
+    {
+      "k": 8,
+      "plan_h": 5,
+      "subgoal": "oracle",
+      "lam": 0.5,
+      "expert_rank": 92.55000305175781,
+      "top1_vs_ideal": 0.1,
+      "regret": 0.27751412987709045
+    },
+    {
+      "k": 8,
+      "plan_h": 5,
+      "subgoal": "interp_goal_a0.3",
+      "lam": 0.5,
+      "expert_rank": 163.69166564941406,
+      "top1_vs_ideal": 0.10833333333333334,
+      "regret": 0.2515091598033905
+    },
+    {
+      "k": 8,
+      "plan_h": 5,
+      "subgoal": "interp_raw_a0.3",
+      "lam": 0.5,
+      "expert_rank": 157.35833740234375,
+      "top1_vs_ideal": 0.11666666666666667,
+      "regret": 0.2504650950431824
+    },
+    {
+      "k": 8,
+      "plan_h": 5,
+      "subgoal": "interp_goal_a0.5",
+      "lam": 0.5,
+      "expert_rank": 133.78334045410156,
+      "top1_vs_ideal": 0.09166666666666666,
+      "regret": 0.24525180459022522
+    },
+    {
+      "k": 8,
+      "plan_h": 5,
+      "subgoal": "interp_raw_a0.5",
+      "lam": 0.5,
+      "expert_rank": 136.43333435058594,
+      "top1_vs_ideal": 0.075,
+      "regret": 0.2289142608642578
+    }
+  ],
+  "elapsed_sec": 29.8502995967865
+}

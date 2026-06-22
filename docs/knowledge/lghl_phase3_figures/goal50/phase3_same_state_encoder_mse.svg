@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="430" viewBox="0 0 780 430">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="390.0" y="26" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#222">Phase 3 Same-State Encoder Shift</text>
+<line x1="70" y1="372" x2="625" y2="372" stroke="#222" stroke-width="1.2"/>
+<line x1="70" y1="54" x2="70" y2="372" stroke="#222" stroke-width="1.2"/>
+<line x1="70" y1="372.0" x2="625" y2="372.0" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="376.0" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0.00</text>
+<line x1="70" y1="308.4" x2="625" y2="308.4" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="312.4" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0.29</text>
+<line x1="70" y1="244.8" x2="625" y2="244.8" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="248.8" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0.58</text>
+<line x1="70" y1="181.2" x2="625" y2="181.2" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="185.2" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0.88</text>
+<line x1="70" y1="117.6" x2="625" y2="117.6" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="121.6" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">1.17</text>
+<line x1="70" y1="54.0" x2="625" y2="54.0" stroke="#e7e7e7" stroke-width="1"/>
+<text x="60" y="58.0" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">1.46</text>
+<line x1="70.0" y1="372" x2="70.0" y2="377" stroke="#222"/>
+<text x="70.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">0</text>
+<line x1="125.5" y1="372" x2="125.5" y2="377" stroke="#222"/>
+<text x="125.5" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">1</text>
+<line x1="181.0" y1="372" x2="181.0" y2="377" stroke="#222"/>
+<text x="181.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">2</text>
+<line x1="236.5" y1="372" x2="236.5" y2="377" stroke="#222"/>
+<text x="236.5" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">3</text>
+<line x1="292.0" y1="372" x2="292.0" y2="377" stroke="#222"/>
+<text x="292.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">4</text>
+<line x1="347.5" y1="372" x2="347.5" y2="377" stroke="#222"/>
+<text x="347.5" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">5</text>
+<line x1="403.0" y1="372" x2="403.0" y2="377" stroke="#222"/>
+<text x="403.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">6</text>
+<line x1="458.5" y1="372" x2="458.5" y2="377" stroke="#222"/>
+<text x="458.5" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">7</text>
+<line x1="514.0" y1="372" x2="514.0" y2="377" stroke="#222"/>
+<text x="514.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">8</text>
+<line x1="569.5" y1="372" x2="569.5" y2="377" stroke="#222"/>
+<text x="569.5" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">9</text>
+<line x1="625.0" y1="372" x2="625.0" y2="377" stroke="#222"/>
+<text x="625.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">10</text>
+<text x="347.5" y="414" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#333">k</text>
+<text transform="translate(20 213.0) rotate(-90)" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#333">MSE vs ID same-state</text>
+<path d="M70.0,77.6 L125.5,79.3 L181.0,80.3 L236.5,84.8 L292.0,86.4 L347.5,88.0 L403.0,90.7 L458.5,93.3 L514.0,95.6 L569.5,95.6 L625.0,96.4" fill="none" stroke="#1f77b4" stroke-width="2.4"/>
+<circle cx="70.0" cy="77.6" r="3.5" fill="#1f77b4"/>
+<circle cx="125.5" cy="79.3" r="3.5" fill="#1f77b4"/>
+<circle cx="181.0" cy="80.3" r="3.5" fill="#1f77b4"/>
+<circle cx="236.5" cy="84.8" r="3.5" fill="#1f77b4"/>
+<circle cx="292.0" cy="86.4" r="3.5" fill="#1f77b4"/>
+<circle cx="347.5" cy="88.0" r="3.5" fill="#1f77b4"/>
+<circle cx="403.0" cy="90.7" r="3.5" fill="#1f77b4"/>
+<circle cx="458.5" cy="93.3" r="3.5" fill="#1f77b4"/>
+<circle cx="514.0" cy="95.6" r="3.5" fill="#1f77b4"/>
+<circle cx="569.5" cy="95.6" r="3.5" fill="#1f77b4"/>
+<circle cx="625.0" cy="96.4" r="3.5" fill="#1f77b4"/>
+<line x1="649" y1="72" x2="671" y2="72" stroke="#1f77b4" stroke-width="2.4"/>
+<text x="679" y="76" font-family="Arial, sans-serif" font-size="13" fill="#333">visual</text>
+<path d="M70.0,221.7 L125.5,217.3 L181.0,217.1 L236.5,211.8 L292.0,211.4 L347.5,207.7 L403.0,208.3 L458.5,208.6 L514.0,211.7 L569.5,213.6 L625.0,216.8" fill="none" stroke="#d62728" stroke-width="2.4"/>
+<circle cx="70.0" cy="221.7" r="3.5" fill="#d62728"/>
+<circle cx="125.5" cy="217.3" r="3.5" fill="#d62728"/>
+<circle cx="181.0" cy="217.1" r="3.5" fill="#d62728"/>
+<circle cx="236.5" cy="211.8" r="3.5" fill="#d62728"/>
+<circle cx="292.0" cy="211.4" r="3.5" fill="#d62728"/>
+<circle cx="347.5" cy="207.7" r="3.5" fill="#d62728"/>
+<circle cx="403.0" cy="208.3" r="3.5" fill="#d62728"/>
+<circle cx="458.5" cy="208.6" r="3.5" fill="#d62728"/>
+<circle cx="514.0" cy="211.7" r="3.5" fill="#d62728"/>
+<circle cx="569.5" cy="213.6" r="3.5" fill="#d62728"/>
+<circle cx="625.0" cy="216.8" r="3.5" fill="#d62728"/>
+<line x1="649" y1="96" x2="671" y2="96" stroke="#d62728" stroke-width="2.4"/>
+<text x="679" y="100" font-family="Arial, sans-serif" font-size="13" fill="#333">geometry</text>
+</svg>

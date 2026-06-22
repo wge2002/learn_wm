@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 core.*
+.DS_Store
 *.pdf
 *.jpg
 *.mp4
@@ -212,6 +213,13 @@ logs/
 **/__pycache__/**
 **/*.pyc
 !scripts/minerl.sh
+!scripts/plan/*.sh
+!docs/knowledge/**/*.log
+
+*.ckpt
+*.pt
+*.pth
+*.safetensors
 
 outputs/
 multirun/

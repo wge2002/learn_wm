@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="430" viewBox="0 0 820 430">
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="410.0" y="27" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#222">Phase 4 Latent MSE at Planning State</text>
+<line x1="72" y1="372" x2="650" y2="372" stroke="#222" stroke-width="1.2"/>
+<line x1="72" y1="54" x2="72" y2="372" stroke="#222" stroke-width="1.2"/>
+<line x1="72" y1="372.0" x2="650" y2="372.0" stroke="#e7e7e7"/>
+<text x="62" y="376.0" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0.00</text>
+<line x1="72" y1="308.4" x2="650" y2="308.4" stroke="#e7e7e7"/>
+<text x="62" y="312.4" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0.15</text>
+<line x1="72" y1="244.8" x2="650" y2="244.8" stroke="#e7e7e7"/>
+<text x="62" y="248.8" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0.30</text>
+<line x1="72" y1="181.2" x2="650" y2="181.2" stroke="#e7e7e7"/>
+<text x="62" y="185.2" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0.45</text>
+<line x1="72" y1="117.6" x2="650" y2="117.6" stroke="#e7e7e7"/>
+<text x="62" y="121.6" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0.60</text>
+<line x1="72" y1="54.0" x2="650" y2="54.0" stroke="#e7e7e7"/>
+<text x="62" y="58.0" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#555">0.75</text>
+<line x1="72.0" y1="372" x2="72.0" y2="377" stroke="#222"/>
+<text x="72.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">1</text>
+<line x1="200.4" y1="372" x2="200.4" y2="377" stroke="#222"/>
+<text x="200.4" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">3</text>
+<line x1="328.9" y1="372" x2="328.9" y2="377" stroke="#222"/>
+<text x="328.9" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">5</text>
+<line x1="650.0" y1="372" x2="650.0" y2="377" stroke="#222"/>
+<text x="650.0" y="396" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#555">10</text>
+<text x="361.0" y="414" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#333">k</text>
+<text transform="translate(22 213.0) rotate(-90)" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#333">latent MSE</text>
+<path d="M72.0,365.9 L200.4,345.9 L328.9,315.5 L650.0,161.2" fill="none" stroke="#1f77b4" stroke-width="2.4"/>
+<circle cx="72.0" cy="365.9" r="3.5" fill="#1f77b4"/>
+<circle cx="200.4" cy="345.9" r="3.5" fill="#1f77b4"/>
+<circle cx="328.9" cy="315.5" r="3.5" fill="#1f77b4"/>
+<circle cx="650.0" cy="161.2" r="3.5" fill="#1f77b4"/>
+<line x1="674" y1="72" x2="696" y2="72" stroke="#1f77b4" stroke-width="2.4"/>
+<text x="704" y="76" font-family="Arial, sans-serif" font-size="13" fill="#333">id</text>
+<path d="M72.0,324.5 L200.4,226.5 L328.9,177.8 L650.0,86.0" fill="none" stroke="#d62728" stroke-width="2.4"/>
+<circle cx="72.0" cy="324.5" r="3.5" fill="#d62728"/>
+<circle cx="200.4" cy="226.5" r="3.5" fill="#d62728"/>
+<circle cx="328.9" cy="177.8" r="3.5" fill="#d62728"/>
+<circle cx="650.0" cy="86.0" r="3.5" fill="#d62728"/>
+<line x1="674" y1="96" x2="696" y2="96" stroke="#d62728" stroke-width="2.4"/>
+<text x="704" y="100" font-family="Arial, sans-serif" font-size="13" fill="#333">visual</text>
+<path d="M72.0,329.7 L200.4,301.2 L328.9,226.0 L650.0,77.6" fill="none" stroke="#2ca02c" stroke-width="2.4"/>
+<circle cx="72.0" cy="329.7" r="3.5" fill="#2ca02c"/>
+<circle cx="200.4" cy="301.2" r="3.5" fill="#2ca02c"/>
+<circle cx="328.9" cy="226.0" r="3.5" fill="#2ca02c"/>
+<circle cx="650.0" cy="77.6" r="3.5" fill="#2ca02c"/>
+<line x1="674" y1="120" x2="696" y2="120" stroke="#2ca02c" stroke-width="2.4"/>
+<text x="704" y="124" font-family="Arial, sans-serif" font-size="13" fill="#333">geometry</text>
+</svg>

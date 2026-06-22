@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="520" viewBox="0 0 860 520">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="74" y="32" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#111827">Phase 5 ID: success vs planning horizon</text>
+<line x1="74" x2="682" y1="448.00" y2="448.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="452.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">0</text>
+<line x1="74" x2="682" y1="370.00" y2="370.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="374.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">21</text>
+<line x1="74" x2="682" y1="292.00" y2="292.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="296.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">42</text>
+<line x1="74" x2="682" y1="214.00" y2="214.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="218.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">63</text>
+<line x1="74" x2="682" y1="136.00" y2="136.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="140.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">84</text>
+<line x1="74" x2="682" y1="58.00" y2="58.00" stroke="#e5e7eb" stroke-width="1"/>
+<text x="64" y="62.00" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">105</text>
+<line x1="74" x2="682" y1="448" y2="448" stroke="#111827" stroke-width="1.4"/>
+<line x1="74" x2="74" y1="58" y2="448" stroke="#111827" stroke-width="1.4"/>
+<line x1="74.00" x2="74.00" y1="448" y2="454" stroke="#111827"/>
+<text x="74.00" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#111827">H=1</text>
+<line x1="195.60" x2="195.60" y1="448" y2="454" stroke="#111827"/>
+<text x="195.60" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#111827">H=2</text>
+<line x1="317.20" x2="317.20" y1="448" y2="454" stroke="#111827"/>
+<text x="317.20" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#111827">H=3</text>
+<line x1="438.80" x2="438.80" y1="448" y2="454" stroke="#111827"/>
+<text x="438.80" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#111827">H=5</text>
+<line x1="560.40" x2="560.40" y1="448" y2="454" stroke="#111827"/>
+<text x="560.40" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#111827">H=8</text>
+<line x1="682.00" x2="682.00" y1="448" y2="454" stroke="#111827"/>
+<text x="682.00" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#111827">H=10</text>
+<text x="378.0" y="502" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#111827">planner horizon H</text>
+<text transform="translate(20,253.0) rotate(-90)" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#111827">success rate (%)</text>
+<polyline points="74.00,84.00 195.60,76.57 317.20,84.00 438.80,91.43 560.40,195.43 682.00,254.86" fill="none" stroke="#2563eb" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="74.00" cy="84.00" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="195.60" cy="76.57" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="317.20" cy="84.00" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="438.80" cy="91.43" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="560.40" cy="195.43" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="682.00" cy="254.86" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="1.5"/>
+<polyline points="74.00,91.43 195.60,98.86 317.20,113.71 438.80,121.14 560.40,150.86 682.00,188.00" fill="none" stroke="#dc2626" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="74.00" cy="91.43" r="4" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="195.60" cy="98.86" r="4" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="317.20" cy="113.71" r="4" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="438.80" cy="121.14" r="4" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="560.40" cy="150.86" r="4" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="682.00" cy="188.00" r="4" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+<polyline points="74.00,128.57 195.60,113.71 317.20,113.71 438.80,136.00 560.40,188.00 682.00,284.57" fill="none" stroke="#16a34a" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="74.00" cy="128.57" r="4" fill="#16a34a" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="195.60" cy="113.71" r="4" fill="#16a34a" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="317.20" cy="113.71" r="4" fill="#16a34a" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="438.80" cy="136.00" r="4" fill="#16a34a" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="560.40" cy="188.00" r="4" fill="#16a34a" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="682.00" cy="284.57" r="4" fill="#16a34a" stroke="#ffffff" stroke-width="1.5"/>
+<polyline points="74.00,217.71 195.60,165.71 317.20,150.86 438.80,165.71 560.40,240.00 682.00,299.43" fill="none" stroke="#9333ea" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="74.00" cy="217.71" r="4" fill="#9333ea" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="195.60" cy="165.71" r="4" fill="#9333ea" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="317.20" cy="150.86" r="4" fill="#9333ea" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="438.80" cy="165.71" r="4" fill="#9333ea" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="560.40" cy="240.00" r="4" fill="#9333ea" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="682.00" cy="299.43" r="4" fill="#9333ea" stroke="#ffffff" stroke-width="1.5"/>
+<polyline points="74.00,344.00 195.60,321.71 317.20,277.14 438.80,292.00 560.40,336.57 682.00,358.86" fill="none" stroke="#ea580c" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="74.00" cy="344.00" r="4" fill="#ea580c" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="195.60" cy="321.71" r="4" fill="#ea580c" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="317.20" cy="277.14" r="4" fill="#ea580c" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="438.80" cy="292.00" r="4" fill="#ea580c" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="560.40" cy="336.57" r="4" fill="#ea580c" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="682.00" cy="358.86" r="4" fill="#ea580c" stroke="#ffffff" stroke-width="1.5"/>
+<line x1="706" x2="730" y1="68" y2="68" stroke="#2563eb" stroke-width="3"/>
+<circle cx="718" cy="68" r="4" fill="#2563eb"/>
+<text x="740" y="72" font-family="Arial, sans-serif" font-size="13" fill="#111827">goal 5</text>
+<line x1="706" x2="730" y1="94" y2="94" stroke="#dc2626" stroke-width="3"/>
+<circle cx="718" cy="94" r="4" fill="#dc2626"/>
+<text x="740" y="98" font-family="Arial, sans-serif" font-size="13" fill="#111827">goal 10</text>
+<line x1="706" x2="730" y1="120" y2="120" stroke="#16a34a" stroke-width="3"/>
+<circle cx="718" cy="120" r="4" fill="#16a34a"/>
+<text x="740" y="124" font-family="Arial, sans-serif" font-size="13" fill="#111827">goal 15</text>
+<line x1="706" x2="730" y1="146" y2="146" stroke="#9333ea" stroke-width="3"/>
+<circle cx="718" cy="146" r="4" fill="#9333ea"/>
+<text x="740" y="150" font-family="Arial, sans-serif" font-size="13" fill="#111827">goal 25</text>
+<line x1="706" x2="730" y1="172" y2="172" stroke="#ea580c" stroke-width="3"/>
+<circle cx="718" cy="172" r="4" fill="#ea580c"/>
+<text x="740" y="176" font-family="Arial, sans-serif" font-size="13" fill="#111827">goal 50</text>
+</svg>

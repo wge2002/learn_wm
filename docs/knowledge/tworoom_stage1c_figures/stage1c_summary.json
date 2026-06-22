@@ -1,0 +1,21 @@
+{
+  "n_frames": 174309,
+  "n_pairs": 114362,
+  "ae_recon_mse": 0.0726638484527083,
+  "ridge_pairs": 1635,
+  "mode_separation": 1.9492862224578857,
+  "within_branch_spread": 2.1567487716674805,
+  "cont_pred_err_to_true": 1.2334718704223633,
+  "disc_pred_err_to_true": 1.0511730909347534,
+  "cont_blur": 0.9057573679813066,
+  "disc_blur": 0.9632945167243695,
+  "branch_clf_acc_at_ridge": 0.6990825688073394,
+  "controlled": {
+    "n_configs_used": 40,
+    "mean_sep": 2.5118937492370605,
+    "mean_within": 0.15194232761859894,
+    "sep_over_within": 16.531888961791992,
+    "cont_blur": 0.7589020133018494,
+    "disc_blur": 0.2551157474517822
+  }
+}

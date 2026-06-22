@@ -17,6 +17,24 @@ from torchvision.transforms import v2 as transforms
 import stable_worldmodel as swm
 
 
+def configure_torch_threads_from_env():
+    raw = os.environ.get('SWM_TORCH_THREADS')
+    if not raw:
+        return
+    try:
+        threads = max(1, int(raw))
+    except ValueError:
+        print(f'[eval] ignoring invalid SWM_TORCH_THREADS={raw!r}')
+        return
+    torch.set_num_threads(threads)
+    try:
+        torch.set_num_interop_threads(threads)
+    except RuntimeError:
+        # Inter-op threads can only be set before any parallel work starts.
+        pass
+    print(f'[eval] torch CPU threads set to {threads}')
+
+
 def img_transform(cfg, dtype=torch.float32):
     transform = transforms.Compose(
         [
@@ -51,9 +69,17 @@ def get_dataset(cfg, dataset_name):
     return dataset
 
 
+def to_container_or_none(value):
+    if value is None:
+        return None
+    return OmegaConf.to_container(value, resolve=True)
+
+
 @hydra.main(version_base=None, config_path='./config', config_name='pusht')
 def run(cfg: DictConfig):
     """Run evaluation of dinowm vs random policy."""
+    configure_torch_threads_from_env()
+
     assert (
         cfg.plan_config.horizon * cfg.plan_config.action_block
         <= cfg.eval.eval_budget
@@ -170,10 +196,14 @@ def run(cfg: DictConfig):
     world.set_policy(policy)
 
     results_path.mkdir(parents=True, exist_ok=True)
-    print(
-        f'[eval] saving videos to {results_path.resolve()} '
-        '(one env_{i}.mp4 per env)'
-    )
+    video_path = results_path if cfg.eval.get('video', True) else None
+    if video_path is not None:
+        print(
+            f'[eval] saving videos to {video_path.resolve()} '
+            '(one env_{i}.mp4 per env)'
+        )
+    else:
+        print('[eval] video saving disabled')
 
     autocast_ctx = torch.autocast(
         device_type='cuda',
@@ -199,7 +229,8 @@ def run(cfg: DictConfig):
                 callables=OmegaConf.to_container(
                     cfg.eval.get('callables'), resolve=True
                 ),
-                video=results_path,
+                options=to_container_or_none(cfg.eval.get('reset_options')),
+                video=video_path,
             )
         print('Warmup done.')
 
@@ -214,12 +245,14 @@ def run(cfg: DictConfig):
             callables=OmegaConf.to_container(
                 cfg.eval.get('callables'), resolve=True
             ),
-            video=results_path,
+            options=to_container_or_none(cfg.eval.get('reset_options')),
+            video=video_path,
         )
     end_time = time.time()
 
     print(metrics)
-    print(f'[eval] videos saved to {results_path.resolve()}')
+    if video_path is not None:
+        print(f'[eval] videos saved to {video_path.resolve()}')
 
     results_path = results_path / cfg.output.filename
     results_path.parent.mkdir(parents=True, exist_ok=True)
