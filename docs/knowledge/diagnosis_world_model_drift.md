@@ -2,6 +2,7 @@
 
 > **本 MD = 诊断线**。问题：LeWM 这类 latent 世界模型在 ID/visual/geometry 下的 open-loop latent reasoning 到底有没有问题、是哪种问题。
 > 解决方案线（离散承诺锚点 / TwoRoom / Exp2）见 [commitment_anchor_discrete.md](commitment_anchor_discrete.md)。
+> 新离散动力学分支见 [discrete_operator_new_start.md](discrete_operator_new_start.md)：把离散放在 transition operator 上，而不是 latent 表示上。
 > 两个 MD 共享下面第 0 节的实验对象与定义。
 
 这份 MD 是诊断侧的累积记录。后续诊断实验在本文按顺序新增 phase；最底部的"综合分析理解"始终替换为最新版本。每个 phase 内部小结保留。

@@ -2,6 +2,7 @@
 
 > **本 MD = 解决方案线**。idea：连续负责精度，**附加一个离散 token** 在多模态岔路处做"分支承诺/对齐"，让长程规划可拼接、可解歧义。
 > 诊断线（为什么需要这个）见 [diagnosis_world_model_drift.md](diagnosis_world_model_drift.md)，实验对象与公共定义在该文第 0 节。
+> 新离散分支见 [discrete_operator_new_start.md](discrete_operator_new_start.md)：状态保持连续，离散只选择 transition operator / regime，不再量化 latent 或 waypoint。
 
 ## 用户硬约束（务必保留，不要推翻）
 
