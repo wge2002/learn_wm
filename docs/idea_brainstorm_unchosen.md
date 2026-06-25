@@ -1,7 +1,7 @@
 # Idea Brainstorm（B 线候选池，尚未 choose）
 
 > 本 MD = **与离散承诺锚点并行的第二条 paper seed 候选池**。A 线离散实验继续推进；这里不是为了替换 A 线，也不是为了给离散找竞品，而是寻找另一个基于 world model / latent world model 的、同等有意义的独立主张。
-> A 线见 [commitment_anchor_discrete.md](commitment_anchor_discrete.md);诊断依据见 [diagnosis_world_model_drift.md](diagnosis_world_model_drift.md)。
+> A 线已证伪尝试归档见 [discrete_attempts_falsified_archive.md](knowledge/discrete_attempts_falsified_archive.md)，当前定案方向见 [direction_discrete_regime_from_lewm.md](knowledge/direction_discrete_regime_from_lewm.md)；诊断依据见 [diagnosis_world_model_drift.md](knowledge/diagnosis_world_model_drift.md)。
 
 ## 为什么需要重写这个池子
 
