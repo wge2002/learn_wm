@@ -1,0 +1,61 @@
+{
+  "direction": "direction_discrete_regime_from_lewm.md / Step A existence",
+  "policy": "quentinll/lewm-pusht",
+  "config": {
+    "num_samples": 800,
+    "max_k": 10,
+    "action_block": 5,
+    "HS": 3,
+    "D": 192,
+    "M_records": 6400,
+    "contact_rate": 0.61609375,
+    "contact_thresh": 0.0,
+    "k_list": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      8
+    ],
+    "pca_dim": 50,
+    "jac_topm": 32,
+    "max_jac_samples": 4000,
+    "jacobian": true
+  },
+  "best_by_feature": {
+    "z_control": {
+      "feature": "z_control",
+      "k": 8,
+      "silhouette": 0.06794514507055283,
+      "contact_nmi": 0.042842902812514086,
+      "contact_ari": 0.04346172760913791,
+      "contact_purity": 0.68078125,
+      "cluster_contact_rate_min": 0.18138041733547353,
+      "cluster_contact_rate_max": 0.7383720930232558
+    },
+    "residual_dir": {
+      "feature": "residual_dir",
+      "k": 8,
+      "silhouette": 0.03679262474179268,
+      "contact_nmi": 0.09676915538360263,
+      "contact_ari": 0.06823600784806881,
+      "contact_purity": 0.69296875,
+      "cluster_contact_rate_min": 0.3769633507853403,
+      "cluster_contact_rate_max": 0.9971830985915493
+    },
+    "jacobian_svals": {
+      "feature": "jacobian_svals",
+      "k": 2,
+      "silhouette": 0.39615827798843384,
+      "contact_nmi": 0.2980056667212433,
+      "contact_ari": 0.3712650680237698,
+      "contact_purity": 0.80475,
+      "cluster_contact_rate_min": 0.28955696202531644,
+      "cluster_contact_rate_max": 0.8897338403041825
+    }
+  },
+  "verdict": "GREEN: regime structure in f, aligned to contact, beyond z",
+  "verdict_green": true,
+  "elapsed_sec": 271.075975894928
+}

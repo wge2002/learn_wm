@@ -76,6 +76,7 @@ SIGReg ⇒ 边缘 p(z) ≈ 各向同性高斯 ⇒ 没有簇 / 没有模 / 没有
 - **目的**：离散 regime 到底在不在训好的 LeWM 动力学里？
 - **怎么测**：拿 `quentinll/lewm-pusht`，沿 PushT 专家轨迹算 predictor 的局部 Jacobian / 下一步残差方向，聚类；和 Phase 4 已有的接触事件对齐；**对照**：直接聚类 `z`（应无结构）vs 聚类 `f` 的局部行为（应现 regime）。
 - **判据**：`f` 落成几簇 + 对上接触，而 `z` 不成簇 → **存在性成立（本身就是一条 paper 级分析）**，绿灯。`f` 也糊成一团 → 加最小分段先验，或诚实收掉。
+- **结果（2026-06-25，绿灯）**：Jacobian 谱 silhouette 0.40 / contact-NMI 0.30，`z` 对照 0.07 / 0.04；最佳 k=2（接触/非接触二元开关），k=3–4 仍高。脚本 `scripts/plan/regime_existence_stepA.py`，摘要见 [regime_stepA_figures/](regime_stepA_figures/README.md)。残差方向信号弱（被动作污染）⇒ Step B 门控应条件在状态/算子而非残差。
 
 ### Step B — 自然涌现 / readout（最小训练，SIGReg 兼容）
 
