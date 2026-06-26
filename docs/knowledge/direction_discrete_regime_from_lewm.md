@@ -91,6 +91,9 @@ SIGReg ⇒ 边缘 p(z) ≈ 各向同性高斯 ⇒ 没有簇 / 没有模 / 没有
 - **目的**：把 regime 当稀疏锚点，是否真帮 rollout / planning。
 - **怎么测**：进段 commit regime、段内连续滚、regime 边界再决定（动态锚点）。(i) open-loop drift / planner cost-rank（复用 Phase 4/5 机器）；(ii) 真多模态处 commit（`lewm_twogoal` / TwoRoom，between-ness）；(iii) regime 边界触发自适应 re-ground，比固定间隔 re-ground（等预算）。
 - **判据**：regime-anchored 在 planner 相关指标上胜单体连续 → 收益兑现。
+- **结果（2026-06-26，红灯，连 oracle 都输）**：测 Step C(iii)——regime 边界触发 re-ground vs **等预算固定/均匀** re-ground。即使用**真接触边界（oracle 上界）**，regime-timed re-ground 也**显著输给均匀**：area-MSE（k=1..10 平均）regime@边界 0.095 / regime-边界前 0.099 vs 均匀(等预算~3.5) **0.065**，配对 Δ=+0.032，**p<0.001**（n=1412）。机理是根本性的：**re-ground 控制的是误差的累积（drift），不是单步转移的难度**；段内误差随"距上次 re-ground 步数"单调增长 ⇒ 最小化总 drift = 最小化 re-ground 间隔 = **均匀近最优**。接触边界会**聚集**（onset+release 相邻），把预算花在那里反而在别处留下长缺口让 drift 爆掉。知道"动力学哪里特殊"恰恰不是该放 re-ground 预算的地方。脚本 `scripts/plan/regime_reground_stepC.py`，摘要见 [regime_stepA_figures/stepC_README.md](regime_stepA_figures/stepC_README.md)，图 `stepC_reground.png`。**结论：Step C 监控用法也判死。**
+
+> **方向总结（2026-06-26）**：Step A 绿（regime 真存在于 `f`，是 paper 级描述性发现）；Step B 红（条件化预测器，对路由错误脆弱）；Step C 红（regime-timed re-ground 输给均匀）。**统一洞见**：regime 作为对动力学的**分析事实**真实且有信息，但**不转化为可用的控制杠杆**——既不能当预测器开关（路由脆弱），也不能当 re-ground 触发器（均匀占优）；两个失败同源：知道"哪里特殊"帮不了"如何动",因为成本结构（路由脆弱性 / drift 累积）不奖励 regime-局部化的动作。诚实落地：保留 Step A 作为独立分析结果，可执行方向到此穷尽。Step D/E 不再单独跑（建立在 B/C 收益之上，前提已否）。
 
 ### Step D — 对齐 / 复用（可选，要组合才做）
 
