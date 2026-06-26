@@ -129,5 +129,6 @@ E 死：不过 scale / shift → scale-limited，诚实写。
 docs/knowledge/diagnosis_world_model_drift.md          诊断线（病：on-manifold 各向同性扩散）
 docs/knowledge/discrete_attempts_falsified_archive.md  已结案合并：失败的离散尝试 + 一览
 docs/knowledge/direction_discrete_regime_from_lewm.md  ← 本文：定案主方向（理论→方法→脉络）
+docs/knowledge/regime_direction_results.md             总报告：A/B/C 完整结果 + 实验方法（最易读入口）
 docs/idea_brainstorm_unchosen.md                       B 线候选池
 ```
