@@ -70,6 +70,53 @@ This is consistent with the direction's "natural emergence" goal only if a weak 
 from the already-trained `f`, per Step A) counts as emergence rather than a new clustering loss
 on `z`. Decision deferred to user.
 
+## Round A (2026-06-26) — can a learnable gate close the gap? NO. Step B (MoE form) dies.
+
+The decisive round left open whether the bottleneck was the regime (refuted) or the gate
+(hypothesis a). Round A attacked the gate three ways and the answer is conclusive: **no
+realizable gate recovers the oracle benefit; every realizable MoE variant is worse than the
+plain continuous predictor.** See `stepB_roundA.png`. mse@10 (3 seeds each):
+
+| variant | needs test-time label? | mse@10 | gate→contact NMI |
+| --- | --- | --- | --- |
+| **oracle** (GT route train+eval) | **yes** | **0.320** | 1.0 (given) |
+| mono-wide (continuous baseline) | no | 0.368 | — |
+| blind MoE (no sup) | no | 0.403 | 0.007 |
+| clean-experts + learned gate, soft eval | no | 0.475 | 0.56 |
+| clean-experts + learned gate, hard eval | no | 0.486 | 0.56 |
+| supervised gate (gumbel), soft eval | no | 0.510 | 0.55 |
+| supervised gate (gumbel), hard eval | no | 0.521 | 0.55 |
+
+Three interventions, all fail to help:
+1. **Weak gate supervision** (aux CE → contact, `--gate-sup`): the gate *does* find contact
+   (NMI 0.008→0.55, purity 0.61→0.91), but drift gets *worse*, monotonically with the
+   supervision weight (gs0.1→0.405, gs1.0→0.521, gs3.0→0.682). Routing correctly ≠ predicting
+   better.
+2. **Clean expert specialization** (`--train-route-gt`: GT routes experts in training like the
+   oracle, learned gate only at eval): 0.486 — still worse than blind/mono. So the gap is NOT
+   soft-gumbel expert blending.
+3. **Graceful soft routing at eval** (`--eval-soft`): 0.475 / 0.510 — barely moves. So the gap
+   is NOT hard-argmax brittleness either.
+
+**Mechanism (the real finding).** Specializing experts to regimes makes the model *brittle to
+routing error*: a misrouted specialist is worse than a monolithic generalist's average, so the
+~9% routing error a state-gate makes on true states (more on drifted rollout states) more than
+eats the regime benefit. Soft routing avoids brittleness but blends specialists back into a
+generalist, forfeiting the benefit. Inherent tension: hard routing = benefit but brittle; soft
+= robust but ≈ monolithic. The oracle wins only because it *never* misroutes — and it needs the
+contact label at inference, which is exactly the quantity the gate cannot reliably predict
+(contact@t+1 is set by the action + fine geometry, not recoverable from the drifting latent).
+
+**Verdict: Step B in the latent-MoE form is DEAD** (doc kill criterion "压不平→方法死": every
+realizable variant has a steeper or equal slope than mono-wide). Step A's existence result
+stands; the regime is real and informative, but conditioning the *predictor* on it does not buy
+usable anti-drift. The regime's remaining viable use is as a *monitoring / re-grounding signal*
+(Step C control layer: "regime boundary = when to re-ground"), which does not require routing a
+brittle predictor — a different and weaker claim, deferred to user.
+
+Scripts: `regime_moe_stepB.py` (+`--gate-sup`,`--train-route-gt`,`--eval-soft`),
+`regime_stepB_roundA_figure.py`. Raw: `outputs/regime_stepB/{gatesup_,trgt_,softeval_}*` (not in Git).
+
 ## Caveats
 
 PushT-only, latent-level, ID. K=2 (binary contact switch from Step A best-k). Oracle uses the

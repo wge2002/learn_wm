@@ -80,7 +80,7 @@ class MonoPredictor(nn.Module):
             nn.Linear(hidden, dim),
         )
 
-    def step(self, hist, a, tau=1.0, hard=False, route=None):
+    def step(self, hist, a, tau=1.0, hard=False, route=None, soft_eval=False):
         z = hist[:, -1]
         return z + self.net(self.h.make(hist, a)), {}
 
@@ -109,8 +109,9 @@ class MoEPredictor(nn.Module):
             ) for _ in range(K)
         ])
 
-    def step(self, hist, a, tau=1.0, hard=False, route=None):
-        """route: optional (B,K) one-hot to override the gate (oracle regime)."""
+    def step(self, hist, a, tau=1.0, hard=False, route=None, soft_eval=False):
+        """route: optional (B,K) one-hot to override the gate (oracle regime).
+        soft_eval: at eval use softmax-weighted blend instead of hard argmax."""
         z = hist[:, -1]
         gin = self.h.state(hist) if self.gate_input == "state" else self.h.make(hist, a)
         logits = self.gate(gin)
@@ -118,6 +119,8 @@ class MoEPredictor(nn.Module):
             p = route
         elif self.training and not hard:
             p = F.gumbel_softmax(logits, tau=tau, hard=False)
+        elif soft_eval:
+            p = F.softmax(logits / tau, dim=-1)
         else:
             p = F.one_hot(logits.argmax(-1), self.K).float()
         feat = self.h.make(hist, a)
@@ -144,19 +147,28 @@ def seed_history(z_seq, t0, hs):
 
 
 def unroll(model, z_seq, a_seq, t0, steps, hs, tau=1.0, hard=False,
-           route_seq=None):
+           route_seq=None, want_logits=False, soft_eval=False):
     """route_seq: optional (B, K1, K) one-hot oracle routing per timestep; step s
-    predicting time t+1 is routed by route_seq[:, t+1]."""
+    predicting time t+1 is routed by route_seq[:, t+1].
+    want_logits: also return per-step gate logits (B, steps, K) for gate supervision
+    (None if the model emits no logits, e.g. mono)."""
     hist = list(seed_history(z_seq, t0, hs).unbind(dim=1))
-    preds = []
+    preds, logit_list = [], []
     for s in range(steps):
         t = t0 + s
         h = torch.stack(hist[-hs:], dim=1)
         route = route_seq[:, t + 1] if route_seq is not None else None
-        z_next, _ = model.step(h, a_seq[:, t], tau=tau, hard=hard, route=route)
+        z_next, info = model.step(h, a_seq[:, t], tau=tau, hard=hard, route=route,
+                                  soft_eval=soft_eval)
         preds.append(z_next)
+        if want_logits and "logits" in info:
+            logit_list.append(info["logits"])
         hist.append(z_next)
-    return torch.stack(preds, dim=1)
+    preds = torch.stack(preds, dim=1)
+    if want_logits:
+        logits = torch.stack(logit_list, dim=1) if logit_list else None
+        return preds, logits
+    return preds
 
 
 def linfit_slope(y):
@@ -210,6 +222,14 @@ def main():
     ap.add_argument("--experts", type=int, default=3, help="K (moe/oracle)")
     ap.add_argument("--gate-input", choices=["state", "both"], default="state",
                     help="moe gate sees state-history only, or state+action")
+    ap.add_argument("--gate-sup", type=float, default=0.0,
+                    help="weak gate-supervision weight: aux CE pushing the learnable "
+                         "MoE gate toward the contact regime (Step A read-out). 0=off.")
+    ap.add_argument("--train-route-gt", action="store_true",
+                    help="route experts by ground-truth contact during TRAINING only "
+                         "(clean oracle-like specialization), but use the learned gate "
+                         "at eval. Combine with --gate-sup to also train the gate. "
+                         "Probes whether the gap is soft-routing vs test-time routing.")
     ap.add_argument("--unroll", type=int, default=5)
     ap.add_argument("--hist", type=int, default=3)
     ap.add_argument("--hidden", type=int, default=512)
@@ -217,6 +237,11 @@ def main():
     ap.add_argument("--batch-size", type=int, default=512)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--contact-thresh", type=float, default=0.0)
+    ap.add_argument("--eval-soft", action="store_true",
+                    help="eval rollout with softmax-blended experts (graceful routing) "
+                         "instead of hard argmax; tau controls sharpness")
+    ap.add_argument("--eval-tau", type=float, default=0.5,
+                    help="temperature for --eval-soft routing")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default="cuda")
     args = ap.parse_args()
@@ -235,12 +260,15 @@ def main():
     adim = a.shape[2]
     hs = args.hist
     U = min(args.unroll, K1 - 1)
-    # oracle routing needs ground-truth contact bins on train + val (binary, K=2)
+    # contact bins (binary, K=2): oracle routes by them; weak-sup supervises toward them
     route_all = None
-    if args.arm == "oracle":
-        assert args.experts == 2, "oracle uses binary contact regime (K=2)"
-        assert "contact_frac" in d, "oracle needs contact_frac in --data"
+    lab_all = None
+    if args.arm == "oracle" or args.gate_sup > 0 or args.train_route_gt:
+        assert args.experts == 2, "contact regime is binary (K=2)"
+        assert "contact_frac" in d, "need contact_frac in --data for oracle/gate-sup"
         lab = (d["contact_frac"] > args.contact_thresh).astype(np.int64)  # (N,K1)
+        lab_all = torch.from_numpy(lab)
+    if args.arm == "oracle" or args.train_route_gt:
         r = np.zeros((*lab.shape, args.experts), dtype=np.float32)
         np.put_along_axis(r, lab[..., None], 1.0, axis=-1)
         route_all = torch.from_numpy(r)
@@ -250,8 +278,10 @@ def main():
         z_va = torch.from_numpy(d["z_val"].astype(np.float32)).to(device)
         a_va = torch.from_numpy(d["a_val"].astype(np.float32)).to(device)
         route_tr = route_va = None
-        if route_all is not None:  # only single-set oracle supported here
-            raise ValueError("oracle expects a single contact-labeled --data (no z_val)")
+        lab_tr = None
+        if route_all is not None or lab_all is not None:  # need single labeled set
+            raise ValueError("oracle/gate-sup expects a single contact-labeled "
+                             "--data (no z_val)")
     else:
         g = torch.Generator().manual_seed(args.seed)
         perm = torch.randperm(N, generator=g)
@@ -260,7 +290,10 @@ def main():
         z_tr, a_tr = z[tr_i].to(device), a[tr_i].to(device)
         z_va, a_va = z[va_i].to(device), a[va_i].to(device)
         route_tr = route_all[tr_i].to(device) if route_all is not None else None
-        route_va = route_all[va_i].to(device) if route_all is not None else None
+        # train-route-gt: GT routes experts in TRAIN only; eval uses the learned gate
+        route_va = (route_all[va_i].to(device)
+                    if route_all is not None and not args.train_route_gt else None)
+        lab_tr = lab_all[tr_i].to(device) if lab_all is not None else None
 
     model = build_model(args.arm, D, adim, hs, args.experts, args.hidden,
                         gate_input=args.gate_input).to(device)
@@ -281,8 +314,14 @@ def main():
             zb, ab = z_tr[bidx], a_tr[bidx]
             t0 = int(torch.randint(0, max_t0 + 1, (1,)).item()) if max_t0 > 0 else 0
             rb = route_tr[bidx] if route_tr is not None else None
-            preds = unroll(model, zb, ab, t0, U, hs, tau=tau, hard=False, route_seq=rb)
+            preds, logits = unroll(model, zb, ab, t0, U, hs, tau=tau, hard=False,
+                                   route_seq=rb, want_logits=args.gate_sup > 0)
             loss = F.mse_loss(preds, zb[:, t0 + 1: t0 + 1 + U])
+            if args.gate_sup > 0 and logits is not None:
+                # supervise gate at step predicting t+1 toward contact bin lab[:, t+1]
+                tgt = lab_tr[bidx][:, t0 + 1: t0 + 1 + U]  # (B,U)
+                ce = F.cross_entropy(logits.reshape(-1, args.experts), tgt.reshape(-1))
+                loss = loss + args.gate_sup * ce
             opt.zero_grad(); loss.backward(); opt.step()
             ep_loss += loss.item(); nb += 1
         if ep % 15 == 0 or ep == args.epochs - 1:
@@ -292,7 +331,8 @@ def main():
     model.eval()
     with torch.no_grad():
         full = K1 - 1
-        preds = unroll(model, z_va, a_va, 0, full, hs, hard=True, route_seq=route_va)
+        preds = unroll(model, z_va, a_va, 0, full, hs, hard=True, route_seq=route_va,
+                       soft_eval=args.eval_soft, tau=args.eval_tau)
         per_k = ((preds - z_va[:, 1:1 + full]) ** 2).mean(dim=(0, 2)).cpu().numpy()
         spread = float(z_va.var(dim=0).mean().item())
         usage = None
@@ -314,7 +354,7 @@ def main():
 
     result = {
         "arm": args.arm, "experts": args.experts, "gate_input": args.gate_input,
-        "unroll": U, "hist": hs,
+        "gate_sup": args.gate_sup, "unroll": U, "hist": hs,
         "seed": args.seed, "n_params_M": n_params / 1e6,
         "rollout_mse_vs_k": per_k.tolist(),
         "rollout_mse_slope": linfit_slope(per_k),
