@@ -83,6 +83,7 @@ SIGReg ⇒ 边缘 p(z) ≈ 各向同性高斯 ⇒ 没有簇 / 没有模 / 没有
 - **目的**：把 regime 变成可用的离散变量，且证明它让动力学更好。
 - **怎么测**：piecewise / mixture-of-experts 门控 predictor `f = Σ g_k(z,a)·f_k`，用**原 LeWM loss + 多步 unroll**训（不加 z 聚类 loss），对打单体 predictor。
 - **判据**：regime-conditioned 把 **mse@k 斜率压平**（抗漂）+ regime 无监督地对上接触（purity↑）→ 方法与"自然涌现"同时落地。压不平 → 方法死。
+- **结果（2026-06-25，黄灯/split）**：oracle（用真接触 bin 当门控）**显著压平 drift**——mse@10 0.320 vs 参数对齐连续基线 mono-wide 0.368，Δ=−0.048，t=3.29，**p=0.030**，slope 0.030 vs 0.037 ⇒ regime 有用，**收益真实存在**。但**学出来的门控瞎了**：moe-state/both 的 gate→contact NMI≈0.006–0.008（即使把动作喂进门控），等参数下还输给 mono-wide ⇒ 纯 rollout loss 无法让门控发现 Step A 已证存在于 Jacobian 的 regime（NMI 0.30）。**瓶颈是门控发现（假设 a），不是 regime 价值（假设 b 已被证伪）**。脚本 `scripts/plan/regime_moe_stepB.py` + `regime_stepB_aggregate.py`，摘要见 [regime_stepA_figures/stepB_README.md](regime_stepA_figures/stepB_README.md)。下一步候选：用 Step A 的 Jacobian 簇 / 接触标签**热启动或弱监督门控**（从已训好的 `f` 读出，仍属"自然涌现"而非在 `z` 上加聚类 loss），看可学门控能否逼近 oracle 上界——待用户定夺。
 
 ### Step C — 锚点收益（控制层）
 
