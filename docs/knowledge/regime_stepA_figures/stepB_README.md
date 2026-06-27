@@ -5,7 +5,7 @@ Direction: [direction_discrete_regime_from_lewm.md](../direction_discrete_regime
 Run: 2026-06-25, `decisive_20260625_1913`, 5 configs × 3 seeds, 8000 contact-labeled
 windows, K=2 experts, hist=3, unroll=5, 60 epochs (~11s/run).
 Scripts: `scripts/plan/regime_moe_stepB.py` (trainer), `scripts/plan/regime_stepB_aggregate.py`
-(stats + figure).
+(stats + figure). **工程级复刻细节（训了什么、怎么训）见 [stepB_engineering.md](stepB_engineering.md)。**
 
 ## Question
 

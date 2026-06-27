@@ -98,6 +98,9 @@ LeWM 的训练目标 = **预测损失 + SIGReg**。SIGReg 把 latent 的**边缘
 
 ## 4. Step B — 可用性：把 regime 当预测器开关（红灯）
 
+> 想要**工程级**复刻（精确层尺寸、参数量算式、训练循环、四个探针的代码实现）见
+> [regime_stepA_figures/stepB_engineering.md](regime_stepA_figures/stepB_engineering.md)。下面是逻辑+结论概览。
+
 ### 逻辑
 存在 ≠ 有用。Step B 问：把动力学拆成"每个 regime 一个专家"的 piecewise 预测器，用**原 LeWM 损失（多步 unroll，不加任何聚类 loss）**训，能不能压平 drift？判据（文档）：**压平 mse@k 斜率 + 门控无监督对上接触 → 落地；压不平 → 死。**
 
