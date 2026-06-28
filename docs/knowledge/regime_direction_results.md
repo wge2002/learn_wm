@@ -164,6 +164,9 @@ z_{t+1} = z_t + Σ_k  g_k(state_hist) · f_k([hist, action])
 
 ## 5. Step C — 控制层：把 regime 当 re-ground 触发器（红灯）
 
+> 工程级细节（`scheduled_rollout` 公平性、调度定义、指标、**以及未经充分 review 的软肋**）见
+> [regime_stepA_figures/stepC_engineering.md](regime_stepA_figures/stepC_engineering.md)。
+
 ### 逻辑
 Step B 死了"当预测器开关"。regime 还剩一个更弱的用法：当**监控信号**——不路由脆弱的预测器，只决定**何时 re-ground**（把漂移的预测 latent 换成重新编码的真观测）。假设：接触是分段动力学，预测误差应该在 regime 边界处爆发，所以"在边界处 re-ground"应该比"固定间隔均匀 re-ground"更省、更准。判据：**等预算下，regime-timed re-ground 胜均匀 → 收益兑现。**
 
