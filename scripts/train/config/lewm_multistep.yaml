@@ -1,0 +1,15 @@
+defaults:
+  - lewm
+  - _self_
+
+# Next-round anti-drift lever: train LeWM's predictor with a multi-step OPEN-LOOP unroll
+# loss instead of single-step teacher-forced (num_preds=1). No gate/regime; simple, solid,
+# directly attacks compounding drift. Compared against the single-step iter2_baseline.
+output_model_name: lewm_multistep
+
+wm:
+  unroll: 5        # seed 3 true frames, roll 5 steps open-loop
+
+data:
+  dataset:
+    num_steps: 8   # history_size(3) + unroll(5)

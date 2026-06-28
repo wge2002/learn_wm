@@ -47,8 +47,11 @@ def main():
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--dataset-name",
                     default="/home/jovyan/.stable_worldmodel/pusht_expert_train.h5")
+    ap.add_argument("--models", default="baseline:iter2_baseline,moe:iter2_moe",
+                    help="comma-separated name:checkpoint_subdir")
     ap.add_argument("--output", default="outputs/regime_stepB2/iter2_eval.json")
     args = ap.parse_args()
+    model_list = [tuple(m.split(":")) for m in args.models.split(",")]
 
     p3.configure_torch_threads_from_env()
     device = torch.device(args.device)
@@ -69,7 +72,7 @@ def main():
     actions = batch.model_actions.astype(np.float32)          # (N, K, adim)
 
     results = {}
-    for name, sub in [("baseline", "iter2_baseline"), ("moe", "iter2_moe")]:
+    for name, sub in model_list:
         print(f"[iter2-eval] loading {sub}/weights_epoch_{args.epoch}.pt", flush=True)
         model = load_ckpt(sub, args.epoch).to(device).eval()
         model.requires_grad_(False)
@@ -87,7 +90,8 @@ def main():
                  "norm_mse_vs_k": norm.tolist(), "norm_mse_at_k": float(norm[-1])}
 
         # MoE gate -> contact alignment on TRUE windows (best-case, teacher-forced)
-        if name == "moe":
+        is_moe = hasattr(model.predictor, "num_experts")
+        if is_moe:
             zt = torch.from_numpy(z_true).to(device)
             at = torch.from_numpy(actions).to(device)
             codes, labels = [], []
@@ -108,16 +112,17 @@ def main():
             entry["contact_rate"] = float(labels.mean())
         results[name] = entry
         msg = (f"[{name}] norm_mse@{args.max_k}={norm[-1]:.3f} (var={var:.3f})")
-        if name == "moe":
+        if is_moe:
             msg += f"  gate->contact NMI={entry['gate_contact_nmi']:.3f} acc={entry['gate_contact_acc']:.3f}"
         print(msg, flush=True)
 
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output).write_text(json.dumps(results, indent=2))
-    print(f"\n[iter2-eval] baseline norm_mse@k = {results['baseline']['norm_mse_at_k']:.3f}")
-    print(f"[iter2-eval] moe      norm_mse@k = {results['moe']['norm_mse_at_k']:.3f}")
-    print(f"[iter2-eval] moe gate->contact NMI = {results['moe']['gate_contact_nmi']:.3f} "
-          f"(iter1 frozen-encoder unsup was ~0.08; floor acc ~0.60)")
+    print("\n[iter2-eval] summary (norm mse@k, lower=better):")
+    for name, e in results.items():
+        extra = (f"  gate->contact NMI={e['gate_contact_nmi']:.3f}"
+                 if "gate_contact_nmi" in e else "")
+        print(f"  {name:<12} {e['norm_mse_at_k']:.3f}{extra}")
     print(f"[iter2-eval] wrote {args.output}")
 
 

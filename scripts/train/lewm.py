@@ -70,11 +70,28 @@ def lejepa_forward(self, batch, stage, cfg):
     emb = output['emb']  # (B, T, D)
     act_emb = output['act_emb']
 
-    ctx_emb = emb[:, :ctx_len]
-    ctx_act = act_emb[:, :ctx_len]
-
-    tgt_emb = emb[:, n_preds:]  # label
-    pred_emb = self.model.predict(ctx_emb, ctx_act)  # pred
+    unroll = int(cfg.wm.get('unroll', 0) or 0)
+    if unroll > 1:
+        # multi-step OPEN-LOOP unroll: seed with ctx_len true frames, feed predictions
+        # back for `unroll` steps, compare to true future frames. Encoder co-trained via
+        # both seed and target embeddings. (window length = ctx_len + unroll)
+        hs = ctx_len
+        hist = list(emb[:, :hs].unbind(dim=1))
+        preds = []
+        for s in range(unroll):
+            e = hs - 1 + s
+            ctx = torch.stack(hist[-hs:], dim=1)            # (B,hs,D)
+            actw = act_emb[:, e - hs + 1:e + 1]             # (B,hs,A)
+            nxt = self.model.predict(ctx, actw)[:, -1]      # predict frame e+1
+            preds.append(nxt)
+            hist.append(nxt)
+        pred_emb = torch.stack(preds, dim=1)               # (B,unroll,D)
+        tgt_emb = emb[:, hs:hs + unroll]
+    else:
+        ctx_emb = emb[:, :ctx_len]
+        ctx_act = act_emb[:, :ctx_len]
+        tgt_emb = emb[:, n_preds:]  # label
+        pred_emb = self.model.predict(ctx_emb, ctx_act)  # pred
 
     # LeWM loss
     output['pred_loss'] = (pred_emb - tgt_emb).pow(2).mean()
