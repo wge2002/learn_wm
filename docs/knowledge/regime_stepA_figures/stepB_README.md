@@ -98,14 +98,21 @@ Three interventions, all fail to help:
 3. **Graceful soft routing at eval** (`--eval-soft`): 0.475 / 0.510 — barely moves. So the gap
    is NOT hard-argmax brittleness either.
 
-**Mechanism (the real finding).** Specializing experts to regimes makes the model *brittle to
-routing error*: a misrouted specialist is worse than a monolithic generalist's average, so the
-~9% routing error a state-gate makes on true states (more on drifted rollout states) more than
-eats the regime benefit. Soft routing avoids brittleness but blends specialists back into a
-generalist, forfeiting the benefit. Inherent tension: hard routing = benefit but brittle; soft
-= robust but ≈ monolithic. The oracle wins only because it *never* misroutes — and it needs the
-contact label at inference, which is exactly the quantity the gate cannot reliably predict
-(contact@t+1 is set by the action + fine geometry, not recoverable from the drifting latent).
+**Mechanism (corrected by the routing probe — `regime_stepB_routing_probe.py`).** Earlier we
+guessed "the gate goes blind on drifted rollout states." **Direct measurement overturns that
+framing:** the supervised gate routes at **0.91 accuracy on true states and still 0.887 on the
+drifted open-loop rollout** (trivial floor 0.60) — routing barely degrades on drift. The real
+mechanism is the *catastrophic cost per misroute* of specialized experts: with **100% routing
+the oracle reaches mse@10 0.320, but ~89% routing (the supervised gate) lands at 0.506** — the
+~11% misroute adds +0.18 drift and blows past the monolithic 0.368. So the specialization
+benefit (~13%, oracle vs mono) is far smaller than the misroute penalty; you would need ~99%
+routing for MoE to pay off, which no learnable gate reaches. Soft routing avoids brittleness but
+blends specialists back into a generalist, forfeiting the benefit (hard = benefit-but-brittle;
+soft = robust-but-≈monolithic). Separately, the **blind gate stays blind (NMI ~0) under BOTH the
+multi-step and a single-step (LeWM-native `num_preds=1`) training objective**, so the
+non-emergence is not an artifact of our multi-step loss. The oracle wins only because it *never*
+misroutes — and it needs the contact label at inference, which is action-dependent and not worth
+predicting from the latent given the brittleness.
 
 **Verdict: Step B in the latent-MoE form is DEAD** (doc kill criterion "压不平→方法死": every
 realizable variant has a steeper or equal slope than mono-wide). Step A's existence result
@@ -115,7 +122,19 @@ usable anti-drift. The regime's remaining viable use is as a *monitoring / re-gr
 brittle predictor — a different and weaker claim, deferred to user.
 
 Scripts: `regime_moe_stepB.py` (+`--gate-sup`,`--train-route-gt`,`--eval-soft`),
-`regime_stepB_roundA_figure.py`. Raw: `outputs/regime_stepB/{gatesup_,trgt_,softeval_}*` (not in Git).
+`regime_stepB_roundA_figure.py`, `regime_stepB_routing_probe.py` (teacher-forced vs rollout
+routing + single-step ablation). Raw: `outputs/regime_stepB/{gatesup_,trgt_,softeval_}*`,
+`routing_probe.json` (not in Git).
+
+### Scope caveat (train/eval differs from LeWM proper)
+This whole Step B is a *controlled testbed on frozen LeWM latents*, not LeWM's own predictor:
+(i) architecture — ours is an MLP on raw actions, LeWM's predictor is a Transformer (depth 6,
+heads 16) with an action-encoder; (ii) objective — we train **multi-step open-loop unroll**
+(U=5) while LeWM trains **single-step teacher-forced** (`num_preds=1`). The mono-vs-moe-vs-oracle
+comparison is internally fair (all identical), but the negative result is scoped to "regime-as-
+dense-MLP-MoE on frozen latents," and a working result would not have been drop-in to LeWM's
+Transformer + single-step + CEM-planning pipeline. The faithful test (MoE inside LeWM's own
+training) remains undone. See [stepB_engineering.md](stepB_engineering.md) Part 1.
 
 ## Caveats
 
