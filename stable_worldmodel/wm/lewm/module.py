@@ -292,3 +292,59 @@ class Predictor(nn.Module):
         x = self.dropout(x)
         x = self.transformer(x, c)
         return x
+
+
+class MoEPredictor(nn.Module):
+    """Drop-in for Predictor: gate(latent) -> K param-matched Predictor experts.
+
+    Same forward(x, c) -> (B,T,D) interface and `num_frames` attr, so it slots into
+    LeWM.predict / rollout unchanged. Step B iteration 2: tests whether end-to-end
+    training (encoder co-adapts) lets the contact regime become routable. Gumbel-softmax
+    routing during training, hard argmax at eval. Exposes last_gate_logits for analysis.
+    """
+
+    def __init__(
+        self,
+        *,
+        num_frames,
+        depth,
+        heads,
+        mlp_dim,
+        input_dim,
+        hidden_dim,
+        output_dim=None,
+        dim_head=64,
+        dropout=0.0,
+        emb_dropout=0.0,
+        num_experts=2,
+        expert_depth=None,
+        gate_hidden=256,
+        gate_tau=1.0,
+    ):
+        super().__init__()
+        self.num_frames = num_frames
+        self.num_experts = num_experts
+        self.gate_tau = gate_tau
+        ed = expert_depth or max(1, depth // num_experts)
+        self.gate = nn.Sequential(
+            nn.Linear(input_dim, gate_hidden), nn.GELU(),
+            nn.Linear(gate_hidden, num_experts),
+        )
+        self.experts = nn.ModuleList([
+            Predictor(
+                num_frames=num_frames, depth=ed, heads=heads, mlp_dim=mlp_dim,
+                input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim,
+                dim_head=dim_head, dropout=dropout, emb_dropout=emb_dropout,
+            ) for _ in range(num_experts)
+        ])
+        self.last_gate_logits = None
+
+    def forward(self, x, c):
+        logits = self.gate(x)  # (B, T, K), gate on latent state
+        self.last_gate_logits = logits
+        if self.training:
+            p = F.gumbel_softmax(logits, tau=self.gate_tau, hard=False, dim=-1)
+        else:
+            p = F.one_hot(logits.argmax(-1), self.num_experts).float()
+        outs = torch.stack([e(x, c) for e in self.experts], dim=2)  # (B,T,K,D)
+        return (p.unsqueeze(-1) * outs).sum(dim=2)

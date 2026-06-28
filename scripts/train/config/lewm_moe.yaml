@@ -1,0 +1,14 @@
+defaults:
+  - lewm
+  - _self_
+
+# Step B iteration 2: regime-MoE predictor inside full from-scratch LeWM training
+# (encoder + MoE predictor + SIGReg, end-to-end). Tests whether encoder co-adaptation
+# makes the contact regime routable. Param-matched to baseline (2 experts x depth 3 ~= depth 6).
+output_model_name: lewm_moe
+
+model:
+  predictor:
+    _target_: stable_worldmodel.wm.lewm.module.MoEPredictor
+    num_experts: 2
+    expert_depth: 3
