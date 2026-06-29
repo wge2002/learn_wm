@@ -3,6 +3,12 @@
 > 目的:把我们一路实验里撞出来的硬事实,推成一个**有理论支持、与 LeWM 原 loss 自然结合、少超参**的新损失。
 > 状态:**推导稿(v1)**,带可证伪预测 + 小规模验证方案。配套实验证据见
 > [multistep_unroll_drift.md](multistep_unroll_drift.md)、[regime_direction_results.md](regime_direction_results.md)。
+>
+> ⏰ **24h 后看这里(多 seed 确认 82% vs 22% 的 planning gap)**:seed-1 训练于 2026-06-29 ~21:08 起跑
+> (`iter2_multistep_s1` 4卡 / `iter2_baseline_s1` 2卡,约 **2026-06-30 22:00–07-01 02:00** 跑完)。
+> 进度日志 `outputs/regime_stepB2/planner_20260629_2108/train_{multistep,baseline}_s1.log`;
+> 跑完后:建 `*_s1_eval` 目录(config.json=model 子树 + 软链 weights)→ `eval_wm.py policy=..._s1_eval`(planning 50ep)
+> + `regime_lewm_iter2_eval.py`(drift)。**找我"查 seed 结果"即可。**
 
 ---
 
