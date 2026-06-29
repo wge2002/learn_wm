@@ -42,11 +42,46 @@ demonstrated inside LeWM's own pipeline.
 - Different latent spaces across runs (var 0.866 vs 0.961) — handled by normalizing; raw curves
   agree.
 
+## ⚠️ Planner result OVERTURNS the "positive": lower drift, MUCH worse control
+
+Ran the actual PushT MPC/CEM benchmark (`scripts/plan/eval_wm.py`, 50 episodes, CEM
+num_samples=300) on both from-scratch checkpoints:
+
+| model | latent drift mse@8 | **PushT planning success (50 ep)** |
+| --- | --- | --- |
+| single-step baseline | 0.315 | **82% (41/50)** |
+| multi-step (unroll=5) | **0.177** (−44%) | **22% (11/50)** |
+
+**The multi-step model has far lower latent drift yet plans catastrophically worse.**
+Lower self-consistency drift does NOT imply better control — here it's strongly inverted.
+
+**Likely mechanism (the important lesson):** multi-step open-loop unroll rewards predicting
+the model's *own* trajectory accurately over many steps; the cheapest way to do that is to make
+the dynamics **smooth and action-insensitive** (predictions that barely respond to the action
+input compound less). But CEM planning distinguishes good vs bad action candidates *by their
+predicted outcomes* — an action-insensitive model makes all candidates look alike, so the
+planner can't steer (→22%). The multistep latent var is also lower (0.866 vs 0.961), consistent
+with a partial collapse. So **drift-MSE is a misaligned proxy: it can be minimized by
+destroying the action-discriminability that planning needs.**
+
+**Takeaways:**
+- The multi-step "win" is dead — it's harmful for the real task. Honest negative.
+- This is the cleanest evidence yet that **the training objective must target planning-relevant
+  structure (counterfactual/action sensitivity, goal-aligned geometry), not self-consistent
+  drift.** Directly motivates a theory-derived loss (see below).
+- Caveat: 1 seed each (seed-1 reruns training to confirm 82 vs 22 isn't a fluke); the gap (60
+  points) is far beyond plausible seed noise.
+- To verify the mechanism: measure ‖∂z'/∂a‖ (action sensitivity of the predicted next latent)
+  for multistep vs baseline — predict multistep ≪ baseline.
+
 ## Next
 
-1. Seed-confirm (2-3 seeds) — but each from-scratch run is ~8h (multi-step) / ~3.4h (single).
-2. Planner cost-rank: does flatter latent drift translate to better CEM action ranking?
-3. Sweep `unroll` (3/5/8) and try a curriculum (single→multi) for stability/efficiency.
+1. Confirm the planner gap with seed-1 models (training now); planner-eval the pretrained
+   100-epoch LeWM as a reference anchor.
+2. Verify the action-insensitivity mechanism (counterfactual sensitivity ‖∂z'/∂a‖).
+3. Feed into the IDEA: a loss that combines LeWM's marginal structure (SIGReg) with a
+   *transition* term that preserves action-discriminability / piecewise dynamics, instead of
+   plain multi-step drift.
 
 Scripts: `scripts/train/lewm.py` (+`--config-name lewm_multistep`),
 `scripts/plan/regime_lewm_iter2_eval.py`. Checkpoints: `iter2_multistep`, `iter2_baseline`
