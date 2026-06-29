@@ -80,10 +80,23 @@ def main():
 
         z_true = p3.encode_frames(model=model, frames=frames,
                                   batch_size=args.batch_size, device=device)  # (N,K+1,D)
-        pred = p3.regrounded_rollout(model=model, frames=frames, true_emb=z_true,
-                                     model_actions=actions, interval=args.max_k,
-                                     batch_size=args.batch_size, device=device)
-        mse = p3.metric_arrays(pred, z_true)["mse"].mean(axis=0)              # (K+1,)
+        # 3-frame-seed open-loop latent rollout (matches both models' training seed;
+        # model.rollout's 1-frame seed is unfair to the multi-step model).
+        zt = torch.from_numpy(z_true).to(device)
+        at = torch.from_numpy(actions).to(device)
+        full = zt.size(1) - hs
+        with torch.no_grad():
+            histl = list(zt[:, :hs].unbind(dim=1))
+            preds = []
+            for s in range(full):
+                e = hs - 1 + s
+                ctx = torch.stack(histl[-hs:], dim=1)
+                ae = model.action_encoder(at[:, e - hs + 1:e + 1])
+                nxt = model.predict(ctx, ae)[:, -1]
+                preds.append(nxt); histl.append(nxt)
+            predt = torch.stack(preds, dim=1)                # (N, full, D)
+            tgtt = zt[:, hs:hs + full]
+            mse = ((predt - tgtt) ** 2).mean(dim=(0, 2)).cpu().numpy()  # (full,)
         var = float(z_true.var(axis=0).mean())
         norm = (mse / max(var, 1e-9))
         entry = {"mse_vs_k": mse.tolist(), "latent_var": var,
