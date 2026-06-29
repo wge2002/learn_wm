@@ -55,14 +55,21 @@ num_samples=300) on both from-scratch checkpoints:
 **The multi-step model has far lower latent drift yet plans catastrophically worse.**
 Lower self-consistency drift does NOT imply better control — here it's strongly inverted.
 
-**Likely mechanism (the important lesson):** multi-step open-loop unroll rewards predicting
-the model's *own* trajectory accurately over many steps; the cheapest way to do that is to make
-the dynamics **smooth and action-insensitive** (predictions that barely respond to the action
-input compound less). But CEM planning distinguishes good vs bad action candidates *by their
-predicted outcomes* — an action-insensitive model makes all candidates look alike, so the
-planner can't steer (→22%). The multistep latent var is also lower (0.866 vs 0.961), consistent
-with a partial collapse. So **drift-MSE is a misaligned proxy: it can be minimized by
-destroying the action-discriminability that planning needs.**
+**Mechanism — first hypothesis REFUTED, real lesson is deeper.** I guessed multi-step collapses
+action-sensitivity. A counterfactual probe (vary the action, measure the spread of the predicted
+next latent) **refutes that**: multistep is *more* action-sensitive, not less
+(action_spread 0.374 vs baseline 0.307). So the failure is not a collapse.
+
+The real culprit is that **drift-MSE is *self-referential*: it compares the predictor's rollout
+to the *same model's own encoder* outputs.** Encoder and predictor co-adapt, so a model can drive
+self-drift down by reshaping its latent into a manifold that is easy to roll forward
+*self-consistently* — without that manifold being **task/goal-aligned or physically accurate**.
+CEM plans by ranking action sequences via `MSE(predicted final latent, goal latent)`; if the
+self-consistent latent doesn't encode goal-discriminative / physically-faithful structure, the
+cost landscape is uninformative and planning fails (→22%), even though the model is action-
+sensitive and low-drift *in its own latent*. So **low self-referential drift ≠ a good world
+model; it can be "gamed" by encoder+predictor co-adaptation into a self-consistent but
+task-irrelevant latent.**
 
 **Takeaways:**
 - The multi-step "win" is dead — it's harmful for the real task. Honest negative.
@@ -71,8 +78,8 @@ destroying the action-discriminability that planning needs.**
   drift.** Directly motivates a theory-derived loss (see below).
 - Caveat: 1 seed each (seed-1 reruns training to confirm 82 vs 22 isn't a fluke); the gap (60
   points) is far beyond plausible seed noise.
-- To verify the mechanism: measure ‖∂z'/∂a‖ (action sensitivity of the predicted next latent)
-  for multistep vs baseline — predict multistep ≪ baseline.
+- Action-sensitivity probe done: multistep 0.374 > baseline 0.307 → action-insensitivity ruled
+  out; the failure is task-misalignment of a self-consistent latent (above).
 
 ## Next
 
