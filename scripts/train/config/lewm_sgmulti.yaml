@@ -1,0 +1,16 @@
+defaults:
+  - lewm
+  - _self_
+
+# L_new (theory_sufficiency_loss.md §5): single-step (shapes encoder, planning-good)
+# + beta * multi-step unroll with STOP-GRAD encoder (predictor-only anti-drift).
+# Falsifiable: drift AND planning improve together.
+output_model_name: lewm_sgmulti
+
+wm:
+  unroll_sg: 5     # predictor-only multi-step horizon
+  beta: 1.0        # weight of the sg multi-step term
+
+data:
+  dataset:
+    num_steps: 8   # history_size(3) + unroll_sg(5)

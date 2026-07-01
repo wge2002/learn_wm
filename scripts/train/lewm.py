@@ -71,6 +71,38 @@ def lejepa_forward(self, batch, stage, cfg):
     act_emb = output['act_emb']
 
     unroll = int(cfg.wm.get('unroll', 0) or 0)
+    unroll_sg = int(cfg.wm.get('unroll_sg', 0) or 0)
+    if unroll_sg > 1:
+        # L_new (theory_sufficiency_loss.md §5): encoder shaped ONLY by single-step
+        # + SIGReg (keeps it planning-good); an anti-drift multi-step term trains the
+        # PREDICTOR ONLY, with the encoder stop-gradded (sg) so it can't shed info to
+        # cheat multi-step drift. total pred_loss = single_step + beta * multistep_sg.
+        hs = ctx_len
+        beta = float(cfg.wm.get('beta', 1.0))
+        # single-step term (shapes phi + f)
+        pred_ss = self.model.predict(emb[:, :hs], act_emb[:, :hs])   # (B,hs,D)
+        loss_ss = (pred_ss - emb[:, 1:hs + 1]).pow(2).mean()
+        # multi-step-sg term (predictor-only): encoder detached in seed AND target
+        emb_sg = emb.detach()
+        hist = list(emb_sg[:, :hs].unbind(dim=1))
+        preds = []
+        for s in range(unroll_sg):
+            e = hs - 1 + s
+            ctx = torch.stack(hist[-hs:], dim=1)
+            actw = act_emb[:, e - hs + 1:e + 1]        # action_encoder is part of f: keep grad
+            nxt = self.model.predict(ctx, actw)[:, -1]
+            preds.append(nxt)
+            hist.append(nxt)
+        pred_ms = torch.stack(preds, dim=1)
+        loss_ms = (pred_ms - emb_sg[:, hs:hs + unroll_sg]).pow(2).mean()
+        output['pred_loss'] = loss_ss + beta * loss_ms
+        output['sigreg_loss'] = self.sigreg(emb.transpose(0, 1))
+        output['loss'] = output['pred_loss'] + lambd * output['sigreg_loss']
+        losses_dict = {
+            f'{stage}/{k}': v.detach() for k, v in output.items() if 'loss' in k
+        }
+        self.log_dict(losses_dict, on_step=True, sync_dist=True)
+        return output
     if unroll > 1:
         # multi-step OPEN-LOOP unroll: seed with ctx_len true frames, feed predictions
         # back for `unroll` steps, compare to true future frames. Encoder co-trained via
