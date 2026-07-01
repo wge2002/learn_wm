@@ -76,8 +76,9 @@ task-irrelevant latent.**
 - This is the cleanest evidence yet that **the training objective must target planning-relevant
   structure (counterfactual/action sensitivity, goal-aligned geometry), not self-consistent
   drift.** Directly motivates a theory-derived loss (see below).
-- Caveat: 1 seed each (seed-1 reruns training to confirm 82 vs 22 isn't a fluke); the gap (60
-  points) is far beyond plausible seed noise.
+- **Seed-confirmed (2 seeds, 2026-07-01):** the inversion is robust —
+  baseline planning 82%/86% (drift 0.315/0.251) vs multistep planning 22%/40% (drift 0.177/0.130).
+  Multistep is consistently *lower drift, much worse planning* (~53-pt gap).
 - Action-sensitivity probe done: multistep 0.374 > baseline 0.307 → action-insensitivity ruled
   out; the failure is task-misalignment of a self-consistent latent (above).
 
