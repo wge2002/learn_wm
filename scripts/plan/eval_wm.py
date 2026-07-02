@@ -93,6 +93,7 @@ def run(cfg: DictConfig):
     img_dtype = torch.bfloat16 if cfg.get('bf16', False) else torch.float32
     transform = {
         'pixels': img_transform(cfg, img_dtype),
+        'pixels_hist': img_transform(cfg, img_dtype),
         'goal': img_transform(cfg, img_dtype),
     }
 
@@ -117,6 +118,9 @@ def run(cfg: DictConfig):
 
         if col != 'action':
             process[f'goal_{col}'] = process[col]
+
+    if 'action' in process:
+        process['action_hist'] = process['action']
 
     # -- run evaluation
     policy = cfg.get('policy', 'random')
@@ -234,6 +238,8 @@ def run(cfg: DictConfig):
             )
         print('Warmup done.')
 
+    history_frames = int(cfg.plan_config.get('history_len', 1)) - 1
+
     start_time = time.time()
     with autocast_ctx:
         metrics = world.evaluate(
@@ -247,6 +253,8 @@ def run(cfg: DictConfig):
             ),
             options=to_container_or_none(cfg.eval.get('reset_options')),
             video=video_path,
+            history_frames=history_frames,
+            history_frameskip=int(cfg.plan_config.action_block),
         )
     end_time = time.time()
 

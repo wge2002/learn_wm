@@ -321,6 +321,14 @@ class WorldModelPolicy(BasePolicy):
         self.transform = transform or {}
         self._action_buffer: list[deque[torch.Tensor]] | None = None
         self._next_init: torch.Tensor | None = None
+        # matched-history planning state (only used when cfg.history_len > 1):
+        # frames are captured at action-block boundaries so the model sees the
+        # same 3-frame/frameskip cadence it was trained with.
+        self._frame_hist: list[deque[torch.Tensor]] | None = None
+        self._recent_actions: list[deque[torch.Tensor]] | None = None
+        self._pop_counts: list[int] | None = None
+        self._seed_frames: list[torch.Tensor | None] | None = None
+        self._seed_past: list[torch.Tensor | None] | None = None
 
     @property
     def flatten_receding_horizon(self) -> int:
@@ -341,6 +349,17 @@ class WorldModelPolicy(BasePolicy):
         self._action_buffer = [
             deque(maxlen=self.flatten_receding_horizon) for _ in range(n_envs)
         ]
+        if self.cfg.history_len > 1:
+            past_len = (self.cfg.history_len - 1) * self.cfg.action_block
+            self._frame_hist = [
+                deque(maxlen=self.cfg.history_len) for _ in range(n_envs)
+            ]
+            self._recent_actions = [
+                deque(maxlen=past_len) for _ in range(n_envs)
+            ]
+            self._pop_counts = [0] * n_envs
+            self._seed_frames = [None] * n_envs
+            self._seed_past = [None] * n_envs
 
         assert isinstance(self.solver, Solver), (
             'Solver must implement the Solver protocol'
@@ -361,6 +380,19 @@ class WorldModelPolicy(BasePolicy):
         info_dict = self._prepare_info(info_dict)
         n_envs = self.env.num_envs
 
+        use_history = self.cfg.history_len > 1
+
+        # dataset-seeded history (present only in reset-time infos): the H-1
+        # frames preceding the eval start step and their executed env actions.
+        pixels_hist = info_dict.pop('pixels_hist', None)
+        action_hist = info_dict.pop('action_hist', None)
+        if use_history and pixels_hist is not None:
+            for i in range(n_envs):
+                self._seed_frames[i] = pixels_hist[i]
+                self._seed_past[i] = (
+                    action_hist[i] if action_hist is not None else None
+                )
+
         needs_flush = info_dict.pop('_needs_flush', None)
         if needs_flush is not None:
             for i in range(n_envs):
@@ -368,6 +400,12 @@ class WorldModelPolicy(BasePolicy):
                     self._action_buffer[i].clear()
                     if self._next_init is not None:
                         self._next_init[i] = 0
+                    if use_history:
+                        self._frame_hist[i].clear()
+                        self._recent_actions[i].clear()
+                        self._pop_counts[i] = 0
+                        self._seed_frames[i] = None
+                        self._seed_past[i] = None
 
         terminated = info_dict.get('terminated')
         dead = (
@@ -375,6 +413,22 @@ class WorldModelPolicy(BasePolicy):
             if terminated is not None
             else np.zeros(n_envs, dtype=bool)
         )
+
+        # capture the current frame at action-block boundaries (same cadence as
+        # training frameskip); prefill from the dataset seed on episode start.
+        if use_history:
+            for i in range(n_envs):
+                if dead[i]:
+                    continue
+                if self._pop_counts[i] % self.cfg.action_block == 0:
+                    if (
+                        not self._frame_hist[i]
+                        and self._seed_frames[i] is not None
+                    ):
+                        for f in self._seed_frames[i]:
+                            self._frame_hist[i].append(f)
+                        self._seed_frames[i] = None
+                    self._frame_hist[i].append(info_dict['pixels'][i, 0])
 
         replan_idx = [
             i
@@ -394,6 +448,11 @@ class WorldModelPolicy(BasePolicy):
                     sliced[k] = [v[i] for i in replan_idx]
                 else:
                     sliced[k] = v
+
+            if use_history:
+                sliced['pixels'], sliced['past_action'] = (
+                    self._stack_history(replan_idx)
+                )
 
             sliced_init = (
                 self._next_init[idx_tensor]
@@ -429,6 +488,9 @@ class WorldModelPolicy(BasePolicy):
         for i in range(n_envs):
             if not dead[i]:
                 action[i] = self._action_buffer[i].popleft()
+                if use_history:
+                    self._recent_actions[i].append(action[i].clone())
+                    self._pop_counts[i] += 1
 
         action = action.reshape(*self.env.action_space.shape)
         action = action.float().numpy()
@@ -437,6 +499,45 @@ class WorldModelPolicy(BasePolicy):
             action = self.process['action'].inverse_transform(action)
 
         return action
+
+    def _stack_history(
+        self, replan_idx: list[int]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Build (pixels, past_action) planner inputs for matched-history mode.
+
+        pixels: (R, history_len, C, H, W) — the last H frames at block cadence,
+        left-padded by repeating the oldest frame when the episode is younger
+        than the history window.
+        past_action: (R, history_len - 1, action_block * action_dim) — the env
+        actions executed between those frames, in the solver's normalized
+        action space, block-flattened with the same row-major layout as CEM
+        candidates. Falls back to the dataset-seeded history on the first plan
+        and to zeros when no history exists at all.
+        """
+        hlen = self.cfg.history_len
+        need = (hlen - 1) * self.cfg.action_block
+        action_dim = self.env.single_action_space.shape[-1]
+
+        pix, past = [], []
+        for i in replan_idx:
+            frames = list(self._frame_hist[i])
+            assert frames, f'no frame captured for env {i} before replanning'
+            while len(frames) < hlen:
+                frames.insert(0, frames[0])
+            pix.append(torch.stack(frames[-hlen:]))
+
+            recent = list(self._recent_actions[i])
+            if len(recent) >= need:
+                pa = torch.stack(recent[-need:]).float()
+            elif self._seed_past[i] is not None and (
+                len(self._seed_past[i]) >= need
+            ):
+                pa = torch.as_tensor(self._seed_past[i][-need:]).float()
+            else:
+                pa = torch.zeros(need, action_dim)
+            past.append(pa.reshape(hlen - 1, -1))
+
+        return torch.stack(pix), torch.stack(past)
 
 
 def _load_model_with_attribute(run_name, attribute_name, cache_dir=None):

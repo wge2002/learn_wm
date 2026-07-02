@@ -13,6 +13,13 @@
 > fixed-φ0 实验的 **O1-O4 结局表已预注册**,sgmulti 证据的循环论证问题与 drift 度量不变性缺口已判定;
 > 见 [iterating_ideas/lewm_sufficiency_erosion/theory_drift_floor_certificate.md](iterating_ideas/lewm_sufficiency_erosion/theory_drift_floor_certificate.md)(v4 定稿)。
 > 注意:fixed-φ0 之前必须先跑 matched 3-frame planner history 重跑(Gate 0)。
+>
+> ⚠️ **2026-07-02 Gate 0 判决:本文档的核心现象被证伪。** matched 3-frame history 下
+> pure multistep planning 88%/86% ≥ baseline 83%/83%(3 eval seeds);82-vs-22 是 1-frame
+> 冷启动评测伪影,"为了好预测而丢掉任务信息 → planning 崩"这条因果链失去了实验支撑。
+> 幸存事实:sgmulti 在 matched history 下仍差(53-56%)→ 多步项只训 f 会真实损坏 f。
+> 全表见 [multistep_unroll_drift.md](multistep_unroll_drift.md) Gate 0 节。本文理论推导
+> (退化性/选择偏置)作为"压力存在"的分析保留,但其"已被实测"的主张全部撤回。
 
 ---
 

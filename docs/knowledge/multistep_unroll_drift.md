@@ -121,18 +121,42 @@ Readout:
   table (O1-O4) in
   [iterating_ideas/lewm_sufficiency_erosion/theory_drift_floor_certificate.md](iterating_ideas/lewm_sufficiency_erosion/theory_drift_floor_certificate.md).
 
+## Gate 0 verdict (2026-07-02): the planning collapse was an EVAL ARTIFACT
+
+Matched 3-frame planner history implemented (`plan_config.history_len=3`: policy-side frame/action
+buffers at block cadence + dataset-seeded history for the first plan + `past_action` in
+`LeWM.rollout`). All planning numbers above are superseded by this table
+(50 ep × 3 eval seeds {42,123,7}, `outputs/gate0/`):
+
+| model | h=1 (old) | h=3 matched (3 seeds) |
+| --- | ---: | ---: |
+| baseline s0 | 82% | **83.3%** (86/86/78) |
+| **multistep s0** | **22%** | **88.0%** (90/90/84) |
+| sgmulti_b1 | 50% | 56.0% (54/52/62) |
+| sgmulti_b2 | 52% | 53.3% (52/52/56) |
+| baseline s1 | 86% | 82.7% (82/84/82) |
+| **multistep s1** | **40%** | **86.0%** (84/86/88) |
+
+Readout:
+- **The drift-vs-planning inversion is dead.** With the history the model was trained for,
+  pure multi-step co-training plans as well as or slightly BETTER than baseline on both seeds,
+  while also having much lower drift. "Low self-drift yet planning collapse" was 1-frame
+  cold-start sensitivity, not sufficiency erosion.
+- **What survives:** `sgmulti` (predictor-only multi-step) is GENUINELY harmful
+  (53-56% vs 83-88%) even at matched history — cutting the encoder out of the multi-step
+  objective damages `f` itself (its k=1 drift doubles), and the planner consumes `f`.
+  The stop-grad hypothesis is not just insufficient; it is inverted.
+- Sanity: baseline moving 82→83% under the new history path shows the implementation neither
+  helps nor leaks; only the history-brittle model moved.
+- The angle-probe drop (0.80→0.68) remains a fact about the multistep latent but no longer
+  connects to any planning damage.
+
 ## Next
 
-**Gate 0 first (non-negotiable, days not weeks):** rerun planning with matched 3-frame planner
-history for {baseline, multistep, sgmulti_b1, sgmulti_b2} × 2-3 seeds — every planning number
-above is possibly history-confounded (planner `history_len` defaults to 1) until this lands.
-
-Then the next mechanism test should freeze a planning-good baseline encoder `φ0` and train only the
-predictor/action side `f` with one-step + multi-step losses in that fixed latent space. That is
-cleaner than `sgmulti` because goal latents, rollout targets, and planning cost all live in the
-same fixed metric. If fixed-`φ0` works, the final method should be an encoder anchor/EMA version;
-if it fails, the problem is deeper than encoder erosion and points toward planning-rank or
-control-sufficient geometry losses.
+The lewm_sufficiency_erosion spine loses its anchoring phenomenon (see the Gate 0 addendum in
+[iterating_ideas/lewm_sufficiency_erosion/theory_drift_floor_certificate.md](iterating_ideas/lewm_sufficiency_erosion/theory_drift_floor_certificate.md)).
+The fixed-`φ0` experiment is moot for its original purpose (there is no planning collapse to
+explain). Candidate follow-ups are direction-level decisions, not more runs.
 
 Scripts: `scripts/train/lewm.py` (+`--config-name lewm_multistep`),
 `scripts/plan/regime_lewm_iter2_eval.py`. Checkpoints: `iter2_multistep`, `iter2_baseline`

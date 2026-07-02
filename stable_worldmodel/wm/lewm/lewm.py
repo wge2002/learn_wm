@@ -67,6 +67,24 @@ class LeWM(nn.Module):
 
         assert 'pixels' in info, 'pixels not in info_dict'
         H = info['pixels'].size(2)
+        # matched-history planning: candidates only contain FUTURE actions; the
+        # executed past actions aligned with the H-1 history frames are supplied
+        # separately so they are not confused with plan candidates.
+        if 'past_action' in info:
+            past = info['past_action']
+            assert past.size(2) == H - 1, (
+                f'past_action must cover H-1={H - 1} frames, got {past.size(2)}'
+            )
+            action_sequence = torch.cat(
+                [
+                    past.to(
+                        dtype=action_sequence.dtype,
+                        device=action_sequence.device,
+                    ),
+                    action_sequence,
+                ],
+                dim=2,
+            )
         B, S, T = action_sequence.shape[:3]
         act_0, act_future = torch.split(action_sequence, [H, T - H], dim=2)
         info['action'] = act_0

@@ -198,6 +198,8 @@ class World:
         goal_offset: int | None = None,
         eval_budget: int | None = None,
         callables: list[dict] | None = None,
+        history_frames: int = 0,
+        history_frameskip: int = 1,
     ) -> dict:
         """Run the attached policy and return aggregated metrics.
 
@@ -251,6 +253,8 @@ class World:
                 video,
                 mode,
                 options,
+                history_frames=history_frames,
+                history_frameskip=history_frameskip,
             )
         mode = reset_mode or 'auto'
         return self._evaluate(episodes, seed, options, video, mode)
@@ -501,6 +505,8 @@ class World:
         video,
         mode,
         options=None,
+        history_frames: int = 0,
+        history_frameskip: int = 1,
     ) -> dict:
         n = len(episodes_idx)
         assert n == self.num_envs
@@ -532,6 +538,17 @@ class World:
                     self.infos[key] = np.broadcast_to(
                         v[:, None, ...], shape_prefix + v.shape[1:]
                     ).copy()
+
+        if history_frames > 0:
+            _seed_history_infos(
+                self.envs.envs,
+                self.infos,
+                dataset,
+                episodes_idx,
+                start_steps,
+                history_frames,
+                history_frameskip,
+            )
 
         _refresh_dataset_rendered_images(
             self.envs.envs, self.infos, init_state, goal_state
@@ -604,6 +621,72 @@ def _extract_init_goal(dataset, episodes_idx, start_steps, goal_offset):
         goal_state['goal' if k == 'pixels' else f'goal_{k}'] = np.stack(v)
 
     return init_state, goal_state, dataset_videos
+
+
+def _seed_history_infos(
+    envs,
+    infos,
+    dataset,
+    episodes_idx,
+    start_steps,
+    history_frames,
+    history_frameskip,
+):
+    """Expose the dataset history preceding each eval start step.
+
+    For matched-history planning the policy needs the ``history_frames``
+    frames before the start step (at ``history_frameskip`` cadence) plus the
+    env-level actions executed between them. Frames are re-rendered from
+    dataset states via the live env (same rationale as
+    ``_refresh_dataset_rendered_images``); the env is restored to the start
+    state afterwards. Episodes younger than the history window repeat their
+    oldest available row. Adds ``infos['pixels_hist']`` with shape
+    ``(n, history_frames, H, W, C)`` and ``infos['action_hist']`` with shape
+    ``(n, history_frames * history_frameskip, action_dim)`` (raw env units).
+    """
+    ep_arr = np.array(episodes_idx)
+    start_arr = np.array(start_steps)
+    span = history_frames * history_frameskip
+    lo = np.maximum(start_arr - span, 0)
+    data = dataset.load_chunk(ep_arr, lo, start_arr + 1)
+
+    n = len(episodes_idx)
+    px_shape = infos['pixels'].shape[2:]
+    pixels_hist = np.zeros(
+        (n, history_frames, *px_shape), dtype=infos['pixels'].dtype
+    )
+    action_hist = None
+
+    for i, ep in enumerate(data):
+        state = np.asarray(ep['state'])
+        # reset rows store NaN actions; match training's nan_to_num handling
+        action = np.nan_to_num(np.asarray(ep['action'], dtype=np.float32))
+        rows = len(state)  # == start - lo + 1
+
+        if action_hist is None:
+            action_hist = np.zeros(
+                (n, span, action.shape[-1]), dtype=np.float32
+            )
+
+        raw = envs[i].unwrapped
+        can_render = hasattr(raw, '_set_state') and hasattr(raw, 'render')
+        for h in range(history_frames):
+            ridx = max(rows - 1 - (history_frames - h) * history_frameskip, 0)
+            if can_render:
+                raw._set_state(state[ridx])
+                pixels_hist[i, h] = raw.render()
+            act = action[ridx : ridx + history_frameskip]
+            if len(act) < history_frameskip:
+                act = np.concatenate(
+                    [act, np.repeat(act[-1:], history_frameskip - len(act), 0)]
+                )
+            action_hist[i, h * history_frameskip : (h + 1) * history_frameskip] = act
+
+        if can_render:
+            raw._set_state(state[rows - 1])  # restore the start state
+
+    infos['pixels_hist'] = pixels_hist
+    infos['action_hist'] = action_hist
 
 
 def _apply_callables(env, callables, init_state):

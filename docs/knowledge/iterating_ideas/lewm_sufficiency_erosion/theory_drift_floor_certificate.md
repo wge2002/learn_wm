@@ -1,7 +1,18 @@
 # v4 主线定稿:Drift Floor + 侵蚀证书 + 校准动力学(Certify, don't chase)
 
-> 状态:**方向定稿(v4)**,2026-07-02 由 3 个独立 NeurIPS 审稿视角(theory / method / evidence)
-> round-2 评审收敛产生。取代 v3 各稿中的 spine 候选讨论。
+> ⚠️ **2026-07-02 Gate 0 判决(当日晚):锚定现象被证伪,本 spine 按 §8 预注册规则挂起。**
+> matched 3-frame history 重跑后(3 eval seeds × 50ep),pure multistep planning = **88%/86%**
+> (两个训练 seed),≥ baseline 83%/83%;82-vs-22 反转是 1-frame 冷启动评测伪影。
+> "低 drift 但 planning 崩"不存在 → phenomenon 轴掉到 ~2,min-axis 下整个方向 ≤3。
+> **幸存的事实**:`sgmulti`(predictor-only 多步)在 matched history 下仍然有害
+> (53-56% vs 83-88%),即 Signal 2(f 内部目标冲突)是真实的、且是唯一活下来的现象;
+> Signal 1 的"侵蚀"解释失去了它要解释的损伤。fixed-φ0 实验对原目的已无意义。
+> 数据:`outputs/gate0/`,详表见 [multistep_unroll_drift.md](../../multistep_unroll_drift.md)。
+> 本文档保留:三路分解 / 度量不变性 / impropriety 定理仍是正确的方法论;
+> "Certify, don't chase"的教训以最讽刺的方式成立——第一个被证书杀死的 claim 是我们自己的。
+>
+> 状态:~~方向定稿(v4)~~ → **挂起,等待方向级决策**。2026-07-02 由 3 个独立 NeurIPS
+> 审稿视角(theory / method / evidence)round-2 评审收敛产生。取代 v3 各稿中的 spine 候选讨论。
 >
 > 一句话:**不要追逐更低的 self-drift;先证明 drift 有一个几何决定的下界,
 > 把任何 drift 改善分解为"几何重写"与"动力学改进",低于下界的 drift 本身是侵蚀警报;
