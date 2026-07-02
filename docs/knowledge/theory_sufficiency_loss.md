@@ -8,6 +8,11 @@
 > stop-grad multistep(`sgmulti`,β=1/2)也已跑完:planning 从 pure multistep 的 22% 回升到 50/52%,
 > 但仍低于 baseline 82%,且 drift 变差(0.315→0.358/0.361)。因此 stop-grad 多步项不是最终答案;
 > 下一步转向 fixed planning-good encoder,只训练 predictor `f`。
+>
+> 2026-07-02 round-2 评审(3 独立 NeurIPS 视角)后主线已重构为 drift-floor 证书 + 校准动力学,
+> fixed-φ0 实验的 **O1-O4 结局表已预注册**,sgmulti 证据的循环论证问题与 drift 度量不变性缺口已判定;
+> 见 [iterating_ideas/lewm_sufficiency_erosion/theory_drift_floor_certificate.md](iterating_ideas/lewm_sufficiency_erosion/theory_drift_floor_certificate.md)(v4 定稿)。
+> 注意:fixed-φ0 之前必须先跑 matched 3-frame planner history 重跑(Gate 0)。
 
 ---
 

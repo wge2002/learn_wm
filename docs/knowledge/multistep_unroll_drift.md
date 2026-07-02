@@ -113,10 +113,21 @@ Readout:
   baseline. The original "drift and planning improve together" prediction is false.
 - The remaining issue is likely that the target geometry is still moving: even with stop-grad
   on the multi-step branch, the encoder is still trained end-to-end by the single-step term.
+- **Raw drift curves carry two extra signals** (`sgmulti_drift.json`): sgmulti's k=1 drift
+  doubles vs baseline (0.011→0.022) — but so does pure multistep's (0.011→0.021), so this
+  alone cannot discriminate "objective conflict inside f" from generic multi-objective
+  interference; and sgmulti is NOT a valid estimate of `inf_f drift(φ_baseline, f)` (φ still
+  moving, f double-tasked). Interpretation is deferred to the pre-registered fixed-φ0 outcome
+  table (O1-O4) in
+  [iterating_ideas/lewm_sufficiency_erosion/theory_drift_floor_certificate.md](iterating_ideas/lewm_sufficiency_erosion/theory_drift_floor_certificate.md).
 
 ## Next
 
-The next mechanism test should freeze a planning-good baseline encoder `φ0` and train only the
+**Gate 0 first (non-negotiable, days not weeks):** rerun planning with matched 3-frame planner
+history for {baseline, multistep, sgmulti_b1, sgmulti_b2} × 2-3 seeds — every planning number
+above is possibly history-confounded (planner `history_len` defaults to 1) until this lands.
+
+Then the next mechanism test should freeze a planning-good baseline encoder `φ0` and train only the
 predictor/action side `f` with one-step + multi-step losses in that fixed latent space. That is
 cleaner than `sgmulti` because goal latents, rollout targets, and planning cost all live in the
 same fixed metric. If fixed-`φ0` works, the final method should be an encoder anchor/EMA version;
