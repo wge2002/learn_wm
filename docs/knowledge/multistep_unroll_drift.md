@@ -30,8 +30,8 @@ demonstrated inside LeWM's own pipeline.
 
 ## Honest caveats
 
-- **1 seed / 1 run each** — effect is large and the curve *shape* (flat vs compounding) is
-  robust to normalization (raw mse@8: 0.153 vs 0.303), but seed-confirm still wanted.
+- **Seed-confirm now done:** seed-1 repeats the same qualitative split: self-drift improves
+  strongly, but planning remains much worse than baseline (details below).
 - **Small 1-step cost:** multi-step is marginally worse at pure k=1 (0.02 vs 0.01) — expected
   trade (optimizes the horizon, not the single step).
 - **Needs a 3-frame warmup history at inference** — it cannot cold-start from 1 frame (that was
@@ -51,6 +51,13 @@ num_samples=300) on both from-scratch checkpoints:
 | --- | --- | --- |
 | single-step baseline | 0.315 | **82% (41/50)** |
 | multi-step (unroll=5) | **0.177** (−44%) | **22% (11/50)** |
+
+Seed-1 confirms the same direction:
+
+| model | norm drift mse@8 | **PushT planning success (50 ep)** |
+| --- | ---: | ---: |
+| single-step baseline s1 | 0.251 | **86%** |
+| multi-step s1 | **0.130** | **40%** |
 
 **The multi-step model has far lower latent drift yet plans catastrophically worse.**
 Lower self-consistency drift does NOT imply better control — here it's strongly inverted.
@@ -72,7 +79,8 @@ model; it can be "gamed" by encoder+predictor co-adaptation into a self-consiste
 task-irrelevant latent.**
 
 **Takeaways:**
-- The multi-step "win" is dead — it's harmful for the real task. Honest negative.
+- The multi-step "win" is dead as a method — it is harmful for the real task despite lower
+  self-drift. Honest negative.
 - This is the cleanest evidence yet that **the training objective must target planning-relevant
   structure (counterfactual/action sensitivity, goal-aligned geometry), not self-consistent
   drift.** Directly motivates a theory-derived loss (see below).
@@ -82,14 +90,38 @@ task-irrelevant latent.**
 - Action-sensitivity probe done: multistep 0.374 > baseline 0.307 → action-insensitivity ruled
   out; the failure is task-misalignment of a self-consistent latent (above).
 
+## Stop-grad multistep follow-up (sgmulti): partial rescue, not enough
+
+Follow-up from [theory_sufficiency_loss.md](theory_sufficiency_loss.md): keep the single-step
+LeWM term shaping the encoder, add a multi-step open-loop term where encoder outputs are
+stop-grad so the extra horizon loss is predictor-only. This tests the minimal hypothesis:
+"multi-step is useful, but only if it cannot directly reshape the encoder."
+
+Remote runs (2026-07-01→02) used `lewm_sgmulti` with `unroll_sg=5`, β=1 and β=2:
+
+| model | loss setting | norm drift mse@8 | **PushT planning success (50 ep)** |
+| --- | --- | ---: | ---: |
+| baseline | single-step LeWM | 0.315 | **82%** |
+| pure multi-step | encoder+predictor co-trained multi-step | **0.177** | 22% |
+| `sgmulti_b1` | single-step + β=1 predictor-only multi-step | 0.358 | 50% |
+| `sgmulti_b2` | single-step + β=2 predictor-only multi-step | 0.361 | 52% |
+
+Readout:
+- `sgmulti` improves planning over pure multi-step (22% → 50/52%), so cutting the direct
+  multi-step gradient into the encoder does remove part of the damage.
+- It does **not** beat baseline and does **not** reduce drift; in fact drift is worse than
+  baseline. The original "drift and planning improve together" prediction is false.
+- The remaining issue is likely that the target geometry is still moving: even with stop-grad
+  on the multi-step branch, the encoder is still trained end-to-end by the single-step term.
+
 ## Next
 
-1. Confirm the planner gap with seed-1 models (training now); planner-eval the pretrained
-   100-epoch LeWM as a reference anchor.
-2. Verify the action-insensitivity mechanism (counterfactual sensitivity ‖∂z'/∂a‖).
-3. Feed into the IDEA: a loss that combines LeWM's marginal structure (SIGReg) with a
-   *transition* term that preserves action-discriminability / piecewise dynamics, instead of
-   plain multi-step drift.
+The next mechanism test should freeze a planning-good baseline encoder `φ0` and train only the
+predictor/action side `f` with one-step + multi-step losses in that fixed latent space. That is
+cleaner than `sgmulti` because goal latents, rollout targets, and planning cost all live in the
+same fixed metric. If fixed-`φ0` works, the final method should be an encoder anchor/EMA version;
+if it fails, the problem is deeper than encoder erosion and points toward planning-rank or
+control-sufficient geometry losses.
 
 Scripts: `scripts/train/lewm.py` (+`--config-name lewm_multistep`),
 `scripts/plan/regime_lewm_iter2_eval.py`. Checkpoints: `iter2_multistep`, `iter2_baseline`

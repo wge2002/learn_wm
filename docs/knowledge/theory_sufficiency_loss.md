@@ -1,20 +1,19 @@
 # 理论推导:从 LeWM loss 的退化性，到一个"充分性/动力学"结合损失
 
 > 目的:把我们一路实验里撞出来的硬事实,推成一个**有理论支持、与 LeWM 原 loss 自然结合、少超参**的新损失。
-> 状态:**推导稿(v1)**,带可证伪预测 + 小规模验证方案。配套实验证据见
+> 状态:**推导稿(v2)**,已包含 stop-grad 多步项的证伪结果 + 下一步 fixed-encoder 机制测试。配套实验证据见
 > [multistep_unroll_drift.md](multistep_unroll_drift.md)、[regime_direction_results.md](regime_direction_results.md)。
 >
-> ⏰ **24h 后看这里(多 seed 确认 82% vs 22% 的 planning gap)**:seed-1 训练于 2026-06-29 ~21:08 起跑
-> (`iter2_multistep_s1` 4卡 / `iter2_baseline_s1` 2卡,约 **2026-06-30 22:00–07-01 02:00** 跑完)。
-> 进度日志 `outputs/regime_stepB2/planner_20260629_2108/train_{multistep,baseline}_s1.log`;
-> 跑完后:建 `*_s1_eval` 目录(config.json=model 子树 + 软链 weights)→ `eval_wm.py policy=..._s1_eval`(planning 50ep)
-> + `regime_lewm_iter2_eval.py`(drift)。**找我"查 seed 结果"即可。**
+> 2026-07-02 更新:seed-1 已确认 pure multistep 的反例(`drift 0.251→0.130`,planning `86%→40%`)。
+> stop-grad multistep(`sgmulti`,β=1/2)也已跑完:planning 从 pure multistep 的 22% 回升到 50/52%,
+> 但仍低于 baseline 82%,且 drift 变差(0.315→0.358/0.361)。因此 stop-grad 多步项不是最终答案;
+> 下一步转向 fixed planning-good encoder,只训练 predictor `f`。
 
 ---
 
 ## 0. 一句话
 
-> LeWM 的 `pred_loss + SIGReg` **欠定**了 encoder:它的最优解里包含"**为了好预测而丢掉难预测信息**"的退化 encoder;预测 horizon 越长,这种信息丢弃越严重。我们实测到了它(多步训练 drift↓44% 但 planning 82%→22%,且丢的正是接触驱动的 block 角度)。**缺的是一项"充分性"约束**。推导给出一个最小、可证伪的结合损失:**让 encoder 只被单步+SIGReg 塑形(实测对 planning 好),多步抗漂项只训 predictor(encoder 停梯度)**,从而 drift 和 planning 同向改善。
+> LeWM 的 `pred_loss + SIGReg` **欠定**了 encoder:它的最优解里包含"**为了好预测而丢掉难预测信息**"的退化 encoder;预测 horizon 越长,这种信息丢弃越严重。我们两 seed 实测到了它(pure multistep 把 drift 压低,但 planning 从 82/86% 掉到 22/40%)。第一版自然猜想是"多步抗漂只训 predictor、对 encoder 停梯度";这条 `sgmulti` 已被实验部分证伪:planning 只回到 50/52%,drift 反而差于 baseline。更 solid 的下一步是**固定一个已知 planning-good 的 encoder `φ0`,只训练动力学 `f`**,先把"表征几何"和"动力学拟合"完全解耦。
 
 ---
 
@@ -51,10 +50,12 @@ L_LeWM(φ, f) = E_t ‖ f(φ(o_{≤t}), a_t) − φ(o_{t+1}) ‖²   +   λ · S
 | 现象 | 数据 | 支持推导的哪一步 |
 | --- | --- | --- |
 | 多步训练 drift↓ 但 planning 崩 | mse@8 0.315→0.177,PushT 成功率 82%→22% | §2 退化性真实发生 |
+| seed-1 复现同一反例 | norm drift 0.251→0.130,planning 86%→40% | 不是单 seed 偶然;self-drift 与 control 可强反向 |
 | 不是动作不敏感 | 反事实 z'-spread 多步 0.374 > 单步 0.307 | 排除"坍缩";是**选择性信息丢弃** |
 | 位置信息没丢、**角度丢了** | 线性探针 R²:位置≈0.97 两者一致;角度 0.80→**0.68** | 丢的正是**难预测+接触驱动+任务关键**的 DOF |
 | regime 活在接触处的 `f` | Step A:Jacobian↔接触 NMI 0.30 | 接触 = 难预测分量的来源 = 任务关键(推 T 转角) |
 | 单步(=LeWM 原生)planning 好 | baseline 82% | 单步塑形的 encoder 是"充分"的参照 |
+| stop-grad multistep 未立住 | `sgmulti` β=1/2:drift 0.358/0.361,planning 50/52% | 只切断多步→encoder 梯度不够;必须固定/锚定 planning geometry |
 
 > 注意:`drift` 是**自指**指标(预测 vs 同模型自己的 encoder),所以它能被 encoder+predictor 协同"刷低"而不反映任务保真。**这是"低 drift ≠ 好世界模型"的根因。**
 
@@ -75,7 +76,7 @@ L_LeWM(φ, f) = E_t ‖ f(φ(o_{≤t}), a_t) − φ(o_{t+1}) ‖²   +   λ · S
 
 ---
 
-## 5. 推导出的损失(主方案,最小且可证伪)
+## 5. 候选 A:stop-grad 多步项(已证伪)
 
 把 encoder 的塑形权"只交给单步+SIGReg"(已知对 planning 好),多步抗漂项**只训 predictor**(对 encoder 停梯度):
 
@@ -95,41 +96,89 @@ L_new(φ, f) = L_LeWM(φ, f)                                  # 单步 pred + SI
 1. `L_new` 的 **planning 成功率 ≈ 单步 baseline(~82%)或更高**(因为 φ 由单步塑形,角度 R² 应回到 ~0.80)。
 2. 同时 **多步 drift 低于单步 baseline**(因为 `f` 拿到了多步训练)。
 3. 即 **drift 与 planning 同向改善** —— 纯多步(§3)做不到这一点。
-若 (1) 不成立(planning 仍崩)→ 说明腐蚀不在 encoder 而在别处,主方案证伪,转 §6 备选。
+若 (1) 不成立(planning 仍崩)→ 说明腐蚀不在 encoder 而在别处,主方案证伪,转 §6。
+
+**实验结果(2026-07-02).** 这条 `sgmulti` 已经在 remote 上跑完两组 β:
+
+| model | loss 设置 | norm drift@8 | PushT planning |
+| --- | --- | ---: | ---: |
+| baseline | 单步 LeWM | 0.315 | 82% |
+| pure multistep | encoder+predictor 一起多步 | **0.177** | 22% |
+| `sgmulti_b1` | 单步 + β=1 predictor-only 多步 | 0.358 | 50% |
+| `sgmulti_b2` | 单步 + β=2 predictor-only 多步 | 0.361 | 52% |
+
+读法:
+- `sgmulti` 的 planning 比 pure multistep 好,说明切断多步项到 encoder 的梯度确实缓解了部分破坏。
+- 但它离 baseline 82% 很远,且 drift 比 baseline 更差;它没有满足"drift 与 planning 同向改善"的可证伪预测。
+- 因此这条不是最终方法。它证明的是:仅仅 stop-grad 当前训练中的 `φ` 不足以把 planning-good geometry 保住,也不足以让 `f` 获得有用的长程改进。
 
 ---
 
-## 6. 备选 / 加强项(若主方案不够)
+## 6. 更 solid 的下一步:fixed planning-good encoder,只训练 `f`
+
+`sgmulti` 仍然让 target 来自训练中移动的当前 `φ`。即使多步项对 `φ` 停梯度,单步项 + SIGReg 仍在塑形同一个表征空间;多步项学到的 `f` 也未必服务于一个稳定的 planning metric。更干净的机制测试是:
+
+```
+先固定一个已知 planning-good 的 baseline encoder φ0:
+    z_t = φ0(o_t)
+
+只训练动力学/动作侧:
+    L_f = E ‖ f(z_{t-H+1:t}, a_{t-H+1:t}) - z_{t+1} ‖²
+        + β · E ‖ f^K(z_{t-H+1:t}, a_{t:t+K}) - z_{t+1:t+K} ‖²
+```
+
+关键点:
+- `φ0` 固定,goal latent 和 rollout target 都在同一个已知可规划的度量空间里。
+- 只训练 predictor/action encoder,不再允许 encoder 为了低 drift 改写任务几何。
+- 这不是最终方法,而是机制判别:如果它让 drift 下降且 planning 保住/上升,说明问题主要是 moving encoder geometry;如果它仍失败,说明 latent MSE 本身和 CEM cost-rank 不一致,要转向 planning-rank / contrastive cost geometry。
+
+判据:
+
+| fixed-`φ0` 结果 | 解释 |
+| --- | --- |
+| drift↓ 且 planning≈baseline/↑ | 多步 dynamics 有正收益,但必须固定或强锚定 planning geometry |
+| drift↓ 但 planning↓ | 即使 geometry 固定,latent MSE 抗漂也不等价于 action ranking |
+| drift 不降但 planning 保住 | predictor-only 多步目标没带来长程收益 |
+| 两者都差 | 当前多步训练形式本身不适合 LeWM/Pusht |
+
+---
+
+## 7. 备选 / 加强项(若 fixed-`φ0` 仍不够)
 
 - **B1 充分性正则(显式)**:加 `−γ · I(z ; o)` 的便宜下界(如 latent→关键状态的轻量探针损失,用真状态或自监督代理),直接惩罚信息丢弃。更贵、引入监督,作为主方案不足时的补强。
 - **B2 regime-加权保真(接 Step A)**:对接触驱动方向(由 Jacobian 谱/接触标签标出)**加权** pred_loss,强制 encoder 保留这些难预测但任务关键的方向。把 Step A 的存在性结论用作"哪里必须保真"的先验,而非门控。
 - **B3 EMA/stop-grad target**:更彻底地切断"encoder 移动自己的 target"捷径(BYOL 式),与 SIGReg 叠加。改动 LeWM 的 anti-collapse 机制,较激进。
 
-主方案(§5)= B3 的"只对多步项施加"的最小特例,优先验。
+`sgmulti`(§5)= B3 的"只对多步项施加"的最小特例,已不足。fixed-`φ0` 是在上这些补强前更干净的机制测试。
 
 ---
 
-## 7. 验证方案(小规模,2 张卡)
+## 8. 验证方案
 
-1. 实现:`lejepa_forward` 加 `cfg.wm.unroll_sg`(对 φ 停梯度的多步项)+ `β`。改动 ~10 行。
-2. 训:从零 LeWM + `L_new`(β 扫 {0.5,1,2},K=5),30 epoch,2 卡;对照已有 `iter2_baseline`(单步)与 `iter2_multistep`(纯多步)。
-3. 评测(已有脚本):
+已完成:
+- pure multistep seed0/seed1:确认 drift 与 planning 可强反向。
+- `sgmulti` β=1/2:证伪 stop-grad 当前 encoder 的最小方案。
+
+下一步:
+1. 用 baseline checkpoint 导出/加载 fixed encoder `φ0`。
+2. 只训练 predictor/action encoder 的 `L_f`(β 扫 {0.5,1,2},K=5),先 30 epoch。
+3. 评测:
    - 多步 drift(`regime_lewm_iter2_eval.py`,3 帧 seed)。
    - **PushT planning 成功率**(`eval_wm.py`,50 ep)——这是判据。
-   - 角度线性探针 R²(应回升到 ~0.80)。
-4. 判据:§5 的三条同时成立 → 方法立;planning 不回来 → 主方案证伪,走 §6。
+   - 角度线性探针 R² / cost-rank 相关性(判断 geometry 是否保住)。
+4. 判据:fixed-`φ0` 若 drift 和 planning 同向改善,再考虑把 fixed teacher 软化成 EMA/anchor;若不成立,转 planning-rank 目标。
 
 ---
 
-## 8. 与硬约束的对账
+## 9. 与硬约束的对账
 
 - **有理论支持**:退化性论证(§2)+ JEPA 信息坍缩文献(SIGReg 防维度坍缩、不防信息坍缩)。
-- **结论简单少超参**:一个 β(+K),`β=0` 退回 LeWM。
+- **结论简单少超参**:`sgmulti` 虽简单但已不足;fixed-`φ0` 先作为机制测试,不是最终复杂方法。
 - **离散自然涌现、不强行**:不加聚类/门控;Step A 的离散 regime 只作为"哪里必须保真"的先验(B2),不路由。
-- **从 LeWM 自身 loss 长出来**:`L_new` = LeWM + 一个 predictor-only 抗漂项,不是另起炉灶。
+- **从 LeWM 自身 loss 长出来**:问题仍是 LeWM 的 self-targeted predictive loss 如何约束 encoder/predictor,不是另起炉灶做离散或门控。
 
 ---
 
-## 9. 一句话留给下一步
+## 10. 一句话留给下一步
 
-主方案是个**干净的、可证伪的赌注**:"多步抗漂的好处归 predictor,encoder 的充分性归单步+SIGReg"。要么 drift 和 planning 第一次同向变好(立),要么 planning 还是崩(证伪→§6 显式充分性)。两边都推进认知。
+`sgmulti` 已经告诉我们:"多步抗漂的好处归 predictor,encoder 的充分性归单步+SIGReg"这个最小想法还不够。现在更 solid 的问题是:**在固定的 planning-good 表征空间里,只改进 `f` 能不能让 drift 和 planning 同向?** 这个问题回答完,才知道下一步是做 EMA/anchor,还是直接转 cost-rank / control-sufficient geometry。
