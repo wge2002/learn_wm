@@ -47,6 +47,43 @@ base 几何 2.2×,multi 几何 1.5×),但可组合几何显著缓解它 —— �
 > 与 planning 解耦)。"可预测性压力吃掉控制信息"在 D=192/PushT 尺度上没有发生 ——
 > 坐标重写是良性甚至有益的。
 
+## 机制套件(2026-07-02 下午,`outputs/mech/`)
+
+**A) 误差几何直测(扰动增长)。** 往 3 帧种子的最后一帧加 ε=0.01 扰动,
+用各模型自己的 co-trained predictor 开环滚 8 步,测 ‖δ_k‖/ε
+(512 窗口 × 4 随机方向):
+
+| 几何 | k=1 | k=4 | k=8 |
+| --- | ---: | ---: | ---: |
+| baseline | 0.63 | 0.82 | **1.46(扩张)** |
+| multistep | 0.37 | 0.32 | **0.44(收缩)** |
+
+baseline 坐标系放大扰动(k=8 时 ~1.5×且仍在涨),multistep 坐标系全程压制在
+0.3-0.44(**收缩**)。"多步训练买到收缩坐标系"从推断变为直接测量。
+
+**B→D) 冻结几何 + refit-f 拼装回完整 WM,matched-history planning(50ep,seed42):**
+
+| 拼装 | planning | 备注 |
+| --- | ---: | --- |
+| φ_base + f_single-refit | 50% | 单步最准的 f(0.0186) |
+| φ_base + f_multi-refit | **74%** | 单步差 2.2× 的 f(0.0403) |
+| φ_multi + f_single-refit | 58% | |
+| φ_multi + f_multi-refit | **74%** | |
+
+读法:
+- **planning 跟随 rollout 稳定性,不跟随单步精度**:两个几何里都是多步 refit-f
+  完胜单步 refit-f(74 vs 50 / 74 vs 58),尽管后者单步 MSE 好一倍——CEM 消费的
+  是 5 步开环 rollout,不是单步映射。
+- refit 绝对值低于 co-trained(74 vs 82-88)有明确 confound:refit 只用了 8000
+  窗口(co-trained 用全量数据,~60×),同套 refit 内部对比公平,跨到 co-trained
+  的绝对值对比不公平。要出版级数字需加大 refit 数据量。
+- sgmulti 的 50-53% 与 φ_base+f_single 的 50% 重合——"planning 掉到 50%"未必需要
+  双任务撕扯,单步目标训出的 f 在 CEM 的开环用法下本来就弱。
+
+**机制链闭合(四个独立测量互相咬合):** 多步共训 → encoder 学出收缩坐标系
+(A)→ 信息量不变(单步可预测性/Markov gap 相同)→ 复合缺口关闭(D* 分解)
+→ planning 跟随复合稳定性(D)。
+
 ## 下一步(候选,未定)
 
 1. **容量×步长相图**(宏观赌注):latent 维度 192→32→8 × unroll K=1/5(/10),

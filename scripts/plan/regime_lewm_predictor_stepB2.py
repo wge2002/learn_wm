@@ -281,6 +281,7 @@ def main():
                   routing_tf=tf, routing_rollout=ro,
                   elapsed_sec=time.time() - t0, data=str(args.data), N=int(N))
     (out / "result.json").write_text(json.dumps(result, indent=2))
+    torch.save(model.state_dict(), out / "model.pt")
     print(f"[{args.arm}/{args.train_mode} gs{args.gate_sup}] params={nparams:.2f}M "
           f"ss_mse={ss_mse:.4f} mse@{full}={per_k[-1]:.4f} slope={slope:.4f} "
           f"tf={tf} ro={ro} ({time.time()-t0:.0f}s)", flush=True)
