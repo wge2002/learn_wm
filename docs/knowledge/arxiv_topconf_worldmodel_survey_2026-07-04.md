@@ -479,3 +479,23 @@ not by self-prediction alone.
 - [WorldMark: A Unified Benchmark Suite for Interactive Video World Models](https://arxiv.org/abs/2604.21686)
 - [iWorld-Bench: A Benchmark for Interactive World Models with a Unified Action Generation Framework](https://arxiv.org/abs/2605.03941)
 - [WorldModelGym: a decision-based fidelity benchmark for world models](https://www.reka.ai/news/worldmodelgym)
+
+---
+
+## 10. Round-3 审稿补遗(2026-07-04 晚):本调研漏掉的直接威胁
+
+3 个独立审稿 agent 实际检索后新发现、且必须纳入对打的工作:
+
+| paper | 为什么危险 | 我们的差异化生死线 |
+| --- | --- | --- |
+| [RC-aux: Predictive but Not Plannable](https://arxiv.org/pdf/2605.07278) | **同 base model(LeWM)+ 同 headline gap**("预测准但 latent 不可规划"),用 reachability 监督修 | 无收缩理论/接触分析/证书;必须引用并正面击败 |
+| [TRM: Beyond Euclidean Proximity](https://arxiv.org/html/2605.22164v1) | **同 base model**,post-hoc 轨迹可达 terminal metric,LeWM TwoRoom 7%→97% | "latent L2 不是对的决策度量"正在被挖;时间窗收紧 |
+| [Invariant JEPA-WM](https://arxiv.org/abs/2602.18639) | **最危险**:JEPA WM 内联合训练 reward-free bisimulation encoder(1-step transition 相似) | 我们的 H-step 开环分歧 target 携带复合增益信息,1-step 对 G_K 梯度盲(Thm B 可证);需 head-to-head ablation |
+| [NCDS](https://openreview.net/forum?id=iAYIRHOYy8) (ICLR'24) | 已在学出的 latent 空间用微分同胚不变性做收缩 | 杀死"首次 latent 收缩"措辞;我们的新意是反转:hybrid 系统分岔处不可收缩,均匀收缩是错的 |
+| [MICo](https://arxiv.org/pdf/2106.08229) + [Robust Bisim](https://arxiv.org/abs/2110.14096) (NeurIPS'21) | reward=0 的 MICo ≈ 我们的度量项;**坍缩病理已被证明并修复** | 必须继承其修复,不能只用 BN |
+| [Asadi et al.](https://proceedings.mlr.press/v80/asadi18a.html) (ICML'18) | Lipschitz 控制复合误差已是 established practice | 单独的收缩惩罚项无新意;新意在三难+margin |
+| [When Does LeJEPA Learn a World Model?](https://arxiv.org/abs/2605.26379) | 证明 Gaussian marginal 唯一给出线性可辨识性并支持最优 latent planning | **反对丢弃 SIGReg 的理论依据**;主形态保留 SIGReg |
+
+另:本调研 §0.3/§5.2 引用的"低 drift 反而坏 planning(82→22)"已于 2026-07-02 被
+Gate 0 证伪(评测伪影);幸存的 gap 是"self-referential 指标跨模型不可识别
+(ρ=0.26)vs refit-D* 证书(ρ=0.94)",见 phase_diagram_results.md。

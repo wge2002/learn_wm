@@ -1,8 +1,31 @@
 # LeWM++ 理论推导稿 v1:接触动力学的收缩度量表示论(2026-07-04)
 
+> ⚠️ **Round-3 审稿判决(2026-07-04,3 独立视角,novelty 最高权重):4/10 now → 7.5-8 potential。**
+> 修复指令(共识,详见文末 §8):
+> **§5.5 两-loss 形作为定理已死**——不动点是等距非收缩;telescoping 坍缩 = reward-free
+> bisim 已知病理(Kemertas & Aumentado-Armstrong NeurIPS'21 已证明并修复);φ→0 是精确
+> 联合极小;BN 反坍缩是已知脆弱技巧且与 LeJEPA 可辨识性理论(2605.26379)冲突。
+> **主形态改回 3 项(保留 SIGReg),两-loss 版降级为消融**;度量项必须限定
+> action-matched pairs + 有限 H + ground term。
+> **真正幸存的新颖性(三方一致)**:① refit-D* 证书 + 种群验证;② "边界锐度 d 是
+> encoder 的决策变量"(三难不等式本身是经典 Lipschitz-vs-跳变,接触学习文献已有;
+> 反转成"真实 hybrid 系统在分岔处不可收缩,故均匀收缩是错的、必须带 margin"才是新的);
+> ③ "单步 MSE 对复合增益梯度盲 / 多步 JEPA=隐式收缩度量学习"(检索未见先例)。
+> **文档目前把最弱主张放头条、把最强的埋了——重排。**
+> 数学修正:Thm A(a) 黎曼收缩度量 ≠ 欧式 pullback(平坦性缺口,改局部/近似版);
+> PushT 自由块平移不变 ⇒ 半收缩 λ=1,定理限定"接触啮合子空间";Thm B 推论降级为
+> 假设 P-a(各向同性惩罚 ≠ 增益加权梯度);Thm C 降级为预注册 conjecture。
+> **新增 novelty 威胁(调研未收录,必须对打)**:RC-aux (2605.07278, 同 base model!)、
+> TRM (2605.22164, 同 base model!)、Invariant-JEPA-WM (2602.18639, 最危险:JEPA 内
+> reward-free 1-step bisim)、NCDS (ICLR'24, 杀死"首次 latent 收缩"措辞)、MICo/Kemertas、
+> Asadi'18、LeJEPA 可辨识性 (2605.26379)。
+> 差异化生死线:H-step 开环分歧 vs 1-step transition 相似度(可用 Thm B 证明后者对
+> G_K 梯度盲)+ money figure:1-step bisim 和 Fast-LeWM+SC 都过不了 D=8 跨盆测试。
+>
 > 目的:把已验证的五个经验事实,从 hybrid 动力学第一性推导成定理体系,
 > 并由定理**推出**(而非拼凑)LeWM++ 的训练目标。
-> 状态:推导稿 v1,含 proof sketch;待 3-审稿轮 + 盆-穿越实验检验后正式化。
+> 状态:~~推导稿 v1~~ → **v1 已审,按上述判决修订中**;盆-穿越实验(误差幅度配对版,
+> O1/O2/O3 预注册)与三难另外两轴的测量(ε|接触、margin|接触、方向分辨增益)先行。
 >
 > 经验地基(全部多测量、预注册背书):
 > E1 单步训练 → latent 误差动力学扩张,且扩张定位在接触(growth 自由 0.61 → 重接触 1.61;ρ≈0.3, p<1e-20)
