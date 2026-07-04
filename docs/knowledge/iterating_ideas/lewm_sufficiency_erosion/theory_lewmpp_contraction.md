@@ -144,6 +144,37 @@ $$
   无关变量(不变性,上界方向);margin 项是**下界方向**(禁止合并分岔相关变量)。
   两侧合起来 = "latent 度量 ≍ 未来分歧",我们贡献下界侧 + 收缩侧 + hybrid 理论。
 
+### 5.5 两-loss 统一形(v2,主推形态)
+
+收缩项与 margin 项分别是 pair 距离比的上界与下界约束;合成双边对齐即一项:
+
+$$
+\mathcal{L}_{\text{metric}}
+= \mathbb{E}_{(i,j)}\Big( \lVert z_i - z_j \rVert - \lVert z^{+H}_i - z^{+H}_j \rVert_{\text{sg}} \Big)^2
+\qquad \text{(latent 度量 ≍ 未来分歧)}
+$$
+
+$$
+\boxed{\;\mathcal{L}_{\text{LeWM++}}
+= \mathbb{E}\lVert f(z_t,a_t) - z_{t+1} \rVert^2 \; + \; \mu\,\mathcal{L}_{\text{metric}}\;}
+$$
+
+**两项、一个超参,与 LeWM 同构**:LeWM 正则化 latent 的分布*形状*(SIGReg,任务盲),
+LeWM++ 正则化 latent 的*度量*(动力学感知)。三个性质成为定理而非 loss:
+
+1. **盆内收缩**:盆内增量稳定 ⇒ 未来分歧随时间收敛 ⇒ 对齐后的度量下
+   $\lVert z^+_i - z^+_j \rVert \le \lVert z_i - z_j \rVert$,共轭动力学自动收缩(Thm A(a) 的构造化);
+2. **跨盆 margin**:分岔 ⇒ 未来发散 ⇒ 距离自动拉开(Thm A(b) 的构造化);
+3. **反坍缩(部分)**:非平凡未来分歧强制非平凡距离;残余的全局坍缩风险
+   (φ 坍缩 ⇒ target 同步坍缩)由**架构**解决——projector 的 BatchNorm 锚定 scale,
+   不新增 loss;保守变体保留 SIGReg(3 项)作消融对照。
+
+新颖性风险自查:此形态最近邻是 bisimulation/MICo/behavioral-metric 线
+(reward 驱动、合并方向为主)与 temporal-distance/quasimetric 表征线(goal 距离,
+非动作条件开环分歧)。差异主张:reward-free 动作条件未来分歧、双边(合并与分离
+同时约束)、且由收缩理论给出"为什么恰好是这个度量"(它是使耗散 hybrid 系统的
+共轭动力学收缩、且保住分岔 margin 的度量)。此点为审稿主攻位。
+
 **可证伪预测(实现前锁定)**:
 P-a 收缩项使 K=1 成本的训练达到 K=5 级 growth@8(<0.7)与 planning;
 P-b 纯收缩(μ=0)在 D=8 会显现跨盆错误(margin 项修复它);
