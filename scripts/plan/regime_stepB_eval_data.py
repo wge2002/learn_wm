@@ -73,6 +73,7 @@ def main():
         a=batch.model_actions.astype(np.float32),
         contact_frac=contact_frac.astype(np.float32),
         contact_max=contact_max.astype(np.float32),
+        states=np.asarray(_states, dtype=np.float32),
     )
     print(f"[stepB-data] saved {out} z={z.shape} a={batch.model_actions.shape} "
           f"contact_rate={(contact_frac[:,1:]>0).mean():.3f} ({time.time()-t0:.0f}s)",
