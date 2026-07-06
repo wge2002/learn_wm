@@ -602,3 +602,49 @@ gauge 层 : 大容量 = 对单步坐标系的非正交线性整形;
 临界推论,把观察升级为定量律;B) 理论最小模型以"K 步最优解落在边际稳定点"
 为目标命题;C) Fast-LeWM 对照(prefix 目标是否也驯化 σ₁——它推理时不自复合,
 可能绕开,这是与它的机制级分界线)。
+
+---
+
+## Part IV. rate(K) 定律实验(2026-07-06 启动,进行中)
+
+### 动机与预注册
+
+III.3 的核心观察:有效每步增长率(每步最坏增益 × 传输率)K=1 ≈ 1.30、K=5 ≈ 0.98
+——K 步目标似乎把误差动力学恰好推到"K 步内不爆"的**边际稳定点**,不多压。
+两个点不成律,补 K ∈ {2, 3, 10} 三个模型(D=192,协议与相图完全一致:
+lewm_multistep,`wm.unroll=K`,`num_steps=3+K`,30 epochs,2 卡,batch 128)。
+
+**预注册预测(跑之前锁定)**:
+- P-rate-1:有效增长率 rate(K) 随 K 单调下降,K=1 的 1.30 → K=10 应 ≤ 1.0;
+- P-rate-2:瞬态曲线 σ₁(P_k) 的平坦段随训练 K 延长(K=2 模型在 k>2 后恢复增长,
+  K=10 模型平坦到 k=10);
+- P-rate-3:planning(matched history)随 K 先升后平/降(K=10 的 1-step 精度代价
+  开始显现时),复现 What-Drives 的"rollout 长度有甜点"经验律并给出机制坐标;
+- 若 K=2 就把 rate 压到 ≈1.0:结论改写为"见过一次自身误差即足够",同样成立。
+
+**理论对照目标(推导中)**:线性高斯 + 白化约束的最小模型中,证明 K 步目标的
+最优 encoder 使共轭误差动力学落在边际稳定点(损失平稳性 ⇒ rate=1 不动点),
+且单步目标对该量梯度盲(Thm B 的定量化)。实验曲线 rate(K) 是该定理的直接对照。
+
+### 训练测试全链(自动,`outputs/ratek/run_ratek_v2.sh`)
+
+```text
+训练 pd_d192_k{2,3,10}(守护进程,脱离 CC 会话)
+→ make_eval_dir(model 子树 config + 最新权重软链)
+→ matched-history planning(+plan_config.history_len=3,3 评测种子 × 50ep)
+→ probe 导出(regime_stepB_eval_data,4000 窗 × 13 帧,含 states,seed 2025)
+→ 算子谱(outputs/gauge/jac_spectrum.py:σ₁/ρ/ν/瞬态曲线,J 沿真轨迹 autograd)
+→ 对齐测量(outputs/gauge/alignment.py:handoff/传输率/随机基线/相消因子)
+```
+
+汇总时与已有 K=1/K=5(及 D=32/8 格)并表,得五点 rate(K) 曲线 + 证书种群 n=9。
+
+### 运维教训(共享机守则,已生效)
+
+- /dev/shm 全机共享:多训练**同时启动**的 DataLoader 预取峰会打爆它并殃及同事
+  (2026-07-06 事故);规则 = 错峰 ≥90s 启动、loader 用 workers≤6 + prefetch 2、
+  启动前查 shm 使用率;
+- 本机所有人共用 jovyan 账号,进程归属按**项目路径**判断(我们=code/wge/learn_wm);
+  发射前守卫:目标卡有任何非本项目进程即中止;GPU 分配听当期口头约定
+  (当前:0-5 我们,6-7 同事,临时性分配);
+- kill 一律按 PID;pgrep/pkill 的模式若出现在自身命令行会自杀(踩过两次)。
