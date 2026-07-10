@@ -1,0 +1,16 @@
+defaults:
+  - lewm
+  - _self_
+
+# Teacher-forced multi-horizon control (Fast-LeWM mechanism proxy): same window
+# and supervision positions as lewm_multistep (K=5), but contexts are always true
+# embeddings — no self-composition, no gradient through Jacobian products.
+# Pre-registered: rate stays supercritical (~1.3), planning ~ K=1 level.
+output_model_name: lewm_tfmulti
+
+wm:
+  unroll_tf: 5
+
+data:
+  dataset:
+    num_steps: 8   # history_size(3) + horizon(5), identical to lewm_multistep

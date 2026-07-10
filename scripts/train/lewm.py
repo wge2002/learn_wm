@@ -103,6 +103,7 @@ def lejepa_forward(self, batch, stage, cfg):
         }
         self.log_dict(losses_dict, on_step=True, sync_dist=True)
         return output
+    unroll_tf = int(cfg.wm.get('unroll_tf', 0) or 0)
     if unroll > 1:
         # multi-step OPEN-LOOP unroll: seed with ctx_len true frames, feed predictions
         # back for `unroll` steps, compare to true future frames. Encoder co-trained via
@@ -119,6 +120,20 @@ def lejepa_forward(self, batch, stage, cfg):
             hist.append(nxt)
         pred_emb = torch.stack(preds, dim=1)               # (B,unroll,D)
         tgt_emb = emb[:, hs:hs + unroll]
+    elif unroll_tf > 1:
+        # TEACHER-FORCED multi-horizon (Fast-LeWM mechanism control): identical
+        # window and supervision positions as open-loop unroll, but every context
+        # is TRUE embeddings — no self-composition, so no gradient through
+        # Jacobian products. Isolates multi-step supervision from composition.
+        hs = ctx_len
+        preds = []
+        for s in range(unroll_tf):
+            e = hs - 1 + s
+            ctx = emb[:, e - hs + 1:e + 1]                  # (B,hs,D) true frames
+            actw = act_emb[:, e - hs + 1:e + 1]             # (B,hs,A)
+            preds.append(self.model.predict(ctx, actw)[:, -1])
+        pred_emb = torch.stack(preds, dim=1)               # (B,unroll_tf,D)
+        tgt_emb = emb[:, hs:hs + unroll_tf]
     else:
         ctx_emb = emb[:, :ctx_len]
         ctx_act = act_emb[:, :ctx_len]

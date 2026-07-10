@@ -882,3 +882,42 @@ horizon 层: K 步 loss 是唯一对局部乘积有梯度的项;K 单调压 rate
 2. Fast-LeWM 对照回到队首(prefix 目标不自复合,预测:不驯化 σ₁ 但 planning
    不差——若成立,是"驯化是自复合训练的副产物而非规划必需"的第二证据);
 3. 标量 toy 全分布罚(检验刚性预测)仍在理论待办。
+
+---
+
+## Part VII. Fast-LeWM 机制对照:2×2 因子设计(2026-07-10 发射,进行中)
+
+### 设计
+
+发现仓库已有 `iter2_sgmulti_b1/b2`(unroll_sg=5:多步 loss 经过乘积但只训
+predictor、encoder 停梯度),h3 planning 已测 = **56.0**(b1,远差于所有臂)。
+于是 Fast-LeWM 对照升级为 2×2 因子:
+
+| 臂 | loss 有乘积梯度? | encoder 被多步塑形? | 状态 |
+| --- | --- | --- | --- |
+| K=1 | 否 | 否 | 已完成(rate 1.29/1.31,plan 83.0)|
+| K=5 开环 | 是 | 是 | 已完成(rate 0.98/0.99,plan 87.0)|
+| sg-K5 | 是(仅 predictor)| 否 | 已训好,证书链已发(plan 56.0!)|
+| **TF-K5** | **否** | 是(多步监督、无自复合)| **训练中(2 种子)** |
+
+TF-K5 = teacher-forced 多 horizon:与 lewm_multistep 完全同窗口、同监督位置,
+唯一差别是 context 全用真 embedding——**梯度不经过 Jacobian 乘积**。
+这是 Fast-LeWM"prefix 不自复合"的机制级代理,且不引入架构混淆
+(实现:`lewm.py` 的 `unroll_tf` 分支 + `lewm_tfmulti.yaml`,
+链:`outputs/ratek/run_tf_control.sh`,4 卡训练 + 1 卡 sgmulti 证书)。
+
+### 预注册预测(2026-07-10 发射前锁定)
+
+- **P-tf-1**:TF-K5 rate 停在超临界 ~1.3(驯化需要乘积梯度;多步监督本身无效);
+- **P-tf-2**:TF-K5 planning ≈ K=1(~83)(评测是自回归 CEM,超临界照付代价);
+- **P-tf-3**:sg-K5 rate 也不驯化(驯化住在 encoder gauge——refit-D* 已证
+  收益在 encoder;predictor-only 的乘积梯度到不了 encoder);
+- **P-tf-4**(事后解释,弱):sg-K5 planning 56 的塌坏若与超临界 rate + predictor
+  过拟合多步项并存,则 predictor-only 多步是净伤害;
+- **证伪线**:若 TF-K5 驯化了 σ₁ ⇒ "乘积梯度是驯化的必要成分"错,
+  多步监督(数据层)本身足够 ⇒ 理论 §6 的风险分解需要重写。
+
+### 资源
+
+4 卡 ×~30h(TF 两种子)+ 1 卡 ~1h(sgmulti 证书,当天出)+ 链路 1h;
+判决预计 07-12 早。
