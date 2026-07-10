@@ -921,3 +921,22 @@ TF-K5 = teacher-forced 多 horizon:与 lewm_multistep 完全同窗口、同监�
 
 4 卡 ×~30h(TF 两种子)+ 1 卡 ~1h(sgmulti 证书,当天出)+ 链路 1h;
 判决预计 07-12 早。
+
+### sg-K5 证书结果(2026-07-10 晚,2×2 第三格判决)
+
+| 臂 | rate | smax8 | planning |
+| --- | ---: | ---: | ---: |
+| K=1(乘积✗ enc✗)| 1.286/1.310 | 16.5/19.4 | 83.0 |
+| sg-K5 b1(乘积✓ 仅 predictor)| **1.166** | 5.26 | **56.0** |
+| sg-K5 b2(β=2)| **1.165** | 4.94 | **53.3** |
+| K=5 开环(乘积✓ enc✓)| 0.977/0.994 | 1.55/1.66 | 87.0 |
+
+**P-tf-3 定性确认、定量细化**:predictor-only 的乘积梯度买到 ~35% 的
+log-rate 降幅(1.29→1.17),但**到不了临界**(0.98 需要 encoder 参与)
+——驯化的大头确实住在 encoder gauge(与 refit-D* 一致)。
+
+**意外的强事实:rate 不决定 planning。** sg-K5 的 rate 比 K=1 更好
+(1.17 < 1.29),planning 却差 27 分(56 vs 83)。对着冻结 gauge 硬压
+predictor 收缩会摧毁规划——**共适应(encoder-predictor 一起改)是
+驯化有益的前提**。这与 VI 的结论同向:rate 是机制证书,不是 planning
+预测器;它再次支持"发论文的主张要钉在不对称驯化,不是 rate-planning 对应"。
