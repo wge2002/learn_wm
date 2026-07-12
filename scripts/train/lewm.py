@@ -134,6 +134,52 @@ def lejepa_forward(self, batch, stage, cfg):
             preds.append(self.model.predict(ctx, actw)[:, -1])
         pred_emb = torch.stack(preds, dim=1)               # (B,unroll_tf,D)
         tgt_emb = emb[:, hs:hs + unroll_tf]
+    elif int(cfg.wm.get('echo_m', 0) or 0) > 0:
+        # EchoReg: single-step supervision (same positions as K=1 baseline) plus
+        # a one-sided CRITICAL echo penalty. Inject noise delta at the last
+        # context frame, roll nominal and perturbed branches echo_m steps with
+        # true actions (no future targets needed), and penalize amplification
+        # beyond 1. Noise = the unpredictable channel, so the action channel is
+        # untouched (asymmetry theorem used constructively); relu is one-sided
+        # so collapse is never rewarded; gradient reaches the encoder via ctx.
+        hs = ctx_len
+        m = int(cfg.wm.echo_m)
+        eps = float(cfg.wm.get('echo_eps', 1.0))
+        beta = float(cfg.wm.get('echo_beta', 1.0))
+        # single-step term, identical to the K=1 baseline objective
+        pred_emb = self.model.predict(emb[:, :hs], act_emb[:, :hs])
+        tgt_emb = emb[:, 1:hs + 1]
+        # greedy renormalized echo: isotropic noise barely feels sigma_max in
+        # 192-d (measured: median gain 0.58 on the K=1 model), so after each
+        # step the perturbation is renormalized to eps along the amplified
+        # DIRECTION (detached) — a per-step power iteration along the rollout.
+        # Penalizes per-step worst-direction gain above 1 (one-sided, critical
+        # target); eps=1.0 ~ the physical one-step error scale (drift1~1.05).
+        delta = torch.randn_like(emb[:, hs - 1])
+        delta = delta / delta.norm(dim=-1, keepdim=True).clamp_min(1e-6) * eps
+        hist_n = list(emb[:, :hs].unbind(dim=1))
+        hist_p = hist_n[:-1] + [hist_n[-1] + delta]
+        echo = 0.0
+        for s in range(m):
+            e = hs - 1 + s
+            actw = act_emb[:, e - hs + 1:e + 1]
+            nxt_n = self.model.predict(torch.stack(hist_n[-hs:], dim=1), actw)[:, -1]
+            nxt_p = self.model.predict(torch.stack(hist_p[-hs:], dim=1), actw)[:, -1]
+            diff = nxt_p - nxt_n
+            gain = diff.norm(dim=-1, keepdim=True) / eps
+            echo = echo + torch.relu(gain - 1.0).pow(2).mean()
+            hist_n.append(nxt_n)
+            direction = (diff / diff.norm(dim=-1, keepdim=True).clamp_min(1e-6)).detach()
+            hist_p.append(nxt_n + direction * eps)
+        output['echo_loss'] = echo / m
+        output['pred_loss'] = (pred_emb - tgt_emb).pow(2).mean() + beta * output['echo_loss']
+        output['sigreg_loss'] = self.sigreg(emb.transpose(0, 1))
+        output['loss'] = output['pred_loss'] + lambd * output['sigreg_loss']
+        losses_dict = {
+            f'{stage}/{k}': v.detach() for k, v in output.items() if 'loss' in k
+        }
+        self.log_dict(losses_dict, on_step=True, sync_dist=True)
+        return output
     else:
         ctx_emb = emb[:, :ctx_len]
         ctx_act = act_emb[:, :ctx_len]
