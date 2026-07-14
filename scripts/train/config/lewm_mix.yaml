@@ -1,0 +1,15 @@
+defaults:
+  - lewm
+  - _self_
+
+# gamma-dose hybrid (Part VIII v2): L = L_1step + gamma * L_K5_openloop.
+# Coupling preserved (echo v1 lesson); gamma = continuous horizon dose.
+output_model_name: lewm_mix
+
+wm:
+  unroll: 5
+  mix_gamma: 0.3
+
+data:
+  dataset:
+    num_steps: 8

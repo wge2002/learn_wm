@@ -104,6 +104,8 @@ def lejepa_forward(self, batch, stage, cfg):
         self.log_dict(losses_dict, on_step=True, sync_dist=True)
         return output
     unroll_tf = int(cfg.wm.get('unroll_tf', 0) or 0)
+    mix_gamma = float(cfg.wm.get('mix_gamma', 0) or 0)
+    loss_ss_mix = None
     if unroll > 1:
         # multi-step OPEN-LOOP unroll: seed with ctx_len true frames, feed predictions
         # back for `unroll` steps, compare to true future frames. Encoder co-trained via
@@ -120,6 +122,13 @@ def lejepa_forward(self, batch, stage, cfg):
             hist.append(nxt)
         pred_emb = torch.stack(preds, dim=1)               # (B,unroll,D)
         tgt_emb = emb[:, hs:hs + unroll]
+        if mix_gamma > 0:
+            # gamma-dose hybrid (Part VIII v2): full-weight K=1 objective plus
+            # gamma * the open-loop K-step term. Keeps gain pressure and
+            # accuracy COUPLED at the same rollout points (the echo v1 lesson);
+            # gamma turns the integer horizon knob into a continuous dose.
+            pred_ss = self.model.predict(emb[:, :hs], act_emb[:, :hs])
+            loss_ss_mix = (pred_ss - emb[:, 1:hs + 1]).pow(2).mean()
     elif unroll_tf > 1:
         # TEACHER-FORCED multi-horizon (Fast-LeWM mechanism control): identical
         # window and supervision positions as open-loop unroll, but every context
@@ -188,6 +197,8 @@ def lejepa_forward(self, batch, stage, cfg):
 
     # LeWM loss
     output['pred_loss'] = (pred_emb - tgt_emb).pow(2).mean()
+    if loss_ss_mix is not None:
+        output['pred_loss'] = loss_ss_mix + mix_gamma * output['pred_loss']
     output['sigreg_loss'] = self.sigreg(emb.transpose(0, 1))
     output['loss'] = output['pred_loss'] + lambd * output['sigreg_loss']
 
