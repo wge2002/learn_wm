@@ -143,6 +143,75 @@ def lejepa_forward(self, batch, stage, cfg):
             preds.append(self.model.predict(ctx, actw)[:, -1])
         pred_emb = torch.stack(preds, dim=1)               # (B,unroll_tf,D)
         tgt_emb = emb[:, hs:hs + unroll_tf]
+    elif int(cfg.wm.get('thermo_k', 0) or 0) > 1:
+        # CritWM thermostat: closed-loop critical training. Sensor = greedy
+        # renormalized echo probe (measurement only, no_grad — the EchoReg v1
+        # lesson); actuator = gamma, the weight of the COUPLED open-loop
+        # K-step term (the coupling thesis: the only non-cheatable pressure
+        # channel); setpoint = rate 1.0.
+        hs = ctx_len
+        K = int(cfg.wm.thermo_k)
+        eta = float(cfg.wm.get('thermo_eta', 2.0))
+        target = float(cfg.wm.get('thermo_target', 1.0))
+        every = int(cfg.wm.get('thermo_every', 200))
+        if not hasattr(self, '_critwm_gamma'):
+            self._critwm_gamma = float(cfg.wm.get('thermo_gamma0', 0.3))
+            self._critwm_rate = target
+            self._critwm_ctr = 0
+        # coupled open-loop K-step term
+        hist = list(emb[:, :hs].unbind(dim=1))
+        preds = []
+        for s in range(K):
+            e = hs - 1 + s
+            ctx = torch.stack(hist[-hs:], dim=1)
+            actw = act_emb[:, e - hs + 1:e + 1]
+            nxt = self.model.predict(ctx, actw)[:, -1]
+            preds.append(nxt)
+            hist.append(nxt)
+        loss_ms = (torch.stack(preds, dim=1) - emb[:, hs:hs + K]).pow(2).mean()
+        # full-weight single-step term (K=1 baseline objective)
+        pred_ss = self.model.predict(emb[:, :hs], act_emb[:, :hs])
+        loss_ss = (pred_ss - emb[:, 1:hs + 1]).pow(2).mean()
+        # sensor: periodic echo probe, measurement only
+        if stage == 'fit':
+            self._critwm_ctr += 1
+            if self._critwm_ctr % every == 0:
+                with torch.no_grad():
+                    eps = 1.0
+                    m = 5
+                    z0 = emb.detach()
+                    delta = torch.randn_like(z0[:, hs - 1])
+                    delta = delta / delta.norm(dim=-1, keepdim=True).clamp_min(1e-6) * eps
+                    hn = list(z0[:, :hs].unbind(dim=1))
+                    hp = hn[:-1] + [hn[-1] + delta]
+                    gains = []
+                    for s in range(m):
+                        e = hs - 1 + s
+                        actw = act_emb[:, e - hs + 1:e + 1].detach()
+                        nn_ = self.model.predict(torch.stack(hn[-hs:], dim=1), actw)[:, -1]
+                        np_ = self.model.predict(torch.stack(hp[-hs:], dim=1), actw)[:, -1]
+                        diff = np_ - nn_
+                        gains.append((diff.norm(dim=-1) / eps).median())
+                        hn.append(nn_)
+                        hp.append(nn_ + diff / diff.norm(dim=-1, keepdim=True).clamp_min(1e-6) * eps)
+                    rate = torch.stack(gains[-2:]).mean()  # aligned-direction steps
+                    if torch.distributed.is_available() and torch.distributed.is_initialized():
+                        torch.distributed.all_reduce(rate)
+                        rate = rate / torch.distributed.get_world_size()
+                    self._critwm_rate = 0.7 * self._critwm_rate + 0.3 * float(rate)
+                    import math as _math
+                    self._critwm_gamma *= _math.exp(eta * (self._critwm_rate - target))
+                    self._critwm_gamma = min(max(self._critwm_gamma, 0.02), 5.0)
+        output['thermo_rate'] = torch.tensor(self._critwm_rate)
+        output['thermo_gamma_loss'] = torch.tensor(self._critwm_gamma)
+        output['pred_loss'] = loss_ss + self._critwm_gamma * loss_ms
+        output['sigreg_loss'] = self.sigreg(emb.transpose(0, 1))
+        output['loss'] = output['pred_loss'] + lambd * output['sigreg_loss']
+        losses_dict = {
+            f'{stage}/{k}': v.detach() for k, v in output.items() if 'loss' in k or 'thermo' in k
+        }
+        self.log_dict(losses_dict, on_step=True, sync_dist=False)
+        return output
     elif int(cfg.wm.get('echo_m', 0) or 0) > 0:
         # EchoReg: single-step supervision (same positions as K=1 baseline) plus
         # a one-sided CRITICAL echo penalty. Inject noise delta at the last
