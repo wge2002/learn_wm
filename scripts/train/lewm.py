@@ -55,6 +55,29 @@ class SaveCkptCallback(Callback):
         )
 
 
+class CritWMStateCallback(Callback):
+    """Persist CritWM's non-parameter controller state in Lightning ckpts."""
+
+    checkpoint_key = 'critwm_state'
+
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+        if not hasattr(pl_module, '_critwm_gamma'):
+            return
+        checkpoint[self.checkpoint_key] = {
+            'gamma': float(pl_module._critwm_gamma),
+            'rate': float(pl_module._critwm_rate),
+            'counter': int(pl_module._critwm_ctr),
+        }
+
+    def on_load_checkpoint(self, trainer, pl_module, checkpoint):
+        state = checkpoint.get(self.checkpoint_key)
+        if state is None:
+            return
+        pl_module._critwm_gamma = float(state['gamma'])
+        pl_module._critwm_rate = float(state['rate'])
+        pl_module._critwm_ctr = int(state['counter'])
+
+
 def lejepa_forward(self, batch, stage, cfg):
     """encode observations, predict next states, compute losses."""
 
@@ -156,8 +179,8 @@ def lejepa_forward(self, batch, stage, cfg):
         every = int(cfg.wm.get('thermo_every', 200))
         if not hasattr(self, '_critwm_gamma'):
             self._critwm_gamma = float(cfg.wm.get('thermo_gamma0', 0.3))
-            self._critwm_rate = target
-            self._critwm_ctr = 0
+            self._critwm_rate = float(cfg.wm.get('thermo_rate0', target))
+            self._critwm_ctr = int(cfg.wm.get('thermo_ctr0', 0))
         # coupled open-loop K-step term
         hist = list(emb[:, :hs].unbind(dim=1))
         preds = []
@@ -382,10 +405,11 @@ def run(cfg):
         cfg=cfg,
         epoch_interval=1,
     )
+    critwm_state_callback = CritWMStateCallback()
 
     trainer = pl.Trainer(
         **cfg.trainer,
-        callbacks=[object_dump_callback],
+        callbacks=[object_dump_callback, critwm_state_callback],
         num_sanity_val_steps=1,
         logger=logger,
         enable_checkpointing=True,

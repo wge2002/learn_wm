@@ -14,6 +14,8 @@ wm:
   thermo_eta: 2.0
   thermo_target: 1.0
   thermo_every: 200
+  thermo_rate0: ${wm.thermo_target}
+  thermo_ctr0: 0
 
 data:
   dataset:
