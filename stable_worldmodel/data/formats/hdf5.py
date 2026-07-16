@@ -30,6 +30,10 @@ class HDF5Dataset(Dataset):
     For remote paths (``s3://``, ``gs://``, etc.), pass ``storage_options``
     that fsspec recognises for the chosen scheme. The file handle is opened
     lazily per-worker, so DataLoader multiprocessing is supported.
+
+    ``pixels_path`` may point to a lossless ``.npy`` copy of the HDF5
+    ``pixels`` column. This avoids repeatedly decompressing large HDF5 chunks
+    during random clip sampling while all non-pixel columns remain in HDF5.
     """
 
     def __init__(
@@ -44,6 +48,7 @@ class HDF5Dataset(Dataset):
         cache_dir: str | Path | None = None,
         path: str | Path | None = None,
         storage_options: dict | None = None,
+        pixels_path: str | Path | None = None,
     ) -> None:
         if path is not None:
             raw = str(path)
@@ -57,12 +62,38 @@ class HDF5Dataset(Dataset):
         self.storage_options = storage_options or {}
         self.h5_file: h5py.File | None = None
         self._cache: dict[str, np.ndarray] = {}
+        self.pixels_path = (
+            Path(pixels_path).expanduser().resolve()
+            if pixels_path is not None
+            else None
+        )
+        self._pixels_mmap: np.ndarray | None = None
 
         with self._open_h5() as f:
             lengths, offsets = f['ep_len'][:], f['ep_offset'][:]
             self._keys = keys_to_load or [
                 k for k in f.keys() if k not in ('ep_len', 'ep_offset')
             ]
+
+            if self.pixels_path is not None:
+                if 'pixels' not in f:
+                    raise KeyError(
+                        'pixels_path was provided, but the HDF5 file has no '
+                        "'pixels' column"
+                    )
+                pixels = np.load(self.pixels_path, mmap_mode='r')
+                expected = f['pixels']
+                if pixels.shape != expected.shape:
+                    raise ValueError(
+                        f'pixels sidecar shape {pixels.shape} does not match '
+                        f'HDF5 pixels shape {expected.shape}'
+                    )
+                if pixels.dtype != expected.dtype:
+                    raise ValueError(
+                        f'pixels sidecar dtype {pixels.dtype} does not match '
+                        f'HDF5 pixels dtype {expected.dtype}'
+                    )
+                del pixels
 
             for key in keys_to_cache or []:
                 self._cache[key] = f[key][:]
@@ -103,9 +134,14 @@ class HDF5Dataset(Dataset):
         if self.h5_file is None:
             self.h5_file = self._open_h5()
 
+    def _open_pixels(self) -> None:
+        if self.pixels_path is not None and self._pixels_mmap is None:
+            self._pixels_mmap = np.load(self.pixels_path, mmap_mode='r')
+
     def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         state['h5_file'] = None
+        state['_pixels_mmap'] = None
         return state
 
     def _load_slice(self, ep_idx: int, start: int, end: int) -> dict:
@@ -116,10 +152,18 @@ class HDF5Dataset(Dataset):
         )
         steps = {}
         for col in self._keys:
-            src = self._cache if col in self._cache else self.h5_file
-            data = src[col][g_start:g_end]
-            if col != 'action':
-                data = data[:: self.frameskip]
+            if col == 'pixels' and self.pixels_path is not None:
+                self._open_pixels()
+                assert self._pixels_mmap is not None
+                data = np.array(
+                    self._pixels_mmap[g_start:g_end:self.frameskip],
+                    copy=True,
+                )
+            else:
+                src = self._cache if col in self._cache else self.h5_file
+                data = src[col][g_start:g_end]
+                if col != 'action':
+                    data = data[:: self.frameskip]
 
             if data.dtype == np.object_ or data.dtype.kind in ('S', 'U'):
                 val = data[0] if len(data) > 0 else b''
@@ -132,6 +176,10 @@ class HDF5Dataset(Dataset):
         return self.transform(steps) if self.transform else steps
 
     def _get_col(self, col: str) -> np.ndarray:
+        if col == 'pixels' and self.pixels_path is not None:
+            self._open_pixels()
+            assert self._pixels_mmap is not None
+            return self._pixels_mmap
         if col in self._cache:
             return self._cache[col]
         self._open()
@@ -142,7 +190,17 @@ class HDF5Dataset(Dataset):
 
     def get_row_data(self, row_idx: int | list[int]) -> dict:
         self._open()
-        return {col: self.h5_file[col][row_idx] for col in self._keys}
+        result = {}
+        for col in self._keys:
+            if col == 'pixels' and self.pixels_path is not None:
+                self._open_pixels()
+                assert self._pixels_mmap is not None
+                result[col] = np.array(
+                    self._pixels_mmap[row_idx], copy=True
+                )
+            else:
+                result[col] = self.h5_file[col][row_idx]
+        return result
 
     def merge_col(
         self,

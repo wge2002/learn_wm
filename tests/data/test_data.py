@@ -179,6 +179,48 @@ def test_hdf5_dataset_frameskip(sample_h5_file):
     assert isinstance(item, dict)
 
 
+def test_hdf5_dataset_pixels_sidecar_matches_source(sample_h5_file):
+    """A lossless mmap sidecar should return the same strided pixel clips."""
+    cache_dir, name = sample_h5_file
+    h5_path = cache_dir / 'datasets' / f'{name}.h5'
+    sidecar_path = cache_dir / 'pixels.npy'
+    with h5py.File(h5_path, 'r') as h5:
+        np.save(sidecar_path, h5['pixels'][:])
+
+    source = HDF5Dataset(
+        name,
+        cache_dir=str(cache_dir),
+        frameskip=2,
+        num_steps=3,
+    )
+    sidecar = HDF5Dataset(
+        name,
+        cache_dir=str(cache_dir),
+        frameskip=2,
+        num_steps=3,
+        pixels_path=sidecar_path,
+    )
+
+    assert torch.equal(source[0]['pixels'], sidecar[0]['pixels'])
+    assert np.array_equal(
+        source.get_row_data([1, 4])['pixels'],
+        sidecar.get_row_data([1, 4])['pixels'],
+    )
+
+
+def test_hdf5_dataset_pixels_sidecar_validates_shape(sample_h5_file):
+    cache_dir, name = sample_h5_file
+    sidecar_path = cache_dir / 'bad_pixels.npy'
+    np.save(sidecar_path, np.zeros((3, 4, 4, 3), dtype=np.uint8))
+
+    with pytest.raises(ValueError, match='sidecar shape'):
+        HDF5Dataset(
+            name,
+            cache_dir=str(cache_dir),
+            pixels_path=sidecar_path,
+        )
+
+
 def test_hdf5_dataset_keys_to_load(sample_h5_file):
     """Test HDF5Dataset with specific keys_to_load."""
     cache_dir, name = sample_h5_file
