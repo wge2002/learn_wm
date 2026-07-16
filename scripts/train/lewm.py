@@ -9,6 +9,7 @@ import stable_worldmodel as swm
 import torch
 from lightning.pytorch.loggers import WandbLogger
 from omegaconf import OmegaConf, open_dict
+from torchvision.transforms import v2
 
 from functools import partial
 from stable_worldmodel.data import column_normalizer as get_column_normalizer
@@ -17,12 +18,25 @@ from lightning.pytorch.callbacks import Callback
 from stable_worldmodel.wm.utils import save_pretrained
 
 
+class ResizeField:
+    """Resize one image field without relying on SPT's torchvision internals."""
+
+    def __init__(self, size: int, source: str, target: str):
+        self.resize = v2.Resize(size)
+        self.source = source
+        self.target = target
+
+    def __call__(self, sample):
+        sample[self.target] = self.resize(sample[self.source])
+        return sample
+
+
 def get_img_preprocessor(source: str, target: str, img_size: int = 224):
     imagenet_stats = dt.dataset_stats.ImageNet
     to_image = dt.transforms.ToImage(
         **imagenet_stats, source=source, target=target
     )
-    resize = dt.transforms.Resize(img_size, source=source, target=target)
+    resize = ResizeField(img_size, source=source, target=target)
     return dt.transforms.Compose(to_image, resize)
 
 
