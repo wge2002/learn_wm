@@ -593,3 +593,121 @@ Week 3   只有 Gates A+B 通过才实现 Horizon-Bundle minimal prototype
 ```
 
 这样即使新模型失败，也会留下一个清楚、可复现、不会被近期文献轻易覆盖的科学结论。
+
+---
+
+## 10. A100 首轮执行日志（2026-07-17）
+
+> 本节记录 Week-1 kit 在新 A100 节点上的第一次真实执行。这里的 smoke 数字只用于
+> 验证测量链路，不作为 Horizon-Bundle / CritWM 的科学结果。
+
+### 10.1 机器、数据与代码状态
+
+```text
+machine        = 4 × NVIDIA A100-SXM4-80GB
+remote repo    = /225010117/code/learn_wm
+remote commit  = f2dbc7e
+dataset        = /225010117/data/pusht_expert_train.h5
+pixel sidecar  = /225010117/data/pusht_expert_train_pixels.npy
+checkpoint dir = /225010117/stablewm/checkpoints
+```
+
+新节点初始只有 CritWM v1 checkpoint，没有 Gate A 所需的
+`K_train∈{1,2,3,5,10}` 全套旧 checkpoint。因此本轮先启动 verification training
+wave；Gate A matrix 在旧 checkpoint 被传入前不应空跑。
+
+### 10.2 实跑暴露的问题与判决
+
+| 问题 | 直接后果 | 修复 / 当前判决 |
+| --- | --- | --- |
+| `candidate_oracle.py` 调用了不存在的 `World.reset_to`、`World.step_env`、`World.get_state` 和 `WorldModelPolicy.plan_once` | 原脚本无法进入第一个 oracle state | 改为复用 dataset-eval 的 `_extract_init_goal`、history seeding 和 rendered-image refresh，再直接调用已配置的 solver |
+| 原 `--bank` 只复用 start rows，不复用 action candidates | 不同模型实际比较不同 CEM candidate set，不能称 paired audit | reference 模型保存量化后的真实 candidate tensor；其他 checkpoint 直接对同一 tensor 重新打分 |
+| 原合法起点用全局 `step_idx.max()` 判断 | 可能跨 episode 取 goal | 改为逐 episode 最大 step，保存 `(episode,start,row)` |
+| 原 true cost 直接取 `state[:5]` 欧氏距离 | angle 未 wrap，且“block pose”命名与实际维度不一致 | 使用与 PushT success 对齐的 position L2 + wrapped/threshold-scaled angle，并同时保存 position、angle、success |
+| Gate A 只覆盖 `plan_config.horizon`，没有同步短 horizon 的 `receding_horizon` | `H=1/3` 时 policy 试图执行比 plan 更长的 action buffer，reshape 会失败 | `receding_horizon=min(H,5)`；`H≥5` 保留历史五步 MPC commitment |
+| verification runbook 依赖未跟踪的 `outputs/pd/make_eval_dir.py` 与若干 certificate scripts | 新 checkout 会在训练后才晚失败 | train/eval/cert 分 phase；checkpoint 用显式 `name/weights_epoch_30.pt`；cert phase 先做依赖 preflight |
+| 三个训练进程同时使用 `6 workers × prefetch 2` | `/dev/shm` 出现 DataLoader worker bus error；三项任务均在 sanity check 阶段退出 | 降到每进程 `2 workers × prefetch 1`；共享内存稳定在约 1.1/4.0GB |
+| 第一轮重启忘记显式传 `pixels_path` | 直接读 44GB HDF5 pixels，只有约 `0.4 it/s` | 加 `+data.dataset.pixels_path=...npy`，lossless mmap 后稳定到约 `1.3–1.4 it/s` |
+| 仅凭进程 exit code 判断训练成功 | Lightning 收到 SIGTERM 后可能正常退出，使 driver 误记 `DONE` | 成功条件增加 `weights_epoch_30.pt` 产物检查 |
+
+两次失败启动都在 epoch 0 内主动停止，没有产生可用于比较的 checkpoint，不能混入正式结果。
+
+### 10.3 Candidate-oracle smoke 结果
+
+使用 CritWM epoch-30 checkpoint、一个 dataset state、8 个候选、`H=3` 做 reference
+生成与 bank replay：
+
+| 审计项 | 结果 |
+| --- | ---: |
+| 同一 state/action 重置后 terminal state 最大绝对差 | `0` |
+| normalized action → env action → normalized action 最大 round-trip error | `2.38e-7` |
+| reference 与重新加载 bank 后的 predicted cost 最大差 | `0` |
+| true cost 最大差 | `0` |
+| Spearman/Kendall/inversion/top-k/regret 是否逐项一致 | 全部一致 |
+
+该单 state 的具体 rank 数字（例如 Spearman `0.071`）没有统计意义；这里唯一的判决是：
+
+```text
+reset-to-state、action denormalization、true-cost execution、
+candidate serialization 和 paired rescoring 链路已经闭合。
+```
+
+### 10.4 正式 verification wave 状态
+
+正式 driver 于北京时间 2026-07-17 16:08 左右启动。当前第一波：
+
+```text
+GPU 0  mix_d192_g10_s1   seed=1
+GPU 1  mix_d192_g10_s7   seed=7
+GPU 2  mix_d192_g05      seed=3072
+GPU 3  保留给 oracle / early evaluation
+```
+
+三项均已通过 sanity validation 和第一次 backward，显存约 `26.7GB/GPU`，
+训练速率约 `1.3–1.4 it/s`，未再出现 shared-memory、CUDA OOM 或 traceback。
+第一波完成后 driver 自动启动：
+
+```text
+mix_d192_g20
+pd_d192_k5_s7
+pd_d192_k1_s7
+```
+
+远端日志：
+
+```text
+/225010117/logs/week1_verify_driver_retry2.log
+/225010117/logs/week1_verify_retry2/train_<model>.log
+```
+
+### 10.5 为什么完整结果需要约 5–6 天
+
+这不是一次训练本身需要 5–6 天，而是**六个独立的 30-epoch、全数据训练**
+在四张卡上的总 makespan：
+
+```text
+每个 epoch 的 train batches = 11,306
+实测吞吐                    ≈ 1.3–1.4 batch/s
+纯 train 时间               ≈ 2.3 h/epoch
++ validation/checkpoint     ≈ 2.4 h/epoch
+单模型 30 epochs            ≈ 70–75 h
+六模型至少两波              ≈ 140–150 h ≈ 5.8–6.3 天
+```
+
+`batch_size=128`、30 epochs 和单卡训练是为了与已有 anchor 保持优化协议一致。
+直接增大 batch、减少 epoch 或改成不同 global batch 的 DDP 虽然更快，但会把
+iso-rate 对照重新引入 training-budget / optimization confound。
+
+“什么时候有结果”应拆成：
+
+| 里程碑 | 从启动起的预计时间 | 可做什么 |
+| --- | ---: | --- |
+| epoch 1 checkpoint | `~2.5 h` | 只做 pipeline/loss sanity，不判方法 |
+| epoch 5 | `~12 h` | 第一轮 early planning，观察方向和灾难性失败 |
+| epoch 10 | `~24 h` | 初步趋势，可决定是否继续明显失败的 arm |
+| epoch 20 | `~48 h` | 较可信的中期比较，但仍需对齐最终 checkpoint |
+| 第一波 epoch 30 | `~72 h` | 两个 gamma=1 seeds + gamma=0.5 的正式结果 |
+| 第二波 epoch 30 | `~144 h` | gamma=2、K1/K5 seed anchors 到齐，完成预注册比较 |
+
+因此最早在当天约 2–3 小时后就会有 checkpoint，约 12–24 小时能看到初步方向；
+5–6 天指的是**六个模型全部到 30 epoch 并可做最终统计**，不是在此之前没有结果。
