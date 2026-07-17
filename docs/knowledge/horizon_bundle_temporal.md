@@ -945,3 +945,255 @@ Horizon-Bundle：HOLD / 不实现
 Horizon-Bundle。若交叉消失，下一条更合理的 idea 是
 **selection-aware / optimizer-compatible world-model cost geometry**，而不是
 horizon-indexed state bundle。
+
+---
+
+## 12. A100 Gate A 完整闭环矩阵：无 horizon matching，转向 selection-aware（2026-07-17）
+
+> **当前判决：本轮 Gate A 不通过。停止实现 Horizon-Bundle；保留 Gate B
+> iso-rate 训练，用于判断 CritWM scalar 假说和下一条 selection-aware 方向。**
+>
+> 这里的“不通过”限定于当前 PushT、checkpoint family 和评估协议。它否定的是
+> “现有证据足以支持立刻实现 bundle”，不是宣称所有任务都存在 universal state。
+
+### 12.1 完整性、协议与可复现产物
+
+A100 driver 于北京时间 `2026-07-17 16:55:58` 开始，`23:11:31` 结束：
+
+```text
+5 K_train × 5 H_plan × 3 goal offsets × 2 compute protocols
+= 150 runs
+
+每个 offset 内，所有 K/H/protocol 共享同一有序的 50 个 evaluation starts
+不同 offset 使用不同 physical start rows
+DONE   = 150
+FAILED = 0
+```
+
+五个 K checkpoint 来自当前已有的单训练-seed family；因此这是立项 gate 和闭环
+能力筛查，不是“K3 跨 seed universal”的确认实验。K1/K5 held-out-seed anchor
+仍由正在运行的 verification training 提供。
+
+两套协议为：
+
+```text
+fixed candidates:   samples = 300
+fixed model calls:  samples = floor(1500 / H)
+                    H1=1500, H3=500, H5=300, H8=187, H10=150
+```
+
+原始结果仍在 A100：
+
+```text
+/225010117/stablewm/checkpoints/gateA_*.txt
+/225010117/logs/week1_gateA_driver.log
+```
+
+仓库保存了全部 150 个 ordered success vectors、run-level rate/time、聚合表和
+20,000 次 paired bootstrap 结果：
+
+```text
+docs/knowledge/horizon_bundle_gateA_a100_20260717/
+```
+
+汇总脚本为：
+
+```text
+scripts/plan/summarize_gate_a_end_to_end.py
+```
+
+### 12.2 主结果：K3 近似 universal winner，不是 K 与 H 匹配
+
+下表对三个 goal offset 取平均，数值为 success `%`。
+
+**Fixed candidates**
+
+| `H_plan` | K1 | K2 | K3 | K5 | K10 | 描述性 winner |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | 30.7 | 24.7 | **31.3** | 26.7 | 20.7 | K3 |
+| 3 | 46.7 | 47.3 | **52.7** | 46.7 | 48.0 | K3 |
+| 5 | 48.7 | 50.0 | **57.3** | 56.7 | 55.3 | K3 |
+| 8 | 16.0 | 17.3 | **20.0** | 16.7 | 15.3 | K3 |
+| 10 | 12.0 | 11.3 | 11.3 | **14.7** | 10.7 | K5 |
+
+**Fixed model calls**
+
+| `H_plan` | K1 | K2 | K3 | K5 | K10 | 描述性 winner |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | 28.0 | 24.0 | **32.0** | 26.7 | 20.0 | K3 |
+| 3 | 48.0 | 47.3 | **56.0** | 48.0 | 47.3 | K3 |
+| 5 | 48.7 | 50.0 | **57.3** | **57.3** | 55.3 | K3/K5 |
+| 8 | 16.7 | 19.3 | **20.0** | 18.0 | 16.7 | K3 |
+| 10 | 9.3 | 8.7 | **13.3** | 12.7 | 10.7 | K3 |
+
+跨全部 `15 cells` 的均值同样由 K3 最高：
+
+| protocol | K1 | K2 | K3 | K5 | K10 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| fixed candidates | 30.80 | 30.13 | **34.53** | 32.27 | 30.00 |
+| fixed model calls | 30.13 | 29.87 | **35.73** | 32.53 | 30.00 |
+
+这不是 `K_train=H_plan` 的 pattern。对存在 exact matching checkpoint 的
+`H∈{1,3,5,10}`：
+
+```text
+fixed candidates:
+  matched K 相对 best non-matched K 的平均差 = -2.0 pp
+  12 cells 中 3 win / 2 tie / 7 lose
+
+fixed model calls:
+  平均差 = -1.0 pp
+  12 cells 中 5 win / 2 tie / 5 lose
+```
+
+以并列 winner 平分 credit，K3 在 fixed-candidates / fixed-calls 下分别得到
+`5.33 / 6.25` 个 cell credits，均为五个 checkpoint 中最高。长 horizon 也没有
+由 K10 接管：K10 的全局均值在两种协议下都只有 `30.0%`。
+
+### 12.3 不确定性：局部 winner 多数不可区分，且没有跨协议复现
+
+在每个 `(protocol,H,offset)` 内，按 50 个 paired episodes 对描述性
+best-vs-runner 做 20,000 次 bootstrap：
+
+```text
+fixed candidates:  1 / 15 cells 的 95% CI 排除 0
+fixed model calls: 1 / 15 cells 的 95% CI 排除 0
+```
+
+两个 cell 还不是同一个条件：
+
+```text
+fixed candidates: H1/off60，K3 18% vs K1 10%，
+                  advantage CI [2, 16] pp
+
+fixed model calls: H3/off40，K3 60% vs K1 44%，
+                   advantage CI [4, 28] pp
+```
+
+把三个 offset 聚合、在每个 offset 内保持 pairing 并分层 bootstrap 后，只有
+`fixed-calls H3` 的 K3 相对 K5 为：
+
+```text
+56% vs 48%，advantage 8.0 pp，95% CI [1.3, 14.7]
+```
+
+对应的 fixed-candidates H3 best-vs-runner interval 仍跨 0。又因为 winner 是看完
+同一批结果后选择、且这里没有 multiple-comparison correction，这些 interval 只能作
+描述性筛查，不能包装成 confirmatory significance。
+
+因此可靠结论不是“K3 已被证明显著 universal”，而是：
+
+```text
+没有稳定证据表明不同 H 需要不同 K；
+点估计反而更接近一个 K3 在大部分 H 上共同占优。
+```
+
+### 12.4 真正稳定的交互是 planning horizon cliff
+
+对 K 和 offset 再取平均：
+
+| protocol | H1 | H3 | H5 | H8 | H10 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| fixed candidates | 26.8 | 48.3 | **53.6** | 17.1 | 12.0 |
+| fixed model calls | 26.1 | 49.3 | **53.7** | 18.1 | 10.9 |
+
+goal offset 的主效应也稳定：
+
+| protocol | off25 | off40 | off60 |
+| --- | ---: | ---: | ---: |
+| fixed candidates | 54.1 | 27.0 | 13.6 |
+| fixed model calls | 54.6 | 27.0 | 13.4 |
+
+也就是说，`H8/H10` cliff 和远 goal 压力在所有 K 上都存在；改变训练 horizon
+没有把 cliff 系统性推远。fixed-model-calls 与 fixed-candidates 的总 pattern
+几乎不变，排除了“只是长 H 模型调用数更多”这一简单解释。
+
+### 12.5 自然重复与跨硬件一致性
+
+`H5` 时两套协议都恰好使用 `300 samples`，因此 15 个格子构成同配置重复：
+
+```text
+14 / 15 episode-success vectors 完全一致
+```
+
+唯一分叉为 `K5/H5/off40`：
+
+```text
+fixed candidates = 56%
+fixed calls      = 58%
+3 / 50 episode bits 翻转，净差 2 pp
+```
+
+这给出了当前 end-to-end evaluator 的小样本重复边界：单 cell 的 `2 pp` 差异不能
+过度解释，但不影响上述大尺度 pattern。
+
+此前在 5090 预先选定的六个硬件 anchor 与本次 A100 matrix 对照：
+
+| anchor | 5090 | A100 |
+| --- | ---: | ---: |
+| K1/H1/off25/fixcand | 60 | 60 |
+| K2/H3/off40/fixcalls | 36 | 36 |
+| K5/H5/off40/fixcand | 58 | 56 |
+| K3/H8/off60/fixcand | 12 | 12 |
+| K5/H8/off60/fixcand | 4 | 4 |
+| K10/H10/off60/fixcand | 6 | 6 |
+
+即 `5/6` success rate 完全一致；唯一的 `2 pp` 差正好落在 A100 自然重复已观察到的
+范围内。K10/H10/off60 的 50-bit vector 先前也已逐位确认一致。因此 A100/5090
+总体方向一致，可以继续分流实验，但不应要求每个非严格 CEM run 都 bitwise exact。
+
+### 12.6 与 candidate oracle 合并后的机制判决
+
+5090 balanced cross-bank oracle 给出的点估计是 K10 通常为最强固定-bank scorer，
+但本次 A100 闭环矩阵却更偏向 K3。尤其在 `H5/off40`：
+
+```text
+cross-bank fixed scorer: K10 点估计最好；
+K10 自己生成的 bank:    oracle-best true cost 最差；
+A100 end-to-end:         K3=62%，K5=56/58%，K10=52%。
+```
+
+所以“在外生固定 bank 上平均排序更好”不能推出“让同一个 cost 驱动自适应 CEM
+就更好”。现在最一致的解释是：
+
+```text
+world-model geometry
+  → 改变每轮 CEM 的 elite / proposal distribution
+  → planner 查询进入不同区域
+  → 最终 candidate coverage 与 closed-loop success 改变
+```
+
+这比“不同 planning horizon 需要不同 latent state”更贴合现有全部证据。
+
+### 12.7 最终 Gate A 判决与后续分工
+
+Gate A 的预注册通过条件要求：稳定 `K×H` interaction、不同 H 由不同 K 显著占优、
+matched compute 后保持、且交叉主要住在 candidate ranking。本轮结果逐项不满足：
+
+1. 没有 horizon matching；K3 点估计在多数 H 上共同更强；
+2. 局部 winner 几乎都不可区分，且仅有的 CI 排除 0 条件不跨协议复现；
+3. matched compute 不改变结论；
+4. fixed-bank scorer 与 adaptive CEM 闭环 winner 明显不一致。
+
+因此：
+
+```text
+Horizon-Bundle Gate A = FAIL for the current formulation
+Horizon-Bundle implementation = STOP
+```
+
+仍在运行的六模型 verification training 不再承担“救 Bundle”的任务。它只服务：
+
+1. Gate B：同 rate、不同 gamma 路径是否仍产生不同 ranking/planning；
+2. K1/K5 held-out-seed anchors：确认已有 multi-step 机制是否跨 seed；
+3. 决定 CritWM 的问题是 scalar target、controller path，还是二者都有。
+
+下一条优先机制实验保持为：
+
+1. 保存每轮 CEM population、elite、mean/variance；
+2. 在真实闭环 early/mid/late replanning states 做 snapshot replay；
+3. 因果分解 proposal coverage failure 与 scorer selection failure；
+4. 检验 rank/elite collapse 是否先于 episode failure。
+
+只有未来在这些 selection controls 后重新出现稳定的 representation-side
+`K×H` crossing，才重新打开 Horizon-Bundle。

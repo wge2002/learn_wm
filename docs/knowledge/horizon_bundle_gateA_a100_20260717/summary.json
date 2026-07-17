@@ -1,0 +1,81 @@
+{
+  "bootstrap": 20000,
+  "bootstrap_seed": 20260717,
+  "cell_best_vs_runner_ci_excludes_zero": {
+    "fixcalls": 1,
+    "fixcand": 1
+  },
+  "episodes_per_run": 50,
+  "global_success_rate": {
+    "fixcalls": {
+      "1": 30.133333333333333,
+      "10": 30.0,
+      "2": 29.866666666666667,
+      "3": 35.733333333333334,
+      "5": 32.53333333333333
+    },
+    "fixcand": {
+      "1": 30.8,
+      "10": 30.0,
+      "2": 30.133333333333333,
+      "3": 34.53333333333333,
+      "5": 32.266666666666666
+    }
+  },
+  "h5_identical_configuration_repeat": {
+    "mismatches": [
+      {
+        "differing_episode_indices": [
+          3,
+          30,
+          44
+        ],
+        "fixcalls_success_rate": 58.0,
+        "fixcand_success_rate": 56.0,
+        "goal_offset": 40,
+        "k_train": 5
+      }
+    ],
+    "n_cells": 15,
+    "n_exact_vectors": 14
+  },
+  "horizon_best_vs_runner_ci_excludes_zero": {
+    "fixcalls": 1,
+    "fixcand": 0
+  },
+  "matched_k_equals_h": {
+    "fixcalls": {
+      "mean_advantage_pp": -1.0,
+      "n_cells": 12,
+      "negative_cells": 5,
+      "positive_cells": 5,
+      "tied_cells": 2
+    },
+    "fixcand": {
+      "mean_advantage_pp": -2.0,
+      "n_cells": 12,
+      "negative_cells": 7,
+      "positive_cells": 3,
+      "tied_cells": 2
+    }
+  },
+  "n_failures": 0,
+  "n_runs": 150,
+  "source_directory": "A100:/225010117/stablewm/checkpoints/gateA_*.txt",
+  "winner_credits_fractional": {
+    "fixcalls": {
+      "1": 2.5833333333333335,
+      "10": 2.5833333333333335,
+      "2": 0.25,
+      "3": 6.25,
+      "5": 3.3333333333333335
+    },
+    "fixcand": {
+      "1": 2.0,
+      "10": 2.0,
+      "2": 1.8333333333333333,
+      "3": 5.333333333333333,
+      "5": 3.833333333333333
+    }
+  }
+}
