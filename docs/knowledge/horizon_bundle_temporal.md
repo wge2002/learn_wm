@@ -711,3 +711,237 @@ iso-rate 对照重新引入 training-budget / optimization confound。
 
 因此最早在当天约 2–3 小时后就会有 checkpoint，约 12–24 小时能看到初步方向；
 5–6 天指的是**六个模型全部到 30 epoch 并可做最终统计**，不是在此之前没有结果。
+
+---
+
+## 11. 5090 Gate A 首轮结果：shared-bank 偏置与 cross-bank 判决（2026-07-17）
+
+> **当前判决：Horizon-Bundle Gate A 尚未通过，不应据此开始实现 bundle。**
+>
+> 本节使用已有单 seed、epoch-30 checkpoint 做零训练筛查。它足以否定“现在就开做”
+> 的决策，但不能替代 A100 上的完整 end-to-end、fixed-calls 和 held-out-seed 结果。
+
+### 11.1 机器、数据和产物
+
+```text
+machine       = 1 × NVIDIA GeForce RTX 5090 32GB
+remote repo   = /mnt/data/wge/learn_wm
+commit        = 81caff0
+eval dataset  = /mnt/data/wge/data/pusht_eval_state_only.h5
+checkpoints   = /mnt/data/wge/stablewm/checkpoints
+matrix        = outputs/week1/oracle_matrix_5090_deterministic_n40_c24
+cross-bank    = outputs/week1/oracle_crossbank_5090_deterministic_n40_c24
+```
+
+完整 shared-bank matrix 含 `15 cells × (1 bank + 5 scorers) = 90 NPZ` 和
+`75 logs`；cross-bank 含 `3 cells × 5 generators × (1 bank + 5 scorers)
+= 90 NPZ` 和 `75 logs`。两者均完整结束，无 traceback、CUDA OOM 或失败单元。
+
+每个 cell 使用：
+
+```text
+40 paired planning states
+24 stratified final-CEM candidates / state
+K_train ∈ {1,2,3,5,10}
+H_plan  ∈ {1,3,5,8,10}
+offset  ∈ {25,40,60}
+```
+
+### 11.2 5090 与 A100 的初始硬件一致性
+
+六个 5090 end-to-end anchor 为：
+
+| checkpoint | H | offset | protocol | success | time |
+| --- | ---: | ---: | --- | ---: | ---: |
+| K1 | 1 | 25 | fixed candidates, `s=300` | 60% | 25.01s |
+| K2 | 3 | 40 | fixed calls, `s=500` | 36% | 44.83s |
+| K5 | 5 | 40 | fixed candidates, `s=300` | 58% | 30.14s |
+| K3 | 8 | 60 | fixed candidates, `s=300` | 12% | 76.16s |
+| K5 | 8 | 60 | fixed candidates, `s=300` | 4% | 79.34s |
+| K10 | 10 | 60 | fixed candidates, `s=300` | 6% | 96.39s |
+
+已能直接跨机器核对的 `K10/H10/off60/s300` 在 A100 与 5090 上拥有**完全相同的
+50-episode success vector**（3/50），A100 为 `132.58s`，5090 为约 `96.59s`，
+5090 快约 `1.37×`。这支持把 5090 用作分流机器，但目前只是一格 exact anchor；
+“总体跨硬件一致”仍需等 A100 matrix 到齐后再对至少数个不同 K/H 的格子复核。
+
+严格启动器下 `K5/H8/off60` 两次 end-to-end 重跑也得到完全相同的 success vector
+（2/50）；运行时间为 `82.75s` 与 `75.93s`。因此 success 终点对当前硬件波动稳定。
+
+### 11.3 确定性审计暴露的边界
+
+首版临时 deterministic launcher 用 `runpy` 执行目标脚本时，没有模拟 Python
+直接执行脚本的 `sys.path[0]` 语义，使 `candidate_oracle.py` 无法导入同目录的
+`eval_wm.py`。现已加入跟踪版
+`scripts/plan/deterministic_launcher.py`，同时固定：
+
+```text
+Python hash seed
+Python / NumPy / Torch / CUDA seeds
+deterministic algorithms
+cuBLAS workspace
+cuDNN deterministic mode
+TF32 off
+```
+
+但“严格 Torch 配置”还不等于整个 planner+simulator bitwise deterministic。
+同一 `K5/H5/off40` reference bank 跨进程生成两次时：
+
+```text
+39 / 40 states 逐数组完全相同
+唯一分叉 state = row 1055885, episode 8502, start 60
+```
+
+该 state 的 CEM candidate 分支不同，但对 40-state 汇总的影响很小：
+
+| metric | repeat 1 | repeat 2 | absolute delta |
+| --- | ---: | ---: | ---: |
+| Spearman | 0.27909 | 0.28613 | 0.00704 |
+| Kendall | 0.20127 | 0.20598 | 0.00471 |
+| inversion | 0.39937 | 0.39701 | 0.00236 |
+| top-k precision | 0.24583 | 0.24583 | 0 |
+| regret | 12.12736 | 12.16240 | 0.03504 |
+
+完整 strict-config matrix 与此前普通 matrix 的最大 mean delta 也只有：
+
+```text
+Spearman 0.0091
+inversion 0.0040
+normalized regret 0.0231
+```
+
+所以本节的方向性判决不依赖该分叉；但后续不能把 candidate generation 宣称为
+bitwise exact。需要继续区分 Python hash、PushT `_set_state` 的 physics step、
+接触态重置和 CEM elite tie-breaking。
+
+### 11.4 单一 K5-generated shared bank 的表面结果
+
+对每个 cell 用同一个 K5 生成的 candidate bank 给五个 checkpoint 重打分，并对
+planning state 做 20,000 次 paired bootstrap。除原始五项外，还从保存的
+`pred/true/success` 导出：
+
+```text
+normalized regret
+selected candidate 的 true-cost percentile
+有成功 candidate 时 predicted-best 是否成功（success hit）
+```
+
+15 个 cell 的描述性 winner credits 为：
+
+| metric | K1 | K2 | K3 | K5 | K10 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Spearman | 1 | 0 | 2 | 4 | **8** |
+| Kendall / inversion | 1 | 1 | 3 | 1 | **9** |
+| normalized regret | 0 | 2 | 2 | 4 | **7** |
+| selected true percentile | 0 | 2 | 3 | 3 | **7** |
+
+更重要的是：
+
+```text
+在 15 cells × 8 metrics 中，
+没有任何一个描述性 best checkpoint 相对 runner-up 的
+paired bootstrap 95% CI 排除 0。
+```
+
+跨三个 offset 平均后，K10 的 Spearman 在每个 H 都最高：
+
+| H | K5 | K10 |
+| ---: | ---: | ---: |
+| 1 | -0.053 | **0.137** |
+| 3 | 0.102 | **0.181** |
+| 5 | 0.195 | **0.263** |
+| 8 | 0.358 | **0.365** |
+| 10 | 0.442 | **0.455** |
+
+因此这份 shared-bank 结果并没有给出“短 horizon 一个 K、长 horizon 另一个 K
+显著占优”的证据；点估计反而更像 K10 是较强的 universal scorer。
+
+同时必须注意，Spearman 随 H 上升不能解释为长规划变好了。H 越大，24 个候选的
+true-cost spread 也越大，远端坏候选更容易做全局排序；实际 end-to-end success
+却会下降。这里应优先看 normalized regret、elite selection 和闭环状态，而不能
+把全局相关系数当能力指标。
+
+### 11.5 Cross-bank factorial：真正的新信息
+
+单一 K5 bank 仍可能把 generator 本身混进 scorer 比较。为此在三个关键格子跑：
+
+```text
+candidate generator K_g ∈ {1,2,3,5,10}
+candidate scorer    K_s ∈ {1,2,3,5,10}
+```
+
+即每格完整 `5 generator × 5 scorer` factorial。先在每个 state 内对五种
+generator bank 的指标取平均，再 bootstrap states。结果是：
+
+| cell | robust best scorer | Spearman: best vs K5 | best-vs-runner 95% CI | norm-regret: best vs K5 | 95% CI |
+| --- | --- | ---: | ---: | ---: | ---: |
+| H1 / off25 | K10 | 0.304 vs 0.241 | `[-0.026, 0.155]` | 0.324 vs 0.351 | `[-0.022, 0.078]` |
+| H5 / off40 | K10 | 0.318 vs 0.303 | `[-0.039, 0.070]` | 0.294 vs 0.299 | `[-0.047, 0.059]` |
+| H10 / off60 | K10 | 0.349 vs 0.310 | `[-0.015, 0.093]` | 0.265 vs 0.297 | `[-0.010, 0.080]` |
+
+表中 normalized-regret 的 advantage 已转成“正数为 best 更好”；所有 CI 仍跨 0。
+所以 balanced-bank 后仍是 K10 点估计最好，但没有足够证据宣称它显著通吃。
+
+各 generator 实际找到的 candidate coverage 却明显不同。表中每格是
+`有至少一个成功 candidate 的 state 比例 / 每 state oracle-best true cost`
+（前者越高越好，后者越低越好）：
+
+| cell | G1 | G2 | G3 | G5 | G10 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| H1 / off25 | .150 / 62.3 | .125 / 71.8 | .225 / 57.1 | .200 / **54.3** | **.325** / 62.0 |
+| H5 / off40 | .400 / 101.9 | .525 / 74.9 | .625 / **67.4** | **.675** / 73.0 | .475 / 113.8 |
+| H10 / off60 | .250 / 192.8 | .250 / 153.2 | **.350** / 138.4 | .325 / 116.5 | **.350 / 104.2** |
+
+最值得注意的是 `H5/off40`：K10 是跨 bank 最强的点估计 scorer，但 K10 自己驱动
+CEM 时产生的 bank 反而拥有最差的 oracle-best cost。也就是说：
+
+```text
+固定候选上的平均排序能力
+≠
+这个 cost landscape 被 CEM 自适应查询后能否找到好候选。
+```
+
+selection bias 在 `H1/off25` 最清楚。同一 scorer 在自己的 final-CEM bank 上，相对
+它在另外四个 generator bank 上的平均 Spearman advantage 为：
+
+```text
+K5  = -0.392, 95% CI [-0.525, -0.257]
+K10 = -0.492, 95% CI [-0.631, -0.353]
+```
+
+因此单一 reference bank 会系统性改变 scorer 的难度；K5-generated bank 在短 H
+上尤其惩罚 K5 自己。原 shared-bank matrix 中一部分看似 `K×H` 的交互，很可能是
+`generator×scorer×H` 的自适应选择效应，不能直接归因为 horizon-specific latent。
+
+### 11.6 当前 idea 判决与下一步
+
+按第 4.5 节的预注册标准：
+
+1. 不同 H 的点估计有变化，但尚无稳定的不同-K显著 winner；
+2. balanced cross-bank 的三个 anchor 都是 K10 点估计最好，且均未显著胜过 K5；
+3. held-out seed 与完整 fixed-model-calls 仍未到齐；
+4. 当前最强交互住在 candidate generator / adaptive CEM，而不是已证明的
+   representation-side horizon interaction。
+
+所以当前判决是：
+
+```text
+Horizon-Bundle：HOLD / 不实现
+“一个 universal latent 已被否证”：不成立
+“单一 global rate 足以决定 planning”：仍不成立，但需等 iso-rate 受控组
+当前更值得追的机制：optimizer-induced query distribution
+```
+
+下一轮最有信息量的补充不是再加一层 horizon adapter，而是：
+
+1. 保存**每一轮** CEM population、elite boundary、mean/variance，而不只保存 final
+   population；
+2. 在真实 evaluation rollout 的早/中/晚 replanning states 做 snapshot replay，
+   不再只审计 expert-dataset start states；
+3. 分解“proposal 找不到好 candidate”和“scorer 在已有 candidate 上选错”；
+4. 检验 selection-induced rank collapse 是否先于 end-to-end failure。
+
+只有当这些控制后仍出现稳定的 representation-side `K_train×H_plan` 交叉，才恢复
+Horizon-Bundle。若交叉消失，下一条更合理的 idea 是
+**selection-aware / optimizer-compatible world-model cost geometry**，而不是
+horizon-indexed state bundle。
