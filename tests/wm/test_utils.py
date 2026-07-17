@@ -261,6 +261,29 @@ def test_load_pretrained_instantiate_called_with_config(tmp_path):
     assert mock_inst.call_args[0][0]['_target_'] == TINY_CONFIG['_target_']
 
 
+def test_load_pretrained_accepts_full_training_config(tmp_path):
+    original = TinyModel()
+    run_dir = _ckpt_root(tmp_path) / 'full_config'
+    run_dir.mkdir(parents=True)
+    torch.save(original.state_dict(), run_dir / 'weights.pt')
+    full_config = {
+        'model': TINY_CONFIG,
+        'trainer': {'max_epochs': 30},
+        'loader': {'batch_size': 128},
+    }
+    (run_dir / 'config.json').write_text(json.dumps(full_config))
+
+    loaded = load_pretrained(
+        'full_config/weights.pt', cache_dir=tmp_path
+    )
+
+    assert isinstance(loaded, TinyModel)
+    for key in original.state_dict():
+        torch.testing.assert_close(
+            original.state_dict()[key], loaded.state_dict()[key]
+        )
+
+
 def test_load_pretrained_missing_checkpoint_raises(tmp_path):
     with pytest.raises(FileNotFoundError):
         load_pretrained('ghost/weights.pt', cache_dir=tmp_path)

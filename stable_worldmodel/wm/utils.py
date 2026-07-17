@@ -89,7 +89,19 @@ def load_pretrained(name: str, cache_dir: str = None, extra_args=None):
                 d = d.setdefault(part, {})
             d[parts[-1]] = value
 
-    model = instantiate(config)
+    # Some training callbacks persist the complete experiment config while
+    # older/export-only checkpoints persist the model config directly.  Both
+    # layouts are valid checkpoint metadata; instantiate the nested model when
+    # the top level is not itself a Hydra target.
+    model_config = config
+    if (
+        '_target_' not in config
+        and isinstance(config.get('model'), dict)
+        and '_target_' in config['model']
+    ):
+        model_config = config['model']
+
+    model = instantiate(model_config)
     model.load_state_dict(state_dict)
     return model
 
