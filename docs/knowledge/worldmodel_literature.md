@@ -1,8 +1,17 @@
-# LeWM / stable-worldmodel 后续方向调研（arXiv + 顶会，2026-07-04）
+# Latent World Model / LeWM 文献地图（持续维护）
 
-> 范围：截至 2026-07-04，重点看和 LeWM / stable-worldmodel 最相关的
-> reconstruction-free latent world model、JEPA world model、MPC/planning、robotics world model、
-> benchmark/platform 工作。结论按“能不能成为我们后续 paper seed”来读，而不是普通读书笔记。
+> 本文是仓库中**唯一的文献综述与竞品地图**。初始系统检索完成于
+> 2026-07-04，之后发现的论文继续按主题合并到本文，不再建立“旧 survey /
+> 新补充”文档。实验、理论和方法文档只保留必要引用与本文链接。
+>
+> 范围：与 LeWM / stable-worldmodel 最相关的 reconstruction-free latent
+> world model、JEPA world model、MPC/planning、robotics world model 和
+> benchmark/platform 工作。结论按“它占了什么、留下什么、如何影响当前
+> paper seed”来读，而不是普通读书笔记。
+>
+> **阅读约定：**早期判断会保留用于追踪思路演化，但被后续 Gate 或新文献
+> 推翻的结论必须在原处或后文显式标记。当前项目的 claim 边界以本文最后的
+> “当前项目对账”以及实验主账本的最新判决为准。
 
 ## 0. 执行结论
 
@@ -18,20 +27,29 @@
    已被 TMLR 接收，系统扫了 encoder、predictor、multi-step rollout、context length、proprioception、
    planner 等组件。它的结论会成为后续 LeWM 论文必须对齐的 related work。
 
-3. **新的空位不是“更低 self-drift”，而是“为什么更低 self-drift 有时反而坏 planning”。**
-   你们已有实验已经看到 pure multistep 把 drift 压低但 PushT planning 82/86% 掉到 22/40%。
-   这和当前 literature 主线形成缺口：多数论文仍把 latent prediction error、rollout error、speed 当正指标，
-   少有人正面定义 **predictive-control gap**。
+3. **“prediction error 不等于 control”已经不是空位。**
+   早期记录的 multistep 22/40% planning 是 cold-start 评测伪影，不能再作为
+   predictive-control gap 证据；RC-aux、TRM、Control Theory of Predictability、
+   Operator-on-F 等工作也已从 reachability、cost discrepancy 和 operator fidelity
+   多侧正面占据这一问题。
 
 4. **stable-worldmodel 的后续价值更像 benchmark/evaluation substrate。**
    近期 benchmark 明显转向“decision-relevant fidelity”：WorldArena、WorldModelGym、ACT-Bench、
    WorldMark、iWorld-Bench 都在说视觉好看不等于可决策。stable-worldmodel 可以抓住这个趋势：
    把“latent error、action ranking、FoV/OOD、planning success、wall-clock”统一成可复现评测。
 
-5. **下一篇更 solid 的方向应是：Control-Sufficient / SER-aware Gaussian JEPA。**
-   主张不要写成 stop-gradient trick，也不要再写 regime-MoE。应写成一个 failure mode：
-   Gaussian/self-targeted JEPA 会选择“可预测坐标”，但 planning 需要“控制充分坐标”。
-   方法上用 ranking / control-Fisher / controllability-gated sufficiency 保护 task-critical high-uncertainty directions。
+5. **当前项目仍有区分度的是 horizon-induced representation co-adaptation。**
+   现有证据表明 prediction horizon 主要改变 encoder-side finite-horizon geometry，
+   对 state error 与 action signal 做不对称分配，并且不能被 teacher forcing、
+   predictor-only training 或独立 gain regularization 拆解。但这目前是一组强机制
+   结果，不等于已经找到足够大的 paper framing 或成功方法。
+
+6. **Temporal Straightening（ICML 2026）是当前在“latent geometry 改善 planning”叙事上最接近的工作。**
+   它在 reconstruction-free one-step JEPA 上显式惩罚真实轨迹的 latent curvature，并把
+   straightness 与线性系统的 action Hessian / controllability Gramian 联系起来。因此
+   “更好的 representation geometry 让规划更易优化”已经被占据；当前项目必须把差异落在
+   **真实轨迹的切向几何**与**递归想象误差的横向传播几何**之间，并正面对打
+   `K1 + curvature` 与 multistep co-adaptation。
 
 ## 1. 最相关论文速览
 
@@ -43,6 +61,7 @@
 | [What Drives Success in Physical Planning with JEPA-WMs?](https://arxiv.org/abs/2512.24497) | TMLR accepted，v3 2026-05 | 系统 ablation：encoder、AdaLN/RoPE predictor、rollout steps、context、proprioception、planner | 推荐 recipe：CEM/L2；sim nav 较短 rollout/context，real manipulation 更深 predictor、更长 rollout/context；提出比 DINO-WM/V-JEPA-2-AC 更强组合 | 必须作为强 related work。它覆盖“JEPA-WM 工程 recipe”，但未解决 self-drift 与 planning 可反向 |
 | [Causal-JEPA / C-JEPA](https://arxiv.org/abs/2602.11389) | ICML 2026 accepted | object-centric latent masking；mask object slots，让 masked object 由上下文推断 | counterfactual reasoning 约 +20%；control 中用 patch-based WM 1% latent features 达到可比 planning | 给我们一个“结构化部分可观测 / counterfactual query”的方向，但它偏 object-centric，不是 Gaussian JEPA sufficiency |
 | [Learning Invariant Visual Representations for Planning with JEPA-WMs](https://arxiv.org/abs/2602.18639) | arXiv 2026-02 | 在 DINO-WM 类 objective 外加 bisimulation encoder，压 slow visual features / distractors | background/distractor robustness 改善；latent 维度可小到 DINO-WM 的 1/10 | 与我们的 FoV shift 诊断强相关：慢特征不变性和 control relevance 是同一大问题 |
+| [Temporal Straightening for Latent Planning](https://arxiv.org/abs/2603.12231) | ICML 2026 poster，v2 camera-ready | one-step reconstruction-free JEPA + latent velocity cosine curvature；主配置用 128-D learnable aggregation head 计算 curvature | 多个设置下改善 GD/CEM；在线性系统中连接 action Hessian 和 controllability Gramian，但 long-horizon PushT 结果并不单调 | “geometry improves planning”已被占据；但它约束真实轨迹切向，不直接控制 recursive error/Jacobian product、non-normal gain 或 imagination frontier |
 | [V-JEPA 2](https://arxiv.org/abs/2506.09985) | arXiv 2025-06 | 互联网视频自监督预训练 + 少量 robot interaction alignment，得到 V-JEPA-2-AC | motion understanding、VQA、robot planning 都展示 scaling potential | foundation encoder 路线；不适合直接当 LeWM 轻量 end-to-end follow-up，但会是强 baseline |
 | [V-JEPA 2.1](https://arxiv.org/abs/2603.14482) | arXiv 2026-03，v3 2026-06 | dense predictive loss、deep self-supervision、image/video tokenizer、scaling | 更强 dense features；偏 representation，不直接解决 MPC 目标 | 对 frozen encoder baseline 和 dense latent probing 有参考意义 |
 | [DINO-WM](https://arxiv.org/abs/2411.04983) | arXiv 2024/2025 | 冻结 DINOv2 patch features，训练 latent dynamics，CEM/MPPI goal planning | reward-free zero-shot planning，在 mazes/PushT/particles 等任务强 | 仍是 LeWM/JEPA-WM 标准 baseline |
@@ -155,6 +174,97 @@ counterfactual-like query，逼它学 interaction-dependent dynamics。
 它和我们 FoV diagnosis 对上：visual FoV shift 的本质不是 drift，而是 encoder shock。
 不过这篇处理的是 nuisance visual invariance；我们的更宽：有些 task-critical variable 本身难预测，
 不能被 predictive objective 牺牲。
+
+### 2.5 Temporal Straightening：轨迹切向几何与递归误差几何的最近邻
+
+这篇已作为 ICML 2026 poster 接收。它的方法非常简单，但问题选得准：
+即使 one-step prediction 准，弯曲的 latent trajectory 仍会让 action optimization
+条件很差；因此直接把可行轨迹在 latent 中“拉直”。
+
+**方法与实现。** 训练主体仍是 reconstruction-free joint encoder-predictor JEPA：
+
+```text
+L_pred = || z_hat[t+1] - sg(z[t+1]) ||²
+v[t]   = z[t+1] - z[t]
+L_curv = 1 - cos(v[t], v[t+1])
+L      = L_pred + λ L_curv
+```
+
+decoder 不参与 world-model training，只在训练后冻结 encoder、单独拟合，用于可视化
+latent 是否还保留可重建信息。官方实现还有几个容易读错的细节：
+
+- prediction training 的 `num_pred=1`，即只做 one-step target；没有把 predictor
+  自回归展开 K 步再反传，因此没有 self-composition gradient。
+- 主 spatial 配置把 frozen DINOv2 的 `196×384` patch feature 经 trainable CNN
+  projector 变为 `196×8` latent，`L_pred` 仍作用在完整 spatial latent 上。
+- 主 curvature 配置 `aggcos` 另用一个 learnable MLP，把每帧 latent 聚合成
+  128-D 向量 `g[t]=h_phi(z[t])`，再计算
+  `g[t+1]-g[t]` 与 `g[t+2]-g[t+1]` 的 cosine。也就是说，**相似度主实验确实经过
+  MLP aggregation head，但它不是把 predictor 使用的 latent 全局降维后再预测**；
+  patch-direct、mean、flatten 和 learnable aggregation 都作为 ablation。正文写法近似
+  `h(v[t])`，代码实际是先聚合每帧再做差，这一点复现时应以代码为准。
+
+**第四节到底强在哪里。** 在线性 latent dynamics
+`z[t+1]=Az[t]+Ba[t]` 下，论文定义 `||A-I||₂≤ε` 为近似 straight，
+把 horizon action Jacobian 写成由 `A^kB` 组成的矩阵，进而得到
+action loss Hessian `H=2JᵀJ` 与有限时域 controllability Gramian 的联系，并给出
+`A≈I` 时 condition number 的界。这为“straight trajectory 为何更适合 GD”
+补上了一条干净的 control-theoretic 桥。
+
+但它不是一条无条件的 nonlinear guarantee：
+
+- 从 cosine curvature 推到 `A-I` 小，需要速度模长近似稳定、动作变化平滑，
+  并且训练轨迹覆盖相关方向。
+- 主实验可在单独的 aggregation space 计算 curvature，而 theorem 讨论的是
+  planner/predictor latent；两者之间还缺少严格等价关系。
+- nonlinear state-dependent Jacobian products、高阶项和 off-trajectory perturbation
+  被留作 future work。
+- cosine 对尺度不敏感。例如 `A=2I`、动作增量为零时，连续 velocity 完全同向，
+  curvature 可为零，但 K-step error 会按 `2^K` 放大。反过来，旋转动力学可以
+  轨迹很弯，却保持误差范数稳定。
+
+因此第四节是很好的**解释桥和审稿加分项**，但不像是单靠一个新 theorem 撑起接收。
+更完整的原因是：问题与结论一句话就能讲清、regularizer 即插即用、PointMaze/PushT
+上有明显提升，并同时给出多 encoder、global/spatial latent、GD/CEM、open-loop/MPC、
+curvature/PCA/距离热图/loss landscape、长 horizon 和 aggregation ablation。
+理论把这套实验从“一个好用的正则项”升级成完整故事；v2 camera-ready 新增的
+Gramian 形式化也说明它更像关键支撑，而不是唯一贡献。
+
+经验结论也要保留边界：long-horizon PushT 并非随 curvature 单调改善，部分设置下
+显式 curvature 反而更差；相应实验还在 aggregation space 增加 goal cost。因此它证明了
+straightening 是有用 planning bias，但还没有解决一般的 long-horizon drift、候选排序反转
+或可信想象 frontier。
+
+**与当前项目的真正分界。**
+
+```text
+Temporal Straightening：约束真实可行轨迹的 tangent / velocity geometry，
+                        目标是让 latent goal landscape 更适合求解。
+
+当前项目：            约束或诊断递归想象偏离真实轨迹后的 error transport，
+                        研究 nonlinear Jacobian product、共适应和可信想象视距。
+```
+
+所以不能再泛称“我们首次发现 representation geometry 影响 planning”或“首次改善
+long-horizon conditioning”。更稳的定位是：
+
+> They straighten feasible trajectories; we stabilize and certify
+> counterfactual recursive imagination.
+
+**必须加入的 head-to-head baseline。** 在完全相同的 LeWM/SIGReg protocol 下至少比较：
+
+1. `K1`；
+2. `K1 + L_curv`；
+3. `K5`；
+4. `CritWM`；
+5. 可选 `K5 + L_curv`，检验两种几何是否互补。
+
+同时报告 trajectory cosine、`rate(K)` / Jacobian-product gain、action gain、
+refit-`D*`、goal 25/40/60 的 candidate rank inversion 和 planning success。
+决定性的结果不是谁的单一 loss 更低，而是验证 **curvature 与 recursive error
+amplification 是否是两个独立轴**：若 curvature 变好但 error gain/frontier 不变，
+正好支持我们的分界；若二者同步改善，则需进一步做 frozen-encoder、frozen-predictor
+与 aggregation-head ablation 归因。
 
 ## 3. 规划 / 控制类 world model 趋势
 
@@ -272,28 +382,33 @@ Benchmarking world models by control-relevant latent fidelity:
 
 ### 5.2 仍然开放、而且我们手里有证据的部分
 
-真正有新意的现象是：
+早期“更低 drift 反而让 planning 从 82/86% 掉到 22/40%”已被 Gate 0
+判定为 cold-start 评测伪影，不再使用。当前真正站住的证据是：
+
+- matched-history 下 K=5 planning 高于 K=1，且容量越小优势越大；
+- frozen/refit 证明主要收益住在 encoder，不是 predictor capacity；
+- teacher-forced one-step MSE 基本相同，open-loop composition 相差约 2 倍；
+- `rate(K)` 随 K 单调且跨训练种子稳定，但不是充分的 planning predictor；
+- state-error propagation 被强烈压制，action discrimination 基本保留；
+- TF-K5、sg-K5 与 EchoReg 的失败共同说明 representation、transition、
+  rollout accuracy 与 gain pressure 不能任意解耦。
+
+因此仍开放的窄问题是：
 
 ```text
-lower self-referential latent drift can make planning much worse.
+在同一 SIGReg marginal constraint 下，
+prediction horizon 如何通过 encoder-predictor co-adaptation
+选择 finite-horizon representation 与局部动力学？
 ```
 
-你们已有数据：
-
-- single-step baseline：drift@8 0.315 / 0.251，planning 82% / 86%。
-- pure multistep：drift@8 0.177 / 0.130，planning 22% / 40%。
-- sgmulti β=1/2：planning 50/52%，仍低于 baseline，drift 还更差。
-
-这不是普通 compounding error 问题。它说明：
-
-```text
-JEPA 的 target 由同一个 encoder 给出，
-encoder + predictor 可以共同把 latent 改造成“好预测但不好控制”的坐标。
-```
-
-这个点在现有新论文里没有被充分形式化。
+这一问题尚未被直接覆盖，但仅靠它本身还不足以保证旗舰级意义或方法贡献。
 
 ## 6. 建议的 LeWM 后续 paper framing
+
+> 本节保留 2026-07-04 当时的候选 framing，供追踪思路演化；它不是当前推荐。
+> 当前 claim 边界以 §11.5 为准，具体实验判决以
+> [lewm_gaussian_dynamics_direction.md](lewm_gaussian_dynamics_direction.md)
+> 的后续章节为准。
 
 ### 6.1 不建议的标题/主张
 
@@ -459,6 +574,9 @@ not by self-prediction alone.
 - [What Drives Success in Physical Planning with Joint-Embedding Predictive World Models?](https://arxiv.org/abs/2512.24497)
 - [Causal-JEPA: Learning World Models through Object-Level Latent Masking](https://arxiv.org/abs/2602.11389)
 - [Learning Invariant Visual Representations for Planning with Joint-Embedding Predictive World Models](https://arxiv.org/abs/2602.18639)
+- [Temporal Straightening for Latent Planning](https://arxiv.org/abs/2603.12231)
+- [Temporal Straightening official implementation](https://github.com/agentic-learning-ai-lab/temporal-straightening)
+- [Temporal Straightening at ICML 2026 (OpenReview)](https://openreview.net/forum?id=Ik1mKtUYlZ)
 - [V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning](https://arxiv.org/abs/2506.09985)
 - [V-JEPA 2.1: Unlocking Dense Features in Video Self-Supervised Learning](https://arxiv.org/abs/2603.14482)
 - [DINO-WM: World Models on Pre-trained Visual Features enable Zero-shot Planning](https://arxiv.org/abs/2411.04983)
@@ -482,20 +600,111 @@ not by self-prediction alone.
 
 ---
 
-## 10. Round-3 审稿补遗(2026-07-04 晚):本调研漏掉的直接威胁
+## 10. 直接近邻与 novelty 生死线
 
-3 个独立审稿 agent 实际检索后新发现、且必须纳入对打的工作:
+以下工作最初在 2026-07-04 Round-3 审稿检索中定位，现作为持续维护的
+直接近邻表；后续发现同类工作直接补入，不再单列“补遗”。
 
 | paper | 为什么危险 | 我们的差异化生死线 |
 | --- | --- | --- |
 | [RC-aux: Predictive but Not Plannable](https://arxiv.org/pdf/2605.07278) | **同 base model(LeWM)+ 同 headline gap**("预测准但 latent 不可规划"),用 reachability 监督修 | 无收缩理论/接触分析/证书;必须引用并正面击败 |
 | [TRM: Beyond Euclidean Proximity](https://arxiv.org/html/2605.22164v1) | **同 base model**,post-hoc 轨迹可达 terminal metric,LeWM TwoRoom 7%→97% | "latent L2 不是对的决策度量"正在被挖;时间窗收紧 |
 | [Invariant JEPA-WM](https://arxiv.org/abs/2602.18639) | **最危险**:JEPA WM 内联合训练 reward-free bisimulation encoder(1-step transition 相似) | 我们的 H-step 开环分歧 target 携带复合增益信息,1-step 对 G_K 梯度盲(Thm B 可证);需 head-to-head ablation |
+| [Temporal Straightening](https://arxiv.org/abs/2603.12231) (ICML'26) | **叙事最近邻**：同为 reconstruction-free joint encoder-predictor，以显式 latent geometry 改善 planning，并已连接 linear action Hessian / Gramian | 它管真实轨迹 tangent curvature，我们管 off-trajectory recursive error transport；必须用 `K1+curv` 对打，不能只靠措辞区分 |
 | [NCDS](https://openreview.net/forum?id=iAYIRHOYy8) (ICLR'24) | 已在学出的 latent 空间用微分同胚不变性做收缩 | 杀死"首次 latent 收缩"措辞;我们的新意是反转:hybrid 系统分岔处不可收缩,均匀收缩是错的 |
 | [MICo](https://arxiv.org/pdf/2106.08229) + [Robust Bisim](https://arxiv.org/abs/2110.14096) (NeurIPS'21) | reward=0 的 MICo ≈ 我们的度量项;**坍缩病理已被证明并修复** | 必须继承其修复,不能只用 BN |
 | [Asadi et al.](https://proceedings.mlr.press/v80/asadi18a.html) (ICML'18) | Lipschitz 控制复合误差已是 established practice | 单独的收缩惩罚项无新意;新意在三难+margin |
 | [When Does LeJEPA Learn a World Model?](https://arxiv.org/abs/2605.26379) | 证明 Gaussian marginal 唯一给出线性可辨识性并支持最优 latent planning | **反对丢弃 SIGReg 的理论依据**;主形态保留 SIGReg |
 
-另:本调研 §0.3/§5.2 引用的"低 drift 反而坏 planning(82→22)"已于 2026-07-02 被
-Gate 0 证伪(评测伪影);幸存的 gap 是"self-referential 指标跨模型不可识别
-(ρ=0.26)vs refit-D* 证书(ρ=0.94)",见 phase_diagram_results.md。
+另:早期版本 §0.3/§5.2 引用的"低 drift 反而坏 planning(82→22)"已于
+2026-07-02 被 Gate 0 证伪(评测伪影)；本文现已在原处更正。幸存的 gap 是
+"self-referential 指标跨模型不可识别(ρ=0.26)vs refit-D* 证书(ρ=0.94)"，
+见 [contact_contraction_main.md](contact_contraction_main.md)。
+
+---
+
+## 11. LeWM / SIGReg 动力学表示重点对账
+
+这一节承接前面的广域调研，专门记录和当前 LeWM Gaussian dynamics 实验
+直接相关的工作。它不是另一份 survey；后续论文继续按主题补进本节或前面的
+对应主题。
+
+### 11.1 基础与直接近邻
+
+| paper | 它已经占据的部分 | 对当前项目仍开放的部分 |
+| --- | --- | --- |
+| [LeWorldModel](https://arxiv.org/abs/2603.19312) | end-to-end JEPA world model；next-embedding MSE + SIGReg；latent L2 + CEM | prediction horizon 为什么主要改变 encoder，以及同一 Gaussian marginal 下的局部动力学几何 |
+| [When Does LeJEPA Learn a World Model?](https://arxiv.org/abs/2605.26379) | Gaussian marginal、线性可辨识性和 latent planning 的理论地基 | action-conditioned transition、operator product、非线性局部增益与 encoder-predictor 共适应 |
+| [A Generalization Theory for JEPA-Based World Models](https://arxiv.org/abs/2606.27014) | action-conditioned co-occurrence 低秩分解、pretraining error 与 planning regret、维度权衡 | 不同 horizon 在同一边缘约束下如何选择 representation |
+| [Delta-JEPA](https://arxiv.org/abs/2606.31232) | 用 latent displacement 解码 action，强化一阶 action sensitivity | finite-horizon composition 和 error/action channel 的不对称变化 |
+| [Fast-LeWorldModel](https://arxiv.org/abs/2606.26217) | action-prefix、多 horizon 并行预测、避免 autoregressive compounding、加速 CEM | 它主要绕开自复合；没有解释自复合目标如何重写 encoder geometry |
+| [Sub-JEPA](https://arxiv.org/abs/2605.09241) | 随机低维子空间 Gaussian regularization | 给定 marginal regularizer 后，horizon 如何使用剩余自由度 |
+| [Temporal Straightening](https://arxiv.org/abs/2603.12231) | reconstruction-free one-step JEPA + 显式 trajectory curvature；主实现经 128-D MLP aggregation head 算 velocity cosine；线性 action Hessian / Gramian 分析 | SIGReg Gaussian marginal、self-composition gradient、nonlinear Jacobian-product error dynamics、encoder-predictor co-adaptation 与 imagination frontier |
+| [Predictive Objectives Discard Exogenous Control-Relevant Features](https://arxiv.org/abs/2606.30068) | predictive objective 可能丢失不可预测但控制相关变量 | 当前实验中的 angle 下降、agent/action 信号增强并不是简单的“控制信息侵蚀” |
+| [AdaJEPA](https://arxiv.org/abs/2606.32026) | MPC 期间的 test-time self-supervised adaptation | prediction update 在部署时究竟把 latent geometry 推向哪里 |
+| [ScratchWorld](https://arxiv.org/abs/2606.31689) / [WorldModelGym](https://www.reka.ai/news/worldmodelgym) | decision fidelity / executable consequence 评测趋势 | stable-worldmodel 可提供受控、可规划的机制诊断协议 |
+| [World-Model Collapse as a Phase Transition](https://arxiv.org/abs/2606.31399) | horizon/state load 附近的 phase-transition 式 failure | 当前容量 × horizon 相图能否给出 representation-side 机制 |
+
+### 11.2 当前最直接的竞争与补强
+
+| paper | 核心说法 | 对当前 claim 的约束 |
+| --- | --- | --- |
+| [A Control Theory of Predictability in Latent World Models](https://arxiv.org/abs/2607.10362) | planner committed plans 上的 predicted-vs-true cost discrepancy；on-manifold residual、off-manifold divergence 与非正规放大 | 不能再声称首次提出 prediction-control gap、non-normal amplification 或 planner-facing certificate；差异必须落在 horizon 如何改变 representation 本身 |
+| [Operator-on-F complements value-equivalence](https://arxiv.org/abs/2607.04464) | 用 model predictor 比较 k-step pushforward，在可观测函数集上诊断 fidelity | 占据通用 operator diagnostic；当前项目若使用 Jacobian/operator，必须解释训练选择压力而非只做 checkpoint metric |
+| [Adaptive Compute in Latent World Models](https://arxiv.org/abs/2607.10203) | predictor depth 存在 help/hurt/flat 三种 regime，浅深误差比可预示 CEM depth 效果 | “更深想象不一定更好”不是独立新意；当前深度悬崖只能作为具体机制证据 |
+| [Mind the Gap: Promises and Pitfalls of Hierarchical Planning in LeWorldModel](https://arxiv.org/abs/2607.12547) | high-level subgoal generation 与 low-level search distribution mismatch；data-supported macro actions 修复部分 long-horizon failure | 简单 hierarchy 已被占据；仍可追问 shared latent point subgoal 是否是错误抽象 |
+| [MoP-JEPA](https://arxiv.org/abs/2607.05238) | 单 regressor 在 stochastic transition 下预测无效 conditional mean；K-head successor set 改善 graph planning | 多模态 successor / mixture predictor 已被占据；不能把“多个未来”本身当主创新 |
+| [The SIGReg Objective as Variational Free Energy](https://arxiv.org/abs/2607.13612) | 在特定假设下解释 SIGReg 的 information-bottleneck 与 latent goal-cost 地位，并指出 state-epistemic 缺口 | 补强 SIGReg 的规范性，但没有解释 action-conditioned finite-horizon operator 或 horizon-dependent representation |
+| [Qantara](https://arxiv.org/abs/2607.04978) | 同一 JEPA checkpoint 支持 latent planning、BC action sampling、inverse dynamics | 若做方法 paper，需要作为强工程 baseline 或至少正面讨论 |
+| [Grounding Spatial Relations in a Compact World Model](https://arxiv.org/abs/2607.06925) | goal-conditioned dynamics 会产生 instruction leakage；goal 应只进入 planner/read path | 支持 goal/cost 不应污染 dynamics representation 的边界 |
+| [Write-Protected Discrete Bottlenecks](https://arxiv.org/abs/2607.08312) | 端到端语言梯度会让 discrete symbols collapse；使用 detach、外部 memory 与 DP-Means | 离散符号更适合作为受保护接口，而非当前 LeWM 的端到端 waypoint |
+| [Learning Task-Sufficient World Models](https://arxiv.org/abs/2607.04409) | active exploration + structured modeling 学 task-specific minimal sufficient latent | 支持 task sufficiency 视角，但离 SIGReg horizon/co-adaptation 机制较远 |
+
+### 11.3 Decision fidelity、认证与 planner-facing metric
+
+| paper | 已覆盖内容 | 对当前项目的含义 |
+| --- | --- | --- |
+| [RC-aux](https://arxiv.org/abs/2605.07278) | multi-horizon open-loop + reachability supervision + planner gate | reachability-aware training 不是空位 |
+| [TRM](https://arxiv.org/abs/2605.22164) | 固定 world model 上的 terminal reachability metric | candidate ranking / latent metric repair 不是空位 |
+| [Predicting Closed-Loop Performance of Latent World Models](https://arxiv.org/abs/2607.01736) | validation loss 和 multi-step RMSE 不能可靠选出 closed-loop checkpoint；ROF/CROF | open-loop error 不够已经有直接证据 |
+| [Certified World Models as Sensing Clocks](https://arxiv.org/abs/2607.01537) | 把 validity horizon 用作 re-sensing deadline | 不能泛泛声称首次提出“认证想象视距” |
+| [The Rank-One Corner](https://arxiv.org/abs/2607.06640) | scalar value equivalence 只保留 task closure 的低维投影 | 支持多维控制充分性问题，但不是当前项目独有发现 |
+| [Imagined Rollouts are Kinematic, Not Dynamic](https://arxiv.org/abs/2607.05966) | imagined kinematic consistency 对真实 dynamics regime failure 不敏感 | 支持接触/动力学诊断，但不直接解释 LeWM representation co-adaptation |
+| [Validate the Dream Before You Trust Its Verdict](https://arxiv.org/abs/2607.07196) | world model 作为 simulator/test oracle 前需要 admissibility ladder | 可作为 benchmark/assurance 背景 |
+| [Reduced-Order Models: The Mother of World Models](https://arxiv.org/abs/2607.03198) | 把 world model 放回 model reduction、control、verification 与 error-bound 传统 | 为 coarse-graining、memory 和 verification 提供历史背景 |
+
+### 11.4 时间尺度、抽象与记忆
+
+| paper | 核心对象 | 对潜在 scale-dependent state 问题的约束 |
+| --- | --- | --- |
+| [Hierarchical Planning with Latent World Models](https://arxiv.org/abs/2604.03208) | 多时间尺度 dynamics，但各层共享 latent，高层预测作为低层 point subgoal | 已占据 multiscale hierarchy；其 shared-latent 假设和 level-specific abstraction limitation 是仍可追问之处 |
+| [Multi Time Scale World Models](https://openreview.net/forum?id=fY7dShbtmo) | 概率 state-space model 中的 slow task state 与 fast latent state | 多时间尺度 latent 本身不是新意；必须区分 temporal decomposition 与 horizon-specific quotient |
+| [Learning Markov State Abstractions for Deep RL](https://arxiv.org/abs/2106.04379) | 学习保留 Markov property 的 state abstraction | 为 lumpability/Markov abstraction 提供直接前史 |
+| [Model Reduction with Memory and the Machine Learning of Dynamical Systems](https://arxiv.org/abs/1808.04258) | Mori-Zwanzig 视角下，coarse-graining 会诱导 memory 与 noise | 支持“被删除的 state information 会以 memory/stochasticity 回来”，但这一原则不是 world-model 新发现 |
+| [World Models as Group Actions](https://arxiv.org/abs/2605.24578) | 用 identity、inverse、composition consistency 把 action-conditioned WM 形式化为 group action | 占据纯粹的 action algebra / composition headline |
+| [Back to Parsimonious Latents / TC-WM](https://arxiv.org/abs/2605.25620) | 从 foundation embedding 学 compact task-centric latent，并给 task-sufficiency 理论 | compact/task-sufficient representation 已有直接工作；差异需要落在 temporal scale 或 coarse-to-fine semantics |
+
+### 11.5 当前项目的 claim 边界
+
+截至当前实验与检索，不能把下面这些作为“首次”主张：
+
+- prediction error 与 control 脱钩；
+- latent L2 不等于 reachability；
+- operator/pushforward diagnostic；
+- non-normal amplification 或普通 contraction；
+- validity/imagination horizon；
+- 多 horizon、prefix prediction、hierarchy 或 multimodal successor。
+
+当前仍由本项目直接证据支持、但尚未自动构成旗舰贡献的是：
+
+1. 在同一 SIGReg LeWM family 内，prediction horizon 主要通过 encoder 改变
+   finite-horizon composition geometry，而非只增强 predictor。
+2. `rate(K)` 随 K 单调且跨训练种子稳定，但它是机制量，不是充分的 planning
+   predictor。
+3. multi-step objective 强烈压制 state-error propagation，同时保留 action
+   discrimination；这种不对称需要 representation 与 transition 共适应。
+4. teacher-forced、predictor-only 和显式 gain regularization 分别打开不同的
+   失败/作弊通道；完整 open-loop objective 是目前唯一成功的耦合实现。
+
+因此，后续新 idea 必须解释或利用上述整组事实，而不能只把其中一个 metric、
+regularizer 或 planner patch 重新包装成主问题。

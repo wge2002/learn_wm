@@ -4,7 +4,7 @@
 > `iterating_ideas/lewm_sufficiency_erosion/` 全部理论稿与
 > `multistep_unroll_drift.md` / `dstar_decomposition.md` / `theory_sufficiency_loss.md`
 > (原文见 git 历史,原始数据见 `outputs/`)。
-> 配套:竞品地图见 [arxiv_topconf_worldmodel_survey_2026-07-04.md](arxiv_topconf_worldmodel_survey_2026-07-04.md)(含 §10 审稿补遗)。
+> 配套:统一竞品地图见 [worldmodel_literature.md](worldmodel_literature.md)。
 > 状态:Round-3 审稿(3 独立视角,novelty 最高权重)共识 **4/10 now → 7.5-8 potential**;
 > 修复路径已收敛(§6)。"LeWM++"只是占位符,不预设增量式定位。
 
@@ -141,7 +141,7 @@ P-d(接触稀疏任务上三项增益都小 → 机制化解释 What-Drives 的 
 - 模型种群:6 格相图 checkpoint + 全部五量测量;
 - 定理素材:梯度盲(Thm B,受支持)、容量分配 conjecture(表征侧命中)、
   经典复合界与三难框架(机制被证伪,框架可引);
-- 竞品地图:调研 + §10 审稿补遗(7 个近邻的生死线)。
+- 竞品地图:统一维护在 `worldmodel_literature.md`。
 
 **候选重启点(品味用,未承诺)**:
 1. 证书/评测线:decision-fidelity benchmark(证书 + Gate 0 案例研究 +

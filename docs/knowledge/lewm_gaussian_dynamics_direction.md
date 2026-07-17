@@ -1,196 +1,18 @@
-# LeWM 线性高斯与动力学表示:文献补充和新方向(2026-07-06)
+# LeWM Gaussian Dynamics:实验、理论与方法主账本(2026-07-06 起)
 
-> 目的:把最近 LeWM/JEPA-WM 相关工作和我们已有实验对齐,重新提出一个比
-> "delta loss / 多步 rollout / 收缩正则"更底层的问题:
-> **SIGReg 只把 latent 边缘分布钉成 Gaussian;多步预测到底把这个 Gaussian
-> latent 的动力学坐标系改成了什么?**
+> 目的:记录 prediction horizon 如何改变 LeWM representation 与 dynamics 的
+> 实验判决、理论解释、负结果和方法尝试。
 >
-> 本文分两部分:
-> 1. 补充文献:这些工作分别占掉了哪些局部改法,以及它们没有分析什么。
-> 2. 当前思考和方法:从我们已有结果出发,把问题重构成 controlled Gaussian JEPA
-> 的动力学表示理论与证书。
+> 文献综述与竞品地图统一维护在
+> [worldmodel_literature.md](worldmodel_literature.md)。本文只在具体论证处保留
+> 必要引用，不再复制 paper 摘要或建立增量文献章节。
 
 ---
 
-## Part I. 补充文献:它们占了什么,没占什么
+## Part I. 文献入口
 
-### 1. LeWorldModel / LeJEPA 理论:Gaussian marginal 是基础,但不是 dynamics theory
-
-**LeWorldModel** ([arXiv:2603.19312](https://arxiv.org/abs/2603.19312))
-给出当前基线:端到端 JEPA world model,用 next-embedding MSE + SIGReg,不依赖
-reconstruction / pretrained frozen encoder / EMA teacher。它的核心优点是简单稳定:
-encoder 直接学习 planning latent,predictor 学 latent dynamics,CEM 用 latent L2
-做 goal cost。
-
-它没有回答的问题是:当训练目标从 `K=1` 改成 `K=5` 时,encoder 为什么会变?
-论文主要把 latent 当作模型接口,没有把 "Gaussian latent 的动力学坐标选择"当作
-理论对象。
-
-**When Does LeJEPA Learn a World Model?**
-([arXiv:2605.26379](https://arxiv.org/abs/2605.26379)) 是最接近理论根的工作。
-它证明 Gaussian marginal 在 LeJEPA 里有特殊地位:在合适条件下,Gaussian 是支持
-线性可辨识性和 latent planning 的关键分布选择。直觉上,SIGReg 不只是防 collapse,
-还给 representation 一个可分析的线性 gauge。
-
-但它主要讨论 state-side / one-step / 受限动力学设定。对 LeWM 最关键的几个问题
-仍然空着:
-
-- action-conditioned transition `P_a` 怎么进入理论;
-- 多步目标优化的是 transition product,不是单步 transition;
-- encoder 与 predictor 联合训练时,`K` 如何选择 Gaussian latent 的动力学坐标;
-- `z_t ~ N(0,I)` 不等于 `z_{t+1}=Az_t+Ba_t+eps` 是线性高斯动力系统。
-
-因此 LeJEPA theory 是我们的地基,但不是终点。
-
-### 2. Delta-JEPA / sensorimotor inverse dynamics:占掉一阶 action sensitivity
-
-**Delta-JEPA** ([arXiv:2606.31232](https://arxiv.org/abs/2606.31232))
-把 latent difference `z_{t+1}-z_t` 拿来解码 action,从而迫使 latent transition
-携带 action 信息。它直接回应 LeWM 的一个弱点:只预测 future latent 可能学到
-不够 action-sensitive 的表征。
-
-这条线的本质是一阶局部约束:
-
-```text
-delta z_t = z_{t+1} - z_t  should reveal a_t
-```
-
-它有工程价值,但没有分析:
-
-- `K=5` 为什么主要改变 encoder 而不是 predictor;
-- action-conditioned Jacobian product 的谱/增益如何变;
-- 同样 Gaussian marginal 下,不同 horizon 选择了什么动力学坐标;
-- 为什么单步 MSE 几乎不变,但 open-loop composition 差 2 倍。
-
-类似地,**Sensorimotor World Models** 一类 inverse dynamics regularization 工作
-也在强调 "perception for action"。这些工作和 Delta-JEPA 一起说明:
-**再做一个 action inverse / delta decoder 已经不是足够新的主线。**
-
-### 3. Fast-LeWM / multi-horizon / prefix prediction:占掉接口和效率改法
-
-**Fast-LeWorldModel** ([arXiv:2606.26217](https://arxiv.org/abs/2606.26217))
-用 action-prefix prediction 替代 autoregressive latent rollout。它不是一步一步
-滚 `z_{t+1}, z_{t+2}, ...`,而是并行预测 action prefix 执行后的 future latent。
-这同时减少 rollout latency 和 compounding error,还可以加 self-consistency。
-
-这占掉了最自然的工程路线:
-
-```text
-multi-horizon supervision
-non-autoregressive rollout
-faster CEM
-lower long-horizon latent error
-```
-
-但它仍然把问题当成 "更好/更快地预测 future latent"。它没有问:
-多步目标为什么会重写 Gaussian latent 坐标系,也没有把 encoder-side 的动力学几何
-作为分析对象。
-
-### 4. Sub-JEPA:占掉 Gaussian regularizer 的局部修改
-
-**Sub-JEPA** ([arXiv:2605.09241](https://arxiv.org/abs/2605.09241))
-认为全空间 isotropic Gaussian 约束可能过强,改成随机低维子空间上的 Gaussian
-约束。这是在 SIGReg / marginal regularization 层面的改造。
-
-它提醒我们:Gaussian regularizer 本身也有 bias-variance 问题。但它没有分析
-action-conditioned dynamics,也没有解释 horizon loss 如何在 Gaussian gauge 的自由度中
-选择可复合坐标。
-
-所以我们不应把主线写成 "换一个 Gaussian regularizer"。更关键的是:
-
-```text
-给定 Gaussian marginal,不同 prediction horizon 如何选择 dynamics geometry?
-```
-
-### 5. Temporal Straightening:接近 dynamics,但不在 LeWM/SIGReg 问题上
-
-**Temporal Straightening** ([arXiv:2603.12231](https://arxiv.org/abs/2603.12231))
-提出让 latent trajectory 更直,并分析 linear dynamics 下 planning Hessian 的性质。
-这比 delta loss 更接近 "动力学几何"。
-
-但它和我们的目标仍不同:
-
-- 它不是 reconstruction-free Gaussian JEPA 的 encoder-predictor co-training;
-- 它没有解释 SIGReg marginal 与 finite-horizon transition geometry 的关系;
-- 它没有做冻结 encoder + refit predictor 的归因;
-- 它关注 trajectory straightness,而我们关心 horizon objective 如何选择 Gaussian
-  latent 的 operator/Jacobian geometry。
-
-这篇适合放 related work,但不会覆盖我们的核心问题。
-
-### 6. RC-aux / TRM:占掉 planner-facing metric 修复
-
-**RC-aux: Predictive but Not Plannable**
-([arXiv:2605.07278](https://arxiv.org/abs/2605.07278)) 和
-**TRM: Beyond Euclidean Proximity**
-([arXiv:2605.22164](https://arxiv.org/abs/2605.22164)) 都在指出:
-latent L2 不等于 planner 真正需要的 reachability / trajectory metric。
-
-这条线很重要,但它的对象是 planner-facing cost/metric:
-
-```text
-given latent, how should planner measure distance/reachability?
-```
-
-我们的对象更底层:
-
-```text
-given SIGReg Gaussian latent, how does horizon prediction choose the latent dynamics itself?
-```
-
-换句话说,RC-aux/TRM 是 "修 planner 读 latent 的方式";我们想分析的是
-"训练目标如何改变 latent 本身"。
-
-### 7. Predictive Objectives Discard Exogenous Control-Relevant Features
-
-**Predictive Objectives Discard Exogenous Control-Relevant Features**
-([arXiv:2606.30068](https://arxiv.org/abs/2606.30068)) 证明 predictive objective
-会丢掉不可预测但控制相关的外生变量,少量 reward/task label 可以救回来。
-
-这和我们早期 "sufficiency erosion" 直觉接近,但它关注的是 feature retention:
-
-```text
-predictive objective may discard control-relevant variables
-```
-
-我们现在看到的现象更细:
-
-- `D=8 K=5` 的 angle linear probe 崩了,planning 却更好;
-- K-step 的收益主要在 encoder-side composition geometry;
-- 不是简单 "丢了控制信息",而是 "线性可解码性/单步可预测性/可规划性"三者解耦。
-
-因此这篇是强 related work,但没有覆盖 multi-step Gaussian dynamics selection。
-
-### 8. AdaJEPA / test-time adaptation:占掉被动在线更新
-
-**AdaJEPA** ([arXiv:2606.32026](https://arxiv.org/abs/2606.32026)) 在 MPC 过程中
-用新观测 transition 做 test-time self-supervised update。它代表了 "world model
-部署时继续适应" 这条路线。
-
-但它仍然假设 self-supervised prediction update 是有益信号。我们的问题更前置:
-
-```text
-prediction loss 到底在 latent geometry 上施加什么选择压力?
-```
-
-如果这个问题没有回答,test-time prediction update 也可能只是在部署时继续重写
-一个未被理解的 Gaussian dynamics coordinate。
-
-### 9. ScratchWorld / WorldModelGym / phase-transition 评测趋势
-
-**ScratchWorld**
-([arXiv:2606.31689](https://arxiv.org/abs/2606.31689)) 和
-**WorldModelGym**
-([Reka blog](https://www.reka.ai/news/worldmodelgym)) 说明评测趋势正在从
-visual fidelity / full-state overlap 转向 decision fidelity / executable consequence。
-
-**World-Model Collapse as a Phase Transition**
-([arXiv:2606.31399](https://arxiv.org/abs/2606.31399)) 则把 world model failure
-描述成 horizon / state load 附近的临界崩塌。
-
-这些趋势和我们的相图资产契合,但它们仍是评测/现象层。我们的潜在贡献可以是:
-解释为什么某些 Gaussian JEPA latent 在容量和 horizon 压力下会进入不同的
-dynamics coordinate regime。
+统一文献库：[worldmodel_literature.md](worldmodel_literature.md)。
+本文后续 Part 编号保持不变，以免破坏已有实验和理论交叉引用。
 
 ---
 
@@ -1108,3 +930,146 @@ L = L_1step(全权重) + gamma * L_K5_openloop + lam*SIGReg
 - 证伪线:若 rate(γ) 不插值(如 γ=0.1 就跳到 0.98):压力不是连续剂量,
   Prop 2 的权重比例故事需要修;若所有 γ 的 planning ≤ 87:
   单纯重加权在这个任务上没有免费午餐,方法主张退为剂量-响应定律本身。
+
+---
+
+## Part IX. CritWM v1:闭环 γ 控制首轮正式训练判决(2026-07-16—17)
+
+### IX.1 本轮到底训练了什么
+
+这不是新的分析性探针,而是 **CritWM 第一版完整模型训练**。训练目标为:
+
+```text
+L = L_1step + gamma_t * L_K5_openloop + lambda * L_SIGReg
+```
+
+- `K=5` 是耦合开环项的固定 rollout 长度,不是本轮搜索的超参;
+- 每 200 个 optimizer step 跑一次无梯度 echo probe,测 5 步扰动传播末两步的
+  `rate`;
+- 控制器以 `rate*=1.0` 为设定点,先做 `0.7/0.3` EMA,再按
+  `gamma <- gamma * exp(2 * (rate - 1))` 更新,并截断到 `[0.02, 5.0]`;
+- actuator 只调耦合的 `L_K5_openloop` 权重,不把 echo 罚直接写进梯度,
+  保留 Part VIII 得到的"增益压力必须与开环精度共点耦合"约束。
+
+协议:`D=192`,history=3,batch=128,seed=3072,30 epochs,bf16,2 GPU。
+训练从旧机 epoch 24 的完整 checkpoint(模型、optimizer、scheduler、CritWM
+控制状态)在新机 `/225010117` 下续训,最终完成 epoch 29 /
+global step 169590。最终权重:
+`/225010117/stablewm/checkpoints/critwm_d192/weights_epoch_30.pt`;
+完整 checkpoint:
+`/225010117/cache/stable-pretraining/runs/20260716/163234/aba14f1724e6/checkpoints/last.ckpt`。
+
+本轮行为评测仍是**标准 CEM**,没有接候选级资格门、排序校准或
+certified/adaptive planner;因此这里只判 CritWM 的训练环,不把规划环设想混入结果。
+
+### IX.2 收敛、续训与数据完整性
+
+续训前后验证集继续改善,没有在迁移点出现退化:
+
+| checkpoint | val pred loss | val total loss |
+| --- | ---: | ---: |
+| epoch 24 | 0.028293 | 0.196973 |
+| epoch 29 | **0.024389** | **0.188508** |
+| 相对变化 | **-13.8%** | **-4.3%** |
+
+为排除 GPU-util 加速改动改变训练数据,做了两级审计:
+
+1. H5 `pixels` 与 mmap sidecar 的全部 2,336,736 帧逐字节相等,两者像素流
+   SHA256 都是
+   `6b7aec914e67f1f9b6627e9a4399e4151c76ee67226ea81d0468085b092e75c2`;
+2. 另抽 260 个训练 clip,变换后的 tensor 在数值、layout、stride 上逐项相等,
+   action/proprio/state 也精确相等。
+
+**判决:**util 修改只改变像素读取路径与供数效率,没有改变模型看到的数据;
+后续 rate/planning 现象不能归因于 sidecar 数据污染。
+
+### IX.3 控制器轨迹:模型到临界,但 v1 闭环证据不成立
+
+`gamma` 从 0.3 出发,在 epoch 0 / step 2799 首次撞到上限 5.0。
+旧机阶段有 98.1% 的已记录训练点位于上限,续训阶段则 100% 位于上限;
+最终在线日志为 `gamma=5.0, rate=1.033`。也就是说,本轮绝大部分实际目标等价于:
+
+```text
+L = L_1step + 5 * L_K5_openloop + lambda * L_SIGReg
+```
+
+这首先说明 actuator 饱和,没有展示 `gamma` 在内部区间双向调节并锁定设定点。
+进一步审计发现,在线 sensor 本身也不是干净测量:
+
+固定 held-out 128 clips × 16 个 `delta` seeds,用 eval-mode
+(dropout 关闭、BN buffer 冻结)重复测量:
+
+| checkpoint | deterministic rate(mean ± std) |
+| --- | ---: |
+| epoch 24 | 0.9942 ± 0.0121 |
+| epoch 29 | **0.9975 ± 0.0134** |
+
+同一个 epoch-29 模型在 train mode 下测得 `1.0444 ± 0.0195`;
+相同输入独立前向的输出距离为 `0.4682 ± 0.0161`,说明 dropout 给在线读数
+加入了系统性偏差。更严重的是,单次 probe 会修改
+`pred_proj.net.1` 的 BatchNorm buffer:
+
+```text
+max |delta running_mean| = 0.0942
+max |delta running_var|  = 0.1347
+num_batches_tracked      = +10
+```
+
+因此 v1 的准确判决要拆开:
+
+- **模型层 ✓:**最终确定性动力学确实落在近临界 `rate≈0.998`;
+- **闭环层 ✗:**在线读数受 dropout 偏置且 probe 改写 BN 状态,同时 γ 长期饱和;
+  这一轮不能证明"CritWM 闭环自动找到并维持临界点"。
+
+### IX.4 标准 CEM planning 结果
+
+协议:history=3,horizon=3,receding horizon=3,action block=5,
+CEM samples=300 / iterations=30 / top-k=30,budget=50;
+每格评测 seeds `{42,123,7}` × 50 episodes。
+
+| checkpoint | goal offset 25(三 seed) | 均值 | goal offset 40(三 seed) | 均值 |
+| --- | --- | ---: | --- | ---: |
+| epoch 24 | 88 / 78 / 80 | 82.0 | 40 / 44 / 52 | **45.3** |
+| epoch 29 | 84 / 80 / 84 | **82.7** | 40 / 42 / 44 | 42.0 |
+
+epoch-24→29 使用相同 episode seeds 的配对判决:
+
+- offset 25:lost 3 / gained 4,exact McNemar `p=1.0`;
+- offset 40:lost 14 / gained 9,exact McNemar `p=0.405`。
+
+所以远 goal 的 `45.3→42.0` 不能判为续训或 util 修改导致的真实下降。
+但最终模型也没有展示 K=5 的规划优势。与既有 MD 汇总的同协议参考值对账:
+
+| 模型 | goal offset 25 | goal offset 40 |
+| --- | ---: | ---: |
+| K=1 D192 | 83.0 | 40.0 |
+| K=5 D192 | 87.0 | **56.0** |
+| K=10 D192 | 85.7 | 52.0 |
+| **CritWM v1 epoch 29** | **82.7** | **42.0** |
+
+CritWM v1 的确定性 `rate` 是 K=5 式的近临界,planning 却更接近 K=1。
+这再次确认 Part VII 的边界:**rate 是动力学机制量,不是充分的 planning
+predictor**。正式论文表格仍需把旧基线在同一机器、同一代码版本上匹配重跑;
+目前 K=1/5/10 的远 goal 原始文件未随迁移带到新机,上表基线来自已有主账本汇总。
+
+### IX.5 本轮总判决与 v2 硬门
+
+**CritWM 已经是一个明确模型,且 v1 第一版完整训练已经做完。**
+这一轮不是"还在做分析实验";它给出了首个端到端训练结果。结果同时很明确:
+
+1. 耦合多步剂量能训练出近临界模型,验证损失正常收敛;
+2. v1 sensor/控制器实现有 dropout + BN 状态污染和 actuator 饱和,
+   所以最核心的"闭环自稳、消除手调剂量"主张尚未被验证;
+3. 标准 CEM 下没有复现固定 K=5 的 planning 优势,尤其远 goal 仍是 K=1 水平;
+4. 数据/吞吐改动已被全量 bitwise 审计排除,不是本轮负结果来源。
+
+CritWM v2 只有通过下面硬门才继续保留方法主张:
+
+1. **sensor 纯化:**同一 checkpoint/同一 batch/同一 delta 必须确定性复现,
+   probe 前后所有参数与 BN buffer bitwise 不变;
+2. **真正闭环:**在至少两个 setpoint 或一次外部扰动下展示 γ 双向移动并在内部
+   区间跟踪,不能大部分时间卡边界;
+3. **去调参价值:**跨训练种子、至少两个任务/难度,自动控制需匹配或超过
+   各任务单独调出的最佳 fixed-γ/K,否则"消掉 horizon/dose tuning"不成立;
+4. **决策保持:**同机匹配重跑 K=1/5/10,至少守住 K=5 的近/远 goal planning;
+   若只把 rate 调到 1 而规划不增益,方法主张降级为机制分析。

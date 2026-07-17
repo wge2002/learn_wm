@@ -140,9 +140,16 @@ off60,想象深度(planner horizon)与 CEM 搜索预算:
 3. OGBench 前置条件明确:长 horizon 任务必须先有排序反转校准,
    否则重蹈 h8 崩溃。
 
-## 7. 状态
+## 7. 状态(2026-07-17)
 
-- mix v2(γ 剂量)训练中,结果进 held-out 集;
-- Day-0 三个侦察完成(全部零训练,当天);
-- 下一步(等 PI 点头):Week-1 首项 = CEM 候选级日志 + 排序反转测量
-  (零训练,是 CritWM 规划环传感器的核心标定)。
+- **CritWM v1 第一版正式训练已经完成**,不是仍停在 γ 剂量分析阶段。完整实验协议、
+  sensor 审计、planning 与判决统一记在
+  [Gaussian Dynamics 主账本 Part IX](lewm_gaussian_dynamics_direction.md#part-ix-critwm-v1闭环-γ-控制首轮正式训练判决2026-07-1617);
+- 训练出的确定性模型达到近临界 `rate≈0.998`,但 v1 在线 sensor 受 dropout
+  偏置并改写 BatchNorm buffer,γ 又长期卡在上限;因此"模型训到临界"成立,
+  **"闭环自动自稳"尚不成立**;
+- 标准 CEM 下 CritWM v1 没有获得固定 K=5 的远 goal planning 优势。
+  certified/adaptive planning 环本轮未实现、未评测,不能与训练结果混为一谈;
+- 方法下一步收窄为 CritWM v2 的训练环硬判决:先做无状态确定性 sensor +
+  内部区间 setpoint tracking,再检验它能否跨任务匹配最佳 fixed-γ/K。
+  候选级证书与排序校准降为后续 planning 能力,不再作为 v2 首要新颖性。
