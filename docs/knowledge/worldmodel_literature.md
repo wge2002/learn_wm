@@ -51,6 +51,15 @@
    **真实轨迹的切向几何**与**递归想象误差的横向传播几何**之间，并正面对打
    `K1 + curvature` 与 multistep co-adaptation。
 
+7. **2026-07-18 的完整 Gate 已推翻 Horizon-Bundle 方法优先级。**
+   完整闭环没有稳定的 training-horizon × planning-horizon matching；更稳定的失败是
+   learned CEM elite update 与 true-cost update 在优化后期几乎正交。post-hoc verifier
+   在 snapshot 上可正、进 closed loop 后全为零 gain；多模型 portfolio 只有弱的
+   matched-compute 信号。当前方法候选转为
+   **Optimizer-Equivalent World Model（OE-WM）**：在模型自己诱导的 proposal
+   distribution 上匹配 oracle elite-moment update。实验与 Gate 见
+   [horizon_bundle_temporal.md §13](horizon_bundle_temporal.md)。
+
 ## 1. 最相关论文速览
 
 | paper | 状态 | 核心做法 | 主要结论 | 对我们的影响 |
@@ -584,8 +593,14 @@ not by self-prediction alone.
 - [TD-MPC2: Scalable, Robust World Models for Continuous Control](https://arxiv.org/abs/2310.16828)
 - [Discrete Codebook World Models for Continuous Control](https://arxiv.org/abs/2503.00653)
 - [Closing the Train-Test Gap in World Models for Gradient-Based Planning](https://arxiv.org/abs/2512.09929)
+- [IMWM: Intuition Models Complement World Models for Latent Planning](https://arxiv.org/abs/2606.01626)
 - [WorldPlanner: Monte Carlo Tree Search and MPC with Action-Conditioned Visual World Models](https://arxiv.org/abs/2511.03077)
 - [EV-WM: Event-Verified World Models for Long-Horizon Robotic Manipulation](https://arxiv.org/abs/2606.13053)
+- [World Action Verifier](https://arxiv.org/abs/2604.01985)
+- [Imperfect World Models are Exploitable](https://arxiv.org/abs/2605.15960)
+- [RENEW: Learning World Models and Repairing Model Exploitation from Preferences](https://arxiv.org/abs/2607.14180)
+- [The Differentiable Cross-Entropy Method](https://arxiv.org/abs/1909.12830)
+- [PETS](https://arxiv.org/abs/1805.12114)
 - [Foresight: Failure Detection for Long-Horizon Robotic Manipulation with Action-Conditioned World Model Latents](https://arxiv.org/abs/2606.23085)
 - [DiWA: Diffusion Policy Adaptation with World Models](https://arxiv.org/abs/2508.03645)
 - [World4RL: Diffusion World Models for Policy Refinement with Reinforcement Learning for Robotic Manipulation](https://arxiv.org/abs/2509.19080)
@@ -708,3 +723,51 @@ not by self-prediction alone.
 
 因此，后续新 idea 必须解释或利用上述整组事实，而不能只把其中一个 metric、
 regularizer 或 planner patch 重新包装成主问题。
+
+### 11.6 2026-07-18 selection audit 后的新 claim 边界
+
+完整 population trace、oracle execution 和三 seed matched-compute MPC 新增了一个
+比“action ranking 更好”更窄、也更接近 adaptive search 因果链的对象：
+
+```text
+world-model cost
+  → CEM elite set
+  → next proposal mean/covariance
+  → next planner query distribution
+  → closed-loop state distribution
+```
+
+在 H5/off40，三个现有模型最后一轮 learned-vs-oracle top-30 overlap 仅
+`6.4–9.7%`，update cosine 仅 `0.054–0.150`。这解释了为什么 fixed-bank
+K10 scorer 看似更好，闭环却仍由 K3 更稳定地获胜。它也把相关工作重新分成四类：
+
+| 邻近路线 | 已占据的主张 | OE-WM 必须保住的差异 |
+| --- | --- | --- |
+| [IMWM](https://arxiv.org/abs/2606.01626)、WorldPlanner、Qantara | demo/BC/diffusion action proposal 能缓解 finite-budget search | 不另训普通 intuition/policy；监督 world-model cost 所诱导的 optimizer update |
+| [EV-WM](https://arxiv.org/abs/2606.13053)、[WAV](https://arxiv.org/abs/2604.01985)、RC-aux、TRM | predicate/reachability/plausibility verifier 与 metric repair | 不是 final rerank/gate；改变每一轮后续 proposal distribution |
+| [Closing the Train-Test Gap](https://arxiv.org/abs/2512.09929)、planner-overfitting、[RENEW](https://arxiv.org/abs/2607.14180) | planner distribution、adversarial smoothing、preference repair 已有直接方法 | 不能泛称 train-test alignment；必须落实到 CEM elite sufficient-statistic equivalence |
+| [DCEM](https://arxiv.org/abs/1909.12830)、PETS | differentiable optimizer 与 ensemble trajectory sampling 已成熟 | soft top-k/ensemble 只是工具或 baseline，不是贡献 |
+
+尤其要保留两个负结果边界：
+
+1. K10 top-5 refit 在 evaluator-matched first-plan snapshot 上从 58% 到 66%，
+   进入完整 MPC 后却从 62% 降到 60%，且 `0 gains / 1 loss`；
+2. 三模型在同一个 `N=100` population 内平均 rank，三 seed success 只有
+   `6/14/4%`；独立保留各模型 proposal path 后则为 `66/74/58%`。
+
+所以不能把下一篇写成“held-out verifier 防 optimizer's curse”或“普通 world-model
+ensemble”。当前暂定的新方法定义是：
+
+> 两个 costs 在 proposal `q` 上对 CEM 等价，当且仅当它们诱导相同的下一轮
+> elite mean/covariance；训练时必须在当前模型自己访问的 `q` 上逼近这种等价。
+
+这个方向有三个仍需验证的风险：
+
+- true-cost elite update 需要 simulator、teacher 或有限真实交互，未自动满足纯 offline；
+- moment matching 可能在真正多模态 oracle elite 上平均失效，需要 mixture extension；
+- “optimizer-specific sufficiency”可能只适用于 CEM，必须用 MPPI/其他环境确认不是
+  PushT planner engineering。
+
+因此文献结论不是“OE-WM 已经 work”，而是：它是当前第一个同时通过
+**mechanism evidence、matched-compute headroom、closed-loop falsifiability 和 novelty
+边界**四项筛选、值得进入训练 Gate 的 idea。

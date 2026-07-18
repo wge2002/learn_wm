@@ -10,6 +10,8 @@ from stable_worldmodel.solver.callbacks import (
     ActionNormRecorder,
     BestCostRecorder,
     Callback,
+    CEMArchiveRecorder,
+    CEMPopulationRecorder,
     EliteCostRecorder,
     EliteSpreadRecorder,
     GradNormRecorder,
@@ -271,6 +273,90 @@ def test_elite_spread_recorder():
     assert cb.history[0][0] == pytest.approx(0.0, abs=1e-6)
 
 
+def test_cem_population_recorder_selected_steps_and_dtypes():
+    cb = CEMPopulationRecorder([0, 2])
+    cb.reset()
+    cb.start_batch()
+    state = {
+        'candidates': torch.randn(2, 7, 3, 4),
+        'costs': torch.randn(2, 7),
+        'topk_inds': torch.tensor([[0, 1], [2, 3]]),
+        'mean': torch.randn(2, 3, 4),
+        'var': torch.rand(2, 3, 4),
+        'prev_mean': torch.randn(2, 3, 4),
+        'prev_var': torch.rand(2, 3, 4),
+    }
+    for step in range(3):
+        cb(step=step, **state)
+    cb.end_solve()
+
+    assert [entry['step'] for entry in cb.history[0]] == [0, 2]
+    assert cb.history[0][0]['candidates'].shape == (2, 7, 3, 4)
+    assert cb.history[0][0]['candidates'].dtype == torch.float16
+    assert cb.history[0][0]['costs'].dtype == torch.float32
+    assert cb.history[0][0]['topk_inds'].dtype == torch.int32
+    assert cb.history[0][0]['mean'].dtype == torch.float16
+
+
+def test_cem_population_recorder_rejects_invalid_steps():
+    with pytest.raises(ValueError, match='non-negative'):
+        CEMPopulationRecorder([])
+    with pytest.raises(ValueError, match='non-negative'):
+        CEMPopulationRecorder([-1, 0])
+
+
+def test_cem_archive_recorder_keeps_means_and_elites_only():
+    cb = CEMArchiveRecorder([0, 2])
+    cb.reset()
+    cb.start_batch()
+    state = {
+        'mean': torch.randn(2, 3, 4),
+        'topk_candidates': torch.randn(2, 5, 3, 4),
+        'topk_vals': torch.randn(2, 5),
+        'candidates': torch.randn(2, 20, 3, 4),
+    }
+    for step in range(3):
+        cb(step=step, **state)
+    cb.end_solve()
+
+    trace = cb.history[0]
+    assert [entry['step'] for entry in trace] == [0, 2]
+    assert set(trace[0]) == {
+        'step',
+        'mean',
+        'topk_candidates',
+        'topk_vals',
+    }
+    assert trace[0]['mean'].shape == (2, 3, 4)
+    assert trace[0]['topk_candidates'].shape == (2, 5, 3, 4)
+    assert trace[0]['mean'].dtype == torch.float32
+
+
+def test_cem_archive_recorder_can_keep_sampled_population():
+    cb = CEMArchiveRecorder([2], record_population=True)
+    cb.reset()
+    cb.start_batch()
+    cb(
+        step=2,
+        mean=torch.randn(2, 3, 4),
+        topk_candidates=torch.randn(2, 5, 3, 4),
+        topk_vals=torch.randn(2, 5),
+        candidates=torch.randn(2, 20, 3, 4),
+    )
+    cb.end_solve()
+
+    entry = cb.history[0][0]
+    assert entry['candidates'].shape == (2, 20, 3, 4)
+    assert entry['candidates'].dtype == torch.float32
+
+
+def test_cem_archive_recorder_rejects_invalid_steps():
+    with pytest.raises(ValueError, match='non-negative'):
+        CEMArchiveRecorder([])
+    with pytest.raises(ValueError, match='non-negative'):
+        CEMArchiveRecorder([-1, 0])
+
+
 ###########################
 ## Solver integration    ##
 ###########################
@@ -375,6 +461,18 @@ def test_cem_solver_with_callbacks():
     assert len(out['callbacks']['BestCostRecorder'][0]) == 3
     # MeanShift always has a prev_mean (captured before each topk update)
     assert len(out['callbacks']['MeanShiftRecorder'][0]) == 3
+
+
+def test_cem_solver_population_trace():
+    recorder = CEMPopulationRecorder([0, 2])
+    solver = _cem_solver([recorder])
+    info = {'pixels': torch.randn(2, 1, 3, 8, 8)}
+    out = solver(info)
+
+    trace = out['callbacks']['population_trace'][0]
+    assert [entry['step'] for entry in trace] == [0, 2]
+    assert trace[0]['candidates'].shape == (2, 20, 3, 2)
+    assert trace[0]['topk_inds'].shape == (2, 5)
 
 
 def test_icem_solver_with_callbacks():

@@ -71,7 +71,9 @@ def stratify(costs: np.ndarray, per_state: int, rng) -> np.ndarray:
         raise ValueError(f'costs must be one-dimensional, got {costs.shape}')
     k = min(int(per_state), len(costs))
     if k < 2:
-        raise ValueError('oracle.per_state must select at least two candidates')
+        raise ValueError(
+            'oracle.per_state must select at least two candidates'
+        )
 
     order = np.argsort(costs, kind='stable')
     quart = max(1, k // 4)
@@ -96,24 +98,26 @@ def stratify(costs: np.ndarray, per_state: int, rng) -> np.ndarray:
 
 
 def sample_starts(dataset, num_states: int, goal_offset: int, rng):
-    """Match eval_wm's row-uniform sampling over episode-valid starts."""
-    col = (
-        'episode_idx'
-        if 'episode_idx' in dataset.column_names
-        else 'ep_idx'
-    )
+    """Exactly match eval_wm's row-uniform sampling protocol."""
+    col = 'episode_idx' if 'episode_idx' in dataset.column_names else 'ep_idx'
     episode_idx = np.asarray(dataset.get_col_data(col))
     step_idx = np.asarray(dataset.get_col_data('step_idx'))
     episodes, inverse = np.unique(episode_idx, return_inverse=True)
     max_step = np.full(len(episodes), -1, dtype=np.int64)
     np.maximum.at(max_step, inverse, step_idx)
     valid = np.flatnonzero(step_idx <= max_step[inverse] - goal_offset)
-    if len(valid) < num_states:
+    # ``eval_wm`` samples integer positions from ``len(valid) - 1`` and then
+    # indexes the valid-row array. Preserve that historical off-by-one here so
+    # the same seed gives the exact same ordered starts for paired audits.
+    population = len(valid) - 1
+    if population < num_states:
         raise ValueError(
-            f'Only {len(valid)} valid starts for goal offset {goal_offset}, '
+            f'Only {population} evaluator-matched starts for goal offset '
+            f'{goal_offset}, '
             f'but oracle.num_states={num_states}'
         )
-    rows = np.sort(rng.choice(valid, size=num_states, replace=False))
+    positions = rng.choice(population, size=num_states, replace=False)
+    rows = np.sort(valid[positions])
     return rows, episode_idx[rows], step_idx[rows]
 
 
@@ -240,7 +244,9 @@ def score_candidates(model, model_info: dict, candidates: np.ndarray):
             )
         else:
             expanded[key] = value
-    return model.get_cost(expanded, candidates_t).squeeze(0).float().cpu().numpy()
+    return (
+        model.get_cost(expanded, candidates_t).squeeze(0).float().cpu().numpy()
+    )
 
 
 def task_cost(goal_state: np.ndarray, state: np.ndarray):
@@ -318,11 +324,13 @@ def rank_metrics(pred: np.ndarray, true: np.ndarray):
     )
     pred_delta = pred[pairs[:, 0]] - pred[pairs[:, 1]]
     true_delta = true[pairs[:, 0]] - true[pairs[:, 1]]
-    non_tie = (np.abs(pred_delta) > 1e-12) & (
-        np.abs(true_delta) > 1e-12
-    )
+    non_tie = (np.abs(pred_delta) > 1e-12) & (np.abs(true_delta) > 1e-12)
     inversion = (
-        float(np.mean(np.sign(pred_delta[non_tie]) != np.sign(true_delta[non_tie])))
+        float(
+            np.mean(
+                np.sign(pred_delta[non_tie]) != np.sign(true_delta[non_tie])
+            )
+        )
         if non_tie.any()
         else float('nan')
     )
@@ -456,9 +464,7 @@ def run(cfg: DictConfig):
             else:
                 solver(model_info)
                 record = recorder.history[-1][-1]
-                population = (
-                    record['candidates'][0].float().numpy()
-                )
+                population = record['candidates'][0].float().numpy()
                 population_cost = record['costs'][0].numpy()
                 selected = stratify(population_cost, per_state, rng)
                 candidates = population[selected]
@@ -506,9 +512,7 @@ def run(cfg: DictConfig):
                     reset_errors.append(
                         float(
                             np.max(
-                                np.abs(
-                                    repeat['terminal_state'] - terminals[0]
-                                )
+                                np.abs(repeat['terminal_state'] - terminals[0])
                             )
                         )
                     )
@@ -535,9 +539,7 @@ def run(cfg: DictConfig):
     true_angle = np.stack(angle_rows)
     successes = np.stack(success_rows)
     terminals = np.stack(terminal_rows)
-    metrics = [
-        rank_metrics(predicted[i], true[i]) for i in range(num_states)
-    ]
+    metrics = [rank_metrics(predicted[i], true[i]) for i in range(num_states)]
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     np.savez(

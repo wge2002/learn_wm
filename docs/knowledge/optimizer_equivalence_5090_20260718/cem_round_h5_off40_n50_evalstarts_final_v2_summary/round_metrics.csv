@@ -1,0 +1,2 @@
+generator,step,n_states,proposal_oracle_true,proposal_success_coverage,returned_true,returned_success,returned_nreg,returned_self_pred,returned_verifier_pred,self_population_rho,self_population_nreg,verifier_population_rho,verifier_population_nreg
+pd_d192_k3_eval,29,50,76.78713155208935,0.7,92.08416393181949,0.58,0.26678940863659567,54.14978704452515,81.59586077213288,0.27360272891921017,0.2917036539412029,0.29627395859954,0.30911215765214606

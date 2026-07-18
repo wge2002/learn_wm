@@ -1,0 +1,41 @@
+{
+  "source": "/mnt/data/wge/stablewm/checkpoints/cemcv_*.txt",
+  "baseline_variant": "baseline_k3",
+  "bootstrap": 20000,
+  "bootstrap_seed": 20260718,
+  "horizon_filter": null,
+  "goal_offset_filter": null,
+  "cells": [
+    {
+      "seed": 7,
+      "horizon": 5,
+      "goal_offset": 40
+    },
+    {
+      "seed": 42,
+      "horizon": 5,
+      "goal_offset": 25
+    },
+    {
+      "seed": 42,
+      "horizon": 5,
+      "goal_offset": 40
+    },
+    {
+      "seed": 42,
+      "horizon": 5,
+      "goal_offset": 60
+    },
+    {
+      "seed": 42,
+      "horizon": 8,
+      "goal_offset": 60
+    },
+    {
+      "seed": 123,
+      "horizon": 5,
+      "goal_offset": 40
+    }
+  ],
+  "n_runs": 43
+}

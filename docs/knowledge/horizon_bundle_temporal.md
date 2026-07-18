@@ -1197,3 +1197,356 @@ Horizon-Bundle implementation = STOP
 
 只有未来在这些 selection controls 后重新出现稳定的 representation-side
 `K×H` crossing，才重新打开 Horizon-Bundle。
+
+## 13. 5090 selection 闭环：从 verifier/portfolio 负结果到 Optimizer-Equivalent WM（2026-07-18）
+
+> **本轮判决：Horizon-Bundle 继续关闭；“再加一个 verifier”关闭；
+> multi-model portfolio 保留为机制 probe 和强 baseline，但证据不足以独立成为
+> flagship。当前唯一值得进入训练 Gate 的新方向是
+> Optimizer-Equivalent World Model（OE-WM）：不要求模型在外生 candidate bank
+> 上全局拟合真实 cost，而要求它在自己诱导的 planner query distribution 上，
+> 产生与真实动力学相同的 CEM elite-moment update。**
+>
+> 这里的 “GO” 是“核心假设已有因果证据、上限明确、可以花训练预算”，不是宣称
+> 方法已经训练成功。
+
+### 13.1 协议与本轮新增控制
+
+主机为 `5090lan`，数据为
+`/mnt/data/wge/data/pusht_eval_state_only.h5`，三个 checkpoint 为：
+
+```text
+K3  = pd_d192_k3_eval
+K5  = iter2_multistep_eval
+K10 = pd_d192_k10_eval
+```
+
+正式 snapshot audit 使用普通 CEM：
+
+```text
+N=300 candidates / round
+R=30 rounds
+topk=30
+H5/off40 与 H8/off60
+3 generators × 3 scorers
+saved rounds = {0,1,2,4,9,19,29}
+```
+
+其中 `H5/off40` 另用 evaluator 完全相同的 `50` 个起点保存最终完整 population。
+端到端 MPC 控制均为 `50` episodes；关键 matched-compute cell
+`H5/off40` 补到 seeds `42/7/123`。所有比较保留逐 episode pairing。
+
+本轮不再只问“哪个 scorer 在固定 bank 上相关性高”，而是依次审计：
+
+1. proposal 中是否存在成功 candidate；
+2. scorer 能否选中或 refit 它；
+3. scorer 诱导的 elite mean/variance update 是否与 true-cost CEM 同向；
+4. snapshot 上的正结果能否穿过完整 closed-loop MPC；
+5. 增益是否在相同 world-model call budget 下仍然存在。
+
+### 13.2 最重要的新事实：learned cost 与 true cost 给出不同的 CEM update
+
+对同一个 population，定义 learned scorer 的 top-30 elite mean update
+`Δμ_model`，以及 simulator true cost 的 top-30 elite mean update
+`Δμ_oracle`。记录：
+
+```text
+elite overlap = |E_model ∩ E_oracle| / 30
+update cosine = cos(Δμ_model, Δμ_oracle)
+relative error = ||Δμ_model - Δμ_oracle|| / ||Δμ_oracle||
+```
+
+generator 使用自己的 scorer 时，跨 12 个状态的平均值为：
+
+| cell/model | overlap step 0 → 29 | cosine step 0 → 29 | relative error at 29 |
+| --- | ---: | ---: | ---: |
+| H5/off40 K3 | .342 → **.097** | .525 → **.150** | 1.175 |
+| H5/off40 K5 | .494 → **.064** | .580 → **.054** | 1.230 |
+| H5/off40 K10 | .319 → **.075** | .422 → **.074** | 1.205 |
+| H8/off60 K3 | .481 → **.219** | .608 → **.311** | 1.047 |
+| H8/off60 K5 | .544 → **.231** | .617 → **.192** | 1.194 |
+| H8/off60 K10 | .511 → **.111** | .552 → **.217** | 1.095 |
+
+也就是说，CEM 越优化，learned elite 与 true elite 通常越分离；在
+`H5/off40` 最后一轮，三个模型的 elite overlap 都低于 `10%`，update direction
+几乎正交，relative error 全部大于 `1`。
+
+这个量第一次解释了之前看似矛盾的两组结果：
+
+```text
+外生 fixed bank：K10 经常是较好的 pointwise scorer；
+自适应 closed loop：K3 却是更稳定的 generator / planner。
+```
+
+K3 在自己诱导的最终 bank 上虽然 pointwise ranking 并不最好，但它的
+`update cosine` 在 H5/H8 都是三个 generator 中最高，方向与端到端 winner 一致。
+世界模型在 CEM 中不是被动 evaluator；它定义了下一轮会查询哪里。
+
+### 13.3 Oracle ceiling 存在，但 post-hoc verifier 无法兑现
+
+在与 evaluator 起点完全一致的 `H5/off40, n=50` 最终 K3 population 上：
+
+| first-plan open-loop rule | success | 相对 K3 returned mean |
+| --- | ---: | ---: |
+| K3 returned top-30 mean | 58% | — |
+| true-cost top-1 candidate | **70%** | 6 gains / 0 losses |
+| true-cost top-5 refit mean | **68%** | 5 / 0 |
+| true-cost top-10 refit mean | **68%** | 5 / 0 |
+| true-cost top-30 refit mean | **68%** | 5 / 0 |
+| K10-scored top-5 refit mean | 66% | 4 / 0 |
+
+所以当前 population 里确有约 `+10–12 pp` 的第一步可兑现空间；问题不是
+“根本没有好动作”。但同一个 K10 top-5 rule 放入完整 MPC 后：
+
+```text
+ordinary K3 CEM       = 62%
+K10 top-5 refit MPC   = 60% (0 gains / 1 loss)
+K10 top-10 refit MPC  = 58% (0 / 2)
+K10 top-30 refit MPC  = 60% (0 / 1)
+```
+
+其余 single-verifier 变体也没有一次 paired gain：
+
+| K3 proposal 后的选择 | success | gains/losses vs 62% |
+| --- | ---: | ---: |
+| K10 select sparse means | 58% | 0 / 2 |
+| K10 select final population | 58% | 0 / 2 |
+| K5 select sparse means | 60% | 0 / 1 |
+| K5 select final population | 56% | 0 / 3 |
+| K5 top-30 refit | 56% | 0 / 3 |
+| K3 self sparse-means control | 62% | 0 / 0 |
+| K3 self top-30 refit control | 62% | 0 / 0 |
+
+因此不能再用“snapshot 上 K10 top-5 到 66%”讲方法结果。它恰好证明：
+
+```text
+expert/dataset start 上的固定-bank正结果
+≠
+方法自己执行后进入的新状态上的 closed-loop 正结果。
+```
+
+一个不改变后续 query distribution、也不在该分布上训练的 verifier，无法修复
+adaptive optimizer 的 Goodhart / planner-overfitting。
+
+### 13.4 Portfolio 到底有多少是真模型信号，多少只是多算
+
+三个模型各自运行独立 CEM，保留七个 smooth means，最后由三个模型的 fractional
+rank consensus 选择。seed 42 的 full-compute 结果：
+
+| cell | K3 `1×300` | diverse portfolio `3×300` | K3 `1×900` |
+| --- | ---: | ---: | ---: |
+| H5/off25 | 86 | **94** | 90 |
+| H5/off40 | 62 | **72** | **72** |
+| H5/off60 | 24 | 34 | **36** |
+| H8/off60 | 12 | **14** | **14** |
+
+这说明 portfolio 本身能工作，但 `3×` search compute 几乎解释了全部增益，而且
+没有修复 H8 cliff。
+
+更严格的 `H5/off40` equal-call audit 中，每轮总共都使用约 `300` 次
+world-model trajectory scores：
+
+```text
+ordinary K3:             1 path × 300 candidates
+same-model multistart:   3 K3 paths × 100 candidates
+diverse portfolio:       K3/K5/K10 paths × 100 candidates
+shared rank ensemble:    1 path × 100 candidates × 3 models
+```
+
+三 seed 完整 MPC：
+
+| method | s42 | s7 | s123 | pooled |
+| --- | ---: | ---: | ---: | ---: |
+| K3 `1×300` | 62 | 68 | 58 | 62.7 |
+| K3 `3×100` multistart | 66 | 62 | 60 | 62.7 |
+| K3 `1×900` | 72 | 60 | 66 | 66.0 |
+| diverse `3×100` portfolio | 66 | 74 | 58 | **66.0** |
+| shared-population rank ensemble `3×100` | 6 | 14 | 4 | **8.0** |
+
+相对 ordinary K3，diverse portfolio 的三个 seed delta 为 `+4/+6/+0 pp`，
+pooled `+3.3 pp`，episode bootstrap CI 仍跨 0；相对 same-model multistart
+也是 `+3.3 pp`，CI 仍跨 0。因此存在**弱但一致的 model-specific diversity
+信号**，却还远未达到 flagship 方法的证据强度。
+
+更有信息量的是 shared-population ensemble 的崩溃。单独 K3 用相同 `N=100`
+时三 seed 为 `58/68/52`，而三个 scorer 的 rank 在每轮直接平均后变成
+`6/14/4`。这排除了“只是 candidate 数少”；当前最直接的解释是不同模型支持的
+elite modes 被塞进同一个 Gaussian 后，其 mean 成为不可执行的折中，但这个具体
+机制仍需 shared-ensemble population trace 确认。
+
+seed 42 的三个 ordinary planner 单独成功率为 K3/K5/K10=`62/56/52%`，
+但 episode-wise oracle union 为 `76%`。这 `+14 pp` 说明互补模式真实存在；
+现有证据支持先保留各 search branch、再选择，而不是在搜索中提前平均；它还不能
+证明某一种 mixture 实现必然有效。
+
+### 13.5 文献边界：为什么不能把它写成普通 search、verifier 或 ensemble
+
+截至 2026-07-18 的直接近邻：
+
+1. [IMWM](https://arxiv.org/abs/2606.01626) 已证明即使 perfect world model，
+   finite-budget search 也可能失败，并用 demonstration-trained intuition 做
+   retrieval initialization、hybrid cost 和 reliability gate。因此不能 claim
+   “首次发现 search bottleneck”或只加 action proposal network。
+2. [EV-WM](https://arxiv.org/abs/2606.13053) 已用 predicate-grounded verifier
+   引导 sampling、gate action、选择 proposal；[World Action Verifier](https://arxiv.org/abs/2604.01985)
+   已用 state plausibility、action reachability 和 cycle consistency 修复
+   under-explored actions。普通 verifier/可达性监督不是空位。
+3. [Closing the Train-Test Gap](https://arxiv.org/abs/2512.09929) 已用 online /
+   adversarial data synthesis 平滑 gradient-based planning landscape，也报告对
+   CEM 的影响。因此“在 planner distribution 上 finetune”本身也不是新意。
+4. [Differentiable CEM](https://arxiv.org/abs/1909.12830) 已提供把 CEM 放入
+   end-to-end learning 的可微工具；不能把 soft top-k 本身当贡献。
+5. [PETS](https://arxiv.org/abs/1805.12114) 是 probabilistic ensemble +
+   trajectory sampling 的经典先例；普通 ensemble planning 没有 novelty。
+6. [Imperfect World Models are Exploitable](https://arxiv.org/abs/2605.15960)
+   已形式化 model exploitation；2026-07-15 的
+   [RENEW](https://arxiv.org/abs/2607.14180) 又用 uncertainty-targeted human
+   preferences 直接修 world-model dynamics。不能 claim 首次修 planner exploitation。
+
+本轮检索没有找到直接把下面这个对象定义为 latent world-model 训练目标的工作：
+
+> **在模型自己诱导的 CEM proposal distributions 上，匹配 learned cost 与
+> true dynamics 所诱导的 elite sufficient-statistic update。**
+
+这个 novelty 判断仍是检索后的暂定边界，不是“未搜到即证明首次”。必须在正式写作前
+继续对打 decision-focused learning、learning-to-optimize、DCEM 和 planner-overfitting。
+
+### 13.6 新 idea：Optimizer-Equivalent World Model（OE-WM）
+
+设第 `r` 轮 CEM proposal 为
+
+```text
+q_r(a) = N(μ_r, diag(σ_r²))
+```
+
+对任意 candidate cost `c`，定义 optimizer update operator：
+
+```text
+U_c(q_r) = ( μ_c⁺(q_r), log σ_c⁺(q_r) )
+```
+
+其中 `μ_c⁺, σ_c⁺` 是由 `c` 的 soft top-k / entropic elite weights 得到的
+下一轮 sufficient statistics。令：
+
+```text
+c_θ(a | o,g) = learned latent world-model goal cost
+J(a | s,g)   = candidate 在真实动力学/高保真 teacher 中执行后的 goal cost
+```
+
+则在 proposal `q` 上定义 planner equivalence：
+
+```text
+c_θ ≡_q J    iff    U_cθ(q) = U_J(q)
+```
+
+训练目标为：
+
+```text
+L_OE =
+  Σ_r || μ_θ⁺(q_r) - μ_*⁺(q_r) ||²_W
+  + β || log σ_θ⁺(q_r) - log σ_*⁺(q_r) ||²
+  + γ L_elite-boundary
+```
+
+`L_elite-boundary` 只强调 oracle elite boundary 附近的 pairwise order/margin，
+不浪费容量拟合 population 尾部所有 pair。原 LeWM prediction + SIGReg loss
+继续保留，`L_OE` 是 planner-facing auxiliary，不把模型退化成纯 task value head。
+
+关键不是只在一次外生 bank 上训练，而是 planner-query data aggregation：
+
+```text
+pretrained WM
+  → 用当前 c_θ 跑 CEM，收集其 q_0...q_R
+  → 在少量候选上获得 true/teacher rollout cost
+  → 构造每轮 oracle elite moments
+  → 更新 encoder/predictor，使 U_cθ 接近 U_J
+  → 用更新后的模型重新收集 query distribution
+```
+
+这使训练分布跟随模型自己的 optimizer path，直接堵住 §13.3 的
+“first-plan positive、closed-loop negative”漏洞。inference 时仍是单模型普通 CEM，
+不需要 verifier、三模型 ensemble 或额外 predicate。
+
+一个自然的理论目标是：若 `U_J` 对 proposal metric 是 `L`-Lipschitz，且每轮
+`||U_cθ(q_r)-U_J(q_r)||≤ε_r`，则 R 轮 proposal 偏差可由
+
+```text
+d(q_R^θ, q_R^*) ≤ Σ_{r=0}^{R-1} L^(R-1-r) ε_r
+```
+
+控制，再通过 terminal cost 的 Lipschitz / elite coverage 条件转成 optimizer regret。
+这个 bound 约束的是实际搜索递推，而不是再给 latent prediction error 换一个名字。
+
+shared-rank-ensemble 的崩溃还给出实现约束：第一版只在同一个 coherent oracle
+elite set 上匹配 update；若 oracle elite 自身多模态，再升级为 mixture update heads。
+不能先把不同模型的互斥 modes 平均成一个 mean。
+
+### 13.7 为什么这个方向的上限高于当前几个备选
+
+它同时解释并利用本轮所有结果：
+
+1. **比 Horizon-Bundle 更贴因果对象。** 当前没有稳定 `K×H` matching，却有稳定的
+   learned-vs-oracle update divergence。
+2. **比 verifier 更早介入。** verifier 只改最终选择；OE-WM 改每一轮下一批 candidate
+   从哪里来。
+3. **比 portfolio 更可扩展。** portfolio 用 `3×` checkpoint/compute 暴露互补 proposal
+   modes；OE-WM 的目标是把这种搜索质量蒸馏进一个模型、一个推理 budget。
+4. **有可测上限。** first-plan final-population oracle 为 `68–70%`，ordinary planner
+   union 为 `76%`；不是在没有 headroom 的 cell 上凭空造 loss。
+5. **能正面回答 efficiency。** 真正成功应让 `N=300` 的 OE-WM 匹配或超过
+   baseline `N=900`，而不是靠更多 samples 赢。
+6. **有跨 planner 扩展。** CEM 先做干净验证；若核心成立，可把
+   `U_c` 换成 MPPI weight update 或 gradient optimizer step，而不是绑定某个 latent
+   horizon adapter。
+
+它的主要代价也必须写清：oracle update 需要 simulator、高保真 teacher 或有限真实
+执行；纯 fixed offline dataset 无法给任意 counterfactual candidate 提供真标签。
+如果 active query efficiency 做不下来，这条线不适合宣称通用 offline world model。
+
+### 13.8 训练前预注册 Gate
+
+第一版只允许小规模 finetune，不直接开完整多周 training：
+
+```text
+base checkpoint: K3
+cell: H5/off40
+planner states: 先 200–500 个，必须来自 current-policy closed loop
+candidate labels: 每轮 oracle-boundary + disagreement 的小子集
+loss: original LeWM + soft elite mean/cov update + boundary rank
+inference: one checkpoint, N=300, R=30
+```
+
+**OE Gate 通过**至少满足：
+
+1. 三 seed `H5/off40` 相对 ordinary K3 平均提升 `≥8 pp`，且 paired CI 不靠单 seed；
+2. `N=300` 匹配或超过 K3 `N=900`，或在 `≤2 pp` 内用约三分之一 model calls；
+3. final-round update cosine 至少增加 `0.20`，relative update error 至少降低 `30%`；
+4. 改善主要发生在 baseline-failed 且 population 有 oracle success 的 states；
+5. 完整 MPC 保持正增益，不能只在 expert-start snapshot 上有效；
+6. 至少一个第二环境和 H8 pressure cell 同向，H8/off60 不能仍停在 `12–14%`。
+
+**立即停止**条件：
+
+- update metric 变好但 proposal coverage / MPC 不变；
+- 只拟合 PushT pose oracle，换 goal/task 就失效；
+- 需要三模型或 `3×` inference compute 才有效；
+- active label 数量接近重新收集完整 expert dataset；
+- 普通 adversarial/online WM、IMWM initialization 或 PETS-style ensemble 在同预算下
+  完全解释增益。
+
+### 13.9 当前最终路线
+
+```text
+Horizon-Bundle                         STOP
+post-hoc cross-model verifier          STOP
+shared-population score ensemble       STOP (catastrophic negative control)
+independent multi-model portfolio      KEEP as probe / strong baseline
+Optimizer-Equivalent WM training Gate  GO
+```
+
+所以本轮找到的不是“又一个能把 PushT 加 2–4 分的小 planner trick”，而是一个更严格的
+world-model sufficiency 定义：
+
+> **一个 world model 对某个 optimizer 有用，不是因为它在固定 actions 上平均更准，
+> 而是因为在它自己会访问的 proposal distributions 上，它把 optimizer 的下一步
+> 送向与真实动力学相同的区域。**

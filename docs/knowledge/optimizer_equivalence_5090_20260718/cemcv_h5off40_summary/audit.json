@@ -1,0 +1,26 @@
+{
+  "source": "/mnt/data/wge/stablewm/checkpoints/cemcv_*_h5_off40*_5090.txt",
+  "baseline_variant": "baseline_k3",
+  "bootstrap": 20000,
+  "bootstrap_seed": 20260718,
+  "horizon_filter": 5,
+  "goal_offset_filter": 40,
+  "cells": [
+    {
+      "seed": 7,
+      "horizon": 5,
+      "goal_offset": 40
+    },
+    {
+      "seed": 42,
+      "horizon": 5,
+      "goal_offset": 40
+    },
+    {
+      "seed": 123,
+      "horizon": 5,
+      "goal_offset": 40
+    }
+  ],
+  "n_runs": 34
+}

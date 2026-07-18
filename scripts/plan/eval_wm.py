@@ -124,6 +124,7 @@ def run(cfg: DictConfig):
 
     # -- run evaluation
     policy = cfg.get('policy', 'random')
+    solver = None
 
     if policy != 'random':
         model = swm.wm.utils.load_pretrained(cfg.policy)
@@ -145,6 +146,150 @@ def run(cfg: DictConfig):
             model.predictor = torch.compile(model.predictor)
         config = swm.PlanConfig(**cfg.plan_config)
         solver = hydra.utils.instantiate(cfg.solver, model=model)
+        cross_validate = cfg.get('cross_validate')
+        portfolio = cfg.get('portfolio')
+        score_ensemble = cfg.get('score_ensemble')
+        enabled_extensions = sum(
+            extension is not None
+            for extension in (
+                cross_validate,
+                portfolio,
+                score_ensemble,
+            )
+        )
+        if enabled_extensions > 1:
+            raise ValueError(
+                'cross_validate, portfolio, and score_ensemble are '
+                'mutually exclusive'
+            )
+        if score_ensemble is not None:
+            ensemble_names = [str(name) for name in score_ensemble.models]
+            if ensemble_names[0] != str(cfg.policy):
+                raise ValueError(
+                    'score_ensemble.models must start with cfg.policy'
+                )
+            labels = [
+                str(name)
+                for name in score_ensemble.get(
+                    'labels',
+                    ensemble_names,
+                )
+            ]
+            if len(labels) != len(ensemble_names):
+                raise ValueError(
+                    'score_ensemble.labels must match score_ensemble.models'
+                )
+            ensemble_models = [model]
+            for ensemble_name in ensemble_names[1:]:
+                ensemble_model = swm.wm.utils.load_pretrained(ensemble_name)
+                if cfg.get('bf16', False):
+                    ensemble_model = ensemble_model.to(torch.bfloat16)
+                ensemble_model = ensemble_model.to('cuda').eval()
+                ensemble_model.requires_grad_(False)
+                ensemble_model.interpolate_pos_encoding = True
+                ensemble_models.append(ensemble_model)
+            ensemble_cost = swm.solver.RankEnsembleCost(
+                ensemble_models,
+                labels,
+            )
+            solver = hydra.utils.instantiate(
+                cfg.solver,
+                model=ensemble_cost,
+            )
+            print(
+                '[eval] shared-population rank ensemble enabled: '
+                f'models={ensemble_names}, labels={labels}'
+            )
+        elif portfolio is not None:
+            proposer_names = [str(name) for name in portfolio.proposers]
+            if proposer_names[0] != str(cfg.policy):
+                raise ValueError(
+                    'portfolio.proposers must start with cfg.policy'
+                )
+            labels = [
+                str(name) for name in portfolio.get('labels', proposer_names)
+            ]
+            if len(labels) != len(proposer_names):
+                raise ValueError(
+                    'portfolio.labels must match portfolio.proposers'
+                )
+            seed_offsets = [
+                int(value)
+                for value in portfolio.get(
+                    'seed_offsets',
+                    [0] * len(proposer_names),
+                )
+            ]
+            if len(seed_offsets) != len(proposer_names):
+                raise ValueError(
+                    'portfolio.seed_offsets must match portfolio.proposers'
+                )
+            proposer_models = [model]
+            proposer_solvers = [solver]
+            model_cache = {str(cfg.policy): model}
+            for proposer_name in proposer_names[1:]:
+                proposer = model_cache.get(proposer_name)
+                if proposer is None:
+                    proposer = swm.wm.utils.load_pretrained(proposer_name)
+                    if cfg.get('bf16', False):
+                        proposer = proposer.to(torch.bfloat16)
+                    proposer = proposer.to('cuda').eval()
+                    proposer.requires_grad_(False)
+                    proposer.interpolate_pos_encoding = True
+                    model_cache[proposer_name] = proposer
+                proposer_models.append(proposer)
+                proposer_solvers.append(
+                    hydra.utils.instantiate(cfg.solver, model=proposer)
+                )
+            for proposer_solver, seed_offset in zip(
+                proposer_solvers,
+                seed_offsets,
+                strict=True,
+            ):
+                proposer_solver.torch_gen.manual_seed(
+                    int(cfg.seed) + seed_offset
+                )
+            solver = swm.solver.CEMPortfolioSolver(
+                solvers=proposer_solvers,
+                models=proposer_models,
+                names=labels,
+                steps=list(portfolio.steps),
+                scorer_batch_size=int(portfolio.get('scorer_batch_size', 1)),
+            )
+            print(
+                '[eval] CEM portfolio enabled: '
+                f'proposers={proposer_names}, '
+                f'labels={labels}, '
+                f'seed_offsets={seed_offsets}, '
+                f'steps={list(portfolio.steps)}'
+            )
+        elif cross_validate is not None:
+            verifier_name = str(cross_validate.verifier)
+            verifier = swm.wm.utils.load_pretrained(verifier_name)
+            if cfg.get('bf16', False):
+                verifier = verifier.to(torch.bfloat16)
+            verifier = verifier.to('cuda').eval()
+            verifier.requires_grad_(False)
+            verifier.interpolate_pos_encoding = True
+            solver = swm.solver.CrossValidatedCEMSolver(
+                solver,
+                verifier,
+                steps=list(cross_validate.steps),
+                selection_space=str(
+                    cross_validate.get('selection_space', 'means')
+                ),
+                verifier_batch_size=int(
+                    cross_validate.get('verifier_batch_size', 1)
+                ),
+                refit_topk=int(cross_validate.get('refit_topk', 30)),
+            )
+            print(
+                '[eval] CEM cross-validation enabled: '
+                f'verifier={verifier_name}, '
+                f'steps={list(cross_validate.steps)}, '
+                f'space={solver.selection_space}, '
+                f'refit_topk={solver.refit_topk}'
+            )
         policy = swm.policy.WorldModelPolicy(
             solver=solver, config=config, process=process, transform=transform
         )
@@ -256,6 +401,8 @@ def run(cfg: DictConfig):
             history_frames=history_frames,
             history_frameskip=int(cfg.plan_config.action_block),
         )
+    if solver is not None and hasattr(solver, 'selection_summary'):
+        metrics['cross_validation'] = solver.selection_summary()
     end_time = time.time()
 
     print(metrics)

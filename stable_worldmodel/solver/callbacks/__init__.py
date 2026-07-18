@@ -11,6 +11,11 @@ from .common import (
     Callback,
     MeanCostRecorder,
 )
+from .candidate_recorder import (
+    CandidateRecorder,
+    CEMArchiveRecorder,
+    CEMPopulationRecorder,
+)
 from .gd import (
     ActionNormRecorder,
     GradNormRecorder,
@@ -27,4 +32,7 @@ __all__ = [
     'VarNormRecorder',
     'MeanShiftRecorder',
     'EliteSpreadRecorder',
+    'CandidateRecorder',
+    'CEMArchiveRecorder',
+    'CEMPopulationRecorder',
 ]
