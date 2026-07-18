@@ -1,0 +1,5 @@
+alpha_from,alpha_to,fraction_min_true_nonincreasing,fraction_coverage_nondecreasing,fraction_model_refit_true_nonincreasing
+0.0,0.25,0.7708333333333334,1.0,0.6666666666666666
+0.25,0.5,0.6875,1.0,0.7916666666666666
+0.5,0.75,0.75,1.0,0.7083333333333334
+0.75,1.0,0.6458333333333334,1.0,0.7291666666666666

@@ -1,0 +1,58 @@
+{
+  "common_epochs": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "heldout_state_owners": {
+    "0": "oe_ft12_fold0_all_lr1e5_v1",
+    "1": "oe_ft12_fold1_all_lr1e5_v1",
+    "10": "oe_ft12_fold1_all_lr1e5_v1",
+    "11": "oe_ft12_fold2_all_lr1e5_v1",
+    "2": "oe_ft12_fold2_all_lr1e5_v1",
+    "3": "oe_ft12_fold0_all_lr1e5_v1",
+    "4": "oe_ft12_fold1_all_lr1e5_v1",
+    "5": "oe_ft12_fold2_all_lr1e5_v1",
+    "6": "oe_ft12_fold0_all_lr1e5_v1",
+    "7": "oe_ft12_fold1_all_lr1e5_v1",
+    "8": "oe_ft12_fold2_all_lr1e5_v1",
+    "9": "oe_ft12_fold0_all_lr1e5_v1"
+  },
+  "invariants": {
+    "anchor_weight": 0.02,
+    "base_policy": "pd_d192_k3_eval",
+    "boundary_weight": 1.0,
+    "learning_rate": 1e-05,
+    "logstd_weight": 0.25,
+    "mean_weight": 1.0,
+    "num_candidates": 300,
+    "selected_steps": [
+      4,
+      9,
+      19,
+      29
+    ],
+    "source_generator": "pd_d192_k3_eval",
+    "source_sha256": "edfbf663ece346a8426bd67e91780f1a7aaa1c016809493fd9ab4847e0966825",
+    "temperature": 0.2,
+    "topk": 30,
+    "trainable_modules": [
+      "action_encoder",
+      "pred_proj",
+      "predictor"
+    ]
+  },
+  "run_names": [
+    "oe_ft12_fold0_all_lr1e5_v1",
+    "oe_ft12_fold1_all_lr1e5_v1",
+    "oe_ft12_fold2_all_lr1e5_v1"
+  ],
+  "runs": [
+    "/mnt/data/wge/learn_wm/outputs/week1/oe_update_5090_20260718/oe_ft12_fold0_all_lr1e5_v1",
+    "/mnt/data/wge/learn_wm/outputs/week1/oe_update_5090_20260718/oe_ft12_fold1_all_lr1e5_v1",
+    "/mnt/data/wge/learn_wm/outputs/week1/oe_update_5090_20260718/oe_ft12_fold2_all_lr1e5_v1"
+  ]
+}

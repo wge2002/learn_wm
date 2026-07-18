@@ -1,0 +1,21 @@
+{
+  "source": "/mnt/data/wge/learn_wm/outputs/week1/oe_update_5090_20260718/oe_update_rollout_k3_start4_r5_n12_n100_v1.npz",
+  "generator": "pd_d192_k3_eval",
+  "n_states": 12,
+  "start_step": 4,
+  "num_rounds": 5,
+  "alphas": [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "num_samples": 100,
+  "bootstrap": 20000,
+  "seed": 20260718,
+  "max_state_mismatch": 0.0,
+  "max_goal_mismatch": 0.0,
+  "max_roundtrip_error": 9.5367431640625e-07,
+  "elapsed_seconds": 828.1416313648224
+}

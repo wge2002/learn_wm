@@ -1550,3 +1550,142 @@ world-model sufficiency 定义：
 > **一个 world model 对某个 optimizer 有用，不是因为它在固定 actions 上平均更准，
 > 而是因为在它自己会访问的 proposal distributions 上，它把 optimizer 的下一步
 > 送向与真实动力学相同的区域。**
+
+## 14. OE 因果干预与第一版训练 Gate（2026-07-18）
+
+### 14.1 先问 oracle-equivalent update 是否真的改变后续搜索
+
+训练前先做反事实干预，避免在一个对 task outcome 无因果作用的 metric 上继续堆
+loss。对 K3 自己产生的 CEM population，分别用 learned cost 和 simulator true
+cost 算 top-30 elite mean/std，再按
+
+```text
+(μ_α, log σ_α) =
+    (1-α) (μ_model, log σ_model)
+  + α     (μ_oracle, log σ_oracle)
+```
+
+构造下一轮 proposal。所有 α 分支使用相同 Gaussian noise；simulator 每次从完全
+相同的 initial/goal state 重放。
+
+one-step exploratory 结果覆盖 12 states × source rounds `{4,9,19,29}` ×
+`N=100`：
+
+| α | next-population min true cost | Δ vs α=0 | model-refit success |
+|---:|---:|---:|---:|
+| 0.00 | 80.57 | — | .354 |
+| 0.25 | 76.57 | -4.01 | .354 |
+| 0.50 | 74.91 | -5.66 | .354 |
+| 0.75 | 73.15 | -7.43 | .354 |
+| 1.00 | 71.11 | **-9.47** `[-16.38,-3.83]` | .354 |
+
+这证明单次 oracle update 会把下一批 proposal 推向更低 true cost 的区域，但一次
+update 尚不足以改变 learned scorer 选出的 success。随后从 source step 4 的
+updated distribution 开始递归 5 轮；α=1 的 final-mean true cost 相对 α=0
+下降 `52.00`，success 从 `2/12` 到 `3/12`。这两项早期实验的 model scorer 使用
+float32 candidate、simulator cache 使用 float16 candidate，因此只保留为
+exploratory；正式长递归统一先量化 candidate，再同时送给 scorer 和 simulator。
+
+严格的长递归使用：
+
+```text
+H5 / offset40
+12 paired states
+start after source CEM step 4
+25 counterfactual rounds
+N=100, topk=30
+α ∈ {0, 0.5, 1}
+candidate precision: scorer == simulator == float16-quantized
+```
+
+结果为：
+
+| α | avg proposal coverage | last coverage | final mean true | Δ final true | final mean success |
+|---:|---:|---:|---:|---:|---:|
+| 0.00 | .303 | .417 | 105.72 | — | `3/12 = .250` |
+| 0.50 | .410 | .583 | 45.29 | **-60.42** `[-115.65,-14.06]` | `7/12 = .583` |
+| 1.00 | .447 | .583 | 38.22 | **-67.50** `[-123.62,-20.26]` | `7/12 = .583` |
+
+α=0.5 与 α=1 相对普通 learned update 都是 `+4/12 = +33.3 pp` success，
+paired state bootstrap CI 为 `[+8.3,+58.3] pp`；final true-cost、average
+coverage 和 mean-success dose slope 的 CI 也都在有利方向。最大 candidate
+float16 量化误差为 `3.906e-3`，state/goal mismatch 为 0，action scaler
+roundtrip error 为 `9.537e-7`。
+
+这个实验给出两个重要判决：
+
+1. **核心因果对象通过。** update equivalence 不只是与 planning 相关；连续多轮地
+   修正它会改变 proposal coverage，并最终改变 task success。
+2. **不需要完美 oracle 才有 headroom。** α=0.5 已取得与 α=1 相同的 7/12
+   success，说明可学习的近似 correction 可能足够。
+
+但这仍是每轮执行所有 candidates 的 oracle intervention，不是可部署方法结果，
+也没有回答跨状态学习是否可行。
+
+### 14.2 12-state fixed-trace 微调：能拟合，不能泛化
+
+第一版 feasibility trainer 冻结 image encoder / goal representation，仅更新
+`action_encoder + predictor + pred_proj`，用以下 loss 拟合保存的
+`{4,9,19,29}` 四轮：
+
+```text
+balanced oracle-elite boundary BCE
++ soft elite mean / log-std matching
++ base-score anchor
+```
+
+严格做 3-fold state cross-fit：每折 8 train states、4 completely held-out
+states，每个状态只由一个没有见过它的模型计分。结果不是“小幅不显著”，而是方向
+一致的过拟合：
+
+| setting | epoch | cross-fit cosine | Δ cosine | relative error | Δ rel | overlap | Δ overlap |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| all dynamics modules, lr=1e-5 | 0 | .121 | — | 1.201 | — | .147 | — |
+| all dynamics modules, lr=1e-5 | 1 | .078 | **-.044** | 1.270 | **+.070** | .122 | **-.025** |
+| pred-proj only, lr=2e-6, strong anchor | 0 | .121 | — | 1.201 | — | .147 | — |
+| pred-proj only, lr=2e-6, strong anchor | 1 | .119 | -.002 | 1.208 | +.007 | .141 | -.006 |
+| pred-proj only, lr=2e-6, strong anchor | 10 | .075 | -.046 | 1.259 | +.058 | .132 | -.015 |
+
+全 dynamics setting 在训练 states 上的 cosine 能从 `.055` 升到 `.362`，所以
+gradient 和 loss 确实能拟合 target；失败发生在 state generalization。降低容量、
+学习率并加强 anchor 只能减慢退化，不能反转它。
+
+因此当前判决必须拆开：
+
+```text
+oracle-equivalent update as causal target       GO
+8-state fixed-trace dynamics fine-tuning        STOP
+12-state checkpoint → full MPC                  DO NOT RUN
+```
+
+不能拿 train metric 变好就去跑完整 MPC，更不能从三个 fold 里挑一个好看的
+checkpoint。下一步不是继续在同 12 states 上调参，而是用新 seed 收集更多独立
+planner-query states。
+
+### 14.3 锁定的 60-state bridge gate
+
+在看新数据前锁定一个中等容量 setting：
+
+```text
+new source seed = 20260719
+60 independent first-plan states
+K3 only; source rounds = {4,9,19,29}
+full N=300 candidates and simulator labels
+3-fold state cross-fit: 40 train / 20 held out
+modules = action_encoder + predictor + pred_proj
+lr = 2e-6; anchor weight = 0.2
+primary epoch = 5 (不按曲线挑 checkpoint)
+```
+
+bridge gate 通过要求 epoch 5 同时满足：
+
+```text
+cross-fit Δ update cosine       >= +0.10
+cross-fit Δ relative error      <= -0.10
+cross-fit Δ elite overlap       >= +0.05
+state-paired bootstrap direction consistent
+```
+
+它仍低于 §13.8 预注册的 200–500 个 current-policy closed-loop states，因此即使
+通过也只允许训练一个单模型 checkpoint 进入 recursive resampling 与 50-episode
+MPC；不允许直接宣称 OE-WM work。
