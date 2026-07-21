@@ -1,5 +1,11 @@
 # Temporal 方向备忘录：Horizon-Bundle World Model（2026-07-17）
 
+> **2026-07-21 导航更新：**本文现作为 chronological lab notebook，记录
+> Horizon-Bundle → OE-WM → BP-OE → topology/lineage 的实验演化。开头的
+> Horizon-Bundle proposal 已被后续 Gate 拒绝，BL-WM 也被最新 causal refit
+> 降级。当前结论、停止清单和下一 Gates 统一见
+> [LeWM planning 研究现状总账](lewm_planning_status_20260721.md)。
+>
 > **状态：探索性假说 / 实验预注册草案，不是当前项目的既成结论。**
 >
 > 本文暂存一条比 CritWM 标量临界控制更高上限的方向，以及在实现新模型前必须完成的
@@ -1689,3 +1695,556 @@ state-paired bootstrap direction consistent
 它仍低于 §13.8 预注册的 200–500 个 current-policy closed-loop states，因此即使
 通过也只允许训练一个单模型 checkpoint 进入 recursive resampling 与 50-episode
 MPC；不允许直接宣称 OE-WM work。
+
+### 14.4 60-state bridge 结果：有可泛化方向信号，但 Gate 未通过
+
+新 trace 使用 `seed=20260719`，保存 K3 在 H5/off40 的完整
+`60 states × 4 rounds × 300 candidates` population。它与早先 12-state
+诊断、evaluator-matched 50-state archive 的 row overlap 都为 0；原始 archive
+SHA-256 为
+`fd8e3623e10c51db37ae14a2f42f6da29b656552079d9f090d13541c82ac1e07`。
+独立数据重现了 late-round optimizer divergence：
+
+| source step | elite overlap | update cosine | relative update error |
+|---:|---:|---:|---:|
+| 4 | .253 | .295 | 1.090 |
+| 9 | .218 | .217 | 1.159 |
+| 19 | .135 | .132 | 1.159 |
+| 29 | .079 | .043 | 1.198 |
+
+因此 12 states 上看到的 OE mismatch 不是小样本偶然。锁定的 3-fold
+`40 train / 20 held-out` setting 在 epoch 5 得到：
+
+| metric | epoch 0 | epoch 5 | paired state Δ |
+|---|---:|---:|---:|
+| update cosine | .172 | .248 | **+.076** `[+.030,+.123]` |
+| relative update error | 1.152 | 1.157 | +.005 `[-.034,+.044]` |
+| elite overlap | .172 | .207 | +.036 |
+| selected-elite true cost | 102.65 | 100.61 | -2.04 |
+
+这不是纯过拟合：held-out state 上的 update direction 和被选 candidate 的真实
+质量都同向改善。但它没有达到预锁定的 `Δ cosine ≥ +.10`、
+`Δ relative error ≤ -.10`、`Δ overlap ≥ +.05`，而且 epoch 10 的 relative
+error 已恶化 `+.055`，所以 bridge gate 判为 **FAIL**。
+
+针对第一版 soft elite mass 约为 40、而 hard top-k 为 30 的实现偏差，又做了一次
+development-only 修复：
+
+```text
+calibrate sigmoid threshold so total elite mass == 30
++ direct relative update-vector loss
+```
+
+epoch 5 的结果为 `Δ cosine=+.080 [+.034,+.128]`、
+`Δ relative error=-.005 [-.043,+.034]`、`Δ overlap=+.034`、
+`Δ selected true cost=-2.16`。relative error 不再像 v1 后期那样明显恶化，
+但仍远未达到 Gate。不能继续在同一份 60-state 数据上调 loss。
+
+当前更精确的判决是：
+
+```text
+OE update as causal target                         GO
+fixed-trace OE gradient has held-out direction     WEAK POSITIVE
+OE-only dynamics fine-tuning                       STOP
+v1/v2 checkpoint -> recursive MPC                  DO NOT RUN
+next: OE auxiliary + original dynamics replay      TEST
+```
+
+失败点不是“完全学不到”，而是只用 planner-query loss 更新大 dynamics backbone
+时，模型能学到一部分方向，却不能稳定学到 oracle update 的相对大小，并逐步牺牲
+原有 dynamics geometry。下一版必须恢复 §13.6 原本要求的 prediction replay，
+而不是把 OE loss 当成唯一训练目标；如果 replay 后仍不能跨状态、跨 horizon
+泛化，就应关闭直接微调 world-model dynamics 这条实现。
+
+### 14.5 H8/off60 因果压力测试：第二 horizon 同向
+
+为了判断 H5 的 causal ceiling 是否只是特定 horizon 偶然，使用独立的
+H8/off60 12-state trace，保持严格 candidate precision，再从 source step 4
+递归 25 轮。这里只比较普通 learned update 与完整 oracle update：
+
+| update | avg coverage | last coverage | final mean true | Δ final true | final mean success |
+|---|---:|---:|---:|---:|---:|
+| learned | .443 | .500 | 97.27 | — | `3/12 = .250` |
+| oracle | .487 | .583 | 47.94 | **-49.32** `[-101.39,-14.24]` | `6/12 = .500` |
+
+mean-success across rounds 的 slope 为 `+.153 [+.023,+.330]`，final success
+为 `+3/12 = +25 pp`，但 12-state final-success bootstrap 下界恰为 0。
+true-cost 的 paired CI 完全有利，candidate 量化误差 `3.902e-3`，
+state/goal mismatch 为 0，action roundtrip error 为 `9.537e-7`。原始 archive
+SHA-256 为
+`244533b036d2a8f153f485ee9731a15d86a68aae9114dd755537b7500ce7793a`。
+
+联合 H5 与 H8，oracle-equivalent recursive update 分别得到：
+
+| cell | learned success | oracle success | Δ final true cost |
+|---|---:|---:|---:|
+| H5/off40 | `3/12` | `7/12` | -67.50 |
+| H8/off60 | `3/12` | `6/12` | -49.32 |
+
+因此“每轮 optimizer update 是否值得修”已经不再是当前不确定性；两个 horizon
+都给出实质 outcome headroom。真正的瓶颈收缩为：能否在保持原始 prediction
+能力的前提下，把这个 update correction 学成一个跨 state、跨 horizon 的单模型。
+
+### 14.6 正式 on-policy aggregation：只防止退化，不产生新能力
+
+为了检验 fixed-bank 失败是否主要来自 train/test proposal shift，在 A100 上运行
+四臂正式 on-policy 聚合：
+
+```text
+frozen cumulative / latest-only / cumulative / trust-region cumulative
+H5 / offset40
+12 paired states
+3 generators × 3 scorers
+7 CEM rounds × 300 complete candidates
+fixed validation bank; state-paired bootstrap
+```
+
+固定验证集的共同起点为
+`cos=.242, rel=1.111, overlap=.207, selected-true=98.79`。最终结果为：
+
+| arm | cosine | relative error | overlap | selected true |
+|---|---:|---:|---:|---:|
+| frozen cumulative | .253 | 1.134 | .214 | 98.96 |
+| latest-only | .254 | 1.153 | .212 | 98.83 |
+| cumulative | .263 | 1.129 | .217 | 98.88 |
+| trust cumulative | .263 | 1.116 | .217 | 98.64 |
+
+最好的 trust arm 相对共同起点只有
+`Δcos=+.0205 [+.001,+.041]`、`Δrel=+.0044 [-.0129,+.0221]`、
+`Δoverlap=+.0100 [+.0007,+.0197]` 和
+`Δselected-true=-.15 [-.74,+.41]`。latest-only 的 relative error 反而恶化
+`+.041 [.003,.079]`；trust 相对 frozen 的 `-.0186 [-.0334,-.0037]`
+只说明它能抑制 online 更新造成的退化。
+
+H8/off60 使用严格 shared-start 重新审计后，起点为
+`.1788 / 1.1757 / .1867 / 168.84`，所有 formal arm 相对它的最终增量 CI
+都跨 0。因此先前 H8 的表观收益主要是 shared bootstrap，而不是训练本身。
+
+判决：
+
+```text
+proposal distribution shift as dominant failure mode    REJECT
+exact scalar LeWM + elite-moment on-policy recipe        STOP
+on-policy trust aggregation                              KEEP only as safeguard
+```
+
+### 14.7 独立 operator head：幅度可修，但方向是多模态的
+
+下一步冻结 world model，把 correction 从大 dynamics backbone 中分离。严格
+nested state-held-out probe 使用 H5/off40 的
+`240 states × 4 rounds × 300 candidates` query bank，并在 H8/off60 做独立
+pressure cell。直接回归 CEM update 的小 head 得到：
+
+| H5 feature | Δ cosine | paired 95% CI | Δ relative error |
+|---|---:|---:|---:|
+| planner | +.004 | `[-.002,+.009]` | -.142 |
+| planner history | +.001 | `[-.005,+.007]` | -.145 |
+| planner + frozen latent | +.026 | `[+.012,+.040]` | -.141 |
+| history + frozen latent | +.021 | `[+.008,+.034]` | -.146 |
+| planner + true state, privileged | +.070 | `[+.051,+.090]` | -.149 |
+
+H8 上 deployable frozen-latent families 只有 `+.011` 与 `+.013` cosine，CI
+均跨 0；privileged true-state 也只有 `+.027 [-.002,+.057]`。
+
+但对同一批 oracle updates 做离散 correction codebook ceiling 时，K=16 达到：
+
+| cell | Δ cosine | paired 95% CI | Δ relative error |
+|---|---:|---:|---:|
+| H5/off40 | +.252 | `[+.238,+.268]` | -.130 |
+| H8/off60 | +.214 | `[+.183,+.245]` | -.099 |
+
+所以 direct head 的 `relative error` 改善主要来自收缩 update magnitude；它把
+彼此不兼容的方向平均掉了。真正剩余的对象不是一个连续平均向量，而是需要根据
+state/candidate 识别的离散方向 mode。
+
+### 14.8 candidate-level cost head Gate：接口有信号，当前 deployable 表示失败
+
+为避免直接平均 update，训练独立小 MLP 给每个 frozen-WM CEM candidate 预测
+residual logit，再由 CEM 对 corrected logits 取 top-30。candidate features
+包含 proposal-normalized action、相对 model-elite action、frozen score/rank；
+context 分别使用 planner、frozen LeWM latent、causal history latent 和
+privileged true state。epoch 与 residual blend 都只在 inner held-out states
+选择，每个最终预测来自 3-fold outer state-held-out model。
+
+H5/off40 的第一轮严格结果为：
+
+| context | Δ cosine | paired 95% CI | Δ relative error | Δ overlap |
+|---|---:|---:|---:|---:|
+| planner | -.004 | `[-.019,+.011]` | +.031 | +.001 |
+| planner + frozen latent | +.013 | `[-.022,+.048]` | **+.049** | +.010 |
+| causal history + latent | -.010 | `[-.041,+.022]` | **+.073** | -.006 |
+| planner + true state, privileged | +.088 | `[+.049,+.129]` | +.015 | **+.052** |
+
+其中正的 `Δ relative error` 是恶化。为排除一次 neural training seed 偶然，
+对 frozen-latent 和 privileged-state 两臂各补 3 个 seed；与原 seed 合并后的
+四-seed training variation 为：
+
+| context | mean Δ cosine (seed range) | mean Δ rel (seed range) | mean Δ overlap (seed range) |
+|---|---:|---:|---:|
+| frozen latent | +.0079 `[+.0016,+.0139]` | +.0562 `[+.0485,+.0614]` | +.0041 `[-.0001,+.0103]` |
+| true state, privileged | +.0605 `[+.0434,+.0882]` | +.0171 `[+.0117,+.0253]` | +.0363 `[+.0278,+.0523]` |
+
+预锁定 Gate 要求 `Δcos≥+.10`、`Δrel≤-.10`、`Δoverlap≥+.05`。deployable
+frozen-latent arm 三项均失败，而且 relative error 在四个 seed 上都恶化；因此
+不扩 H8，也不进入 recursive MPC/full training。privileged state 的方向和 overlap
+改善跨 seed 保持同号，但仍只满足一部分 Gate，说明 candidate-ranking interface
+本身不是完全错误，关键缺口是可泛化、control-relevant 的 state/goal geometry。
+
+本轮最终判决：
+
+```text
+continuous averaged update head                    STOP
+candidate-level reranking with raw frozen latent   STOP
+candidate-level reranking with explicit geometry  WEAK POSITIVE UPPER BOUND
+next: learned object/state geometry bottleneck
+      + candidate-level cost correction            TEST
+```
+
+对应复现实现在
+`scripts/plan/oe_candidate_cost_head_probe.py`、
+`run_a100_candidate_cost_head_gate_20260720.sh` 和
+`run_a100_candidate_cost_head_seed_audit_20260720.sh`；A100 compact outputs
+位于
+`/225010117/logs/candidate_cost_head_gate_a100_20260720/` 与
+`/225010117/logs/candidate_cost_head_seed_audit_a100_20260720/`。
+
+### 14.9 correction 不是任意高维噪声，而是两条反向 spatial axes
+
+对 H5/off40 `240 states × 4 rounds` 的 oracle-minus-model CEM mean update
+做 K=4 spherical codebook。四个 prototype 的前两个奇异轴解释 `98.75%`
+energy，且形成两对近似反向 modes：
+
+```text
+pair cosine ≈ -.963 / -.981
+dominant action pattern ≈ long-horizon ±x / ±y correction
+adjacent-round same mode = 61.25%
+all-four-rounds same mode = 28.3%
+```
+
+mode counts 近似平衡。这把 §14.7 的“direct head 平均方向”从解释升级成具体机制：
+同一 compressed input 下的 squared regression 会返回 conditional mean，而相反
+correction 的 mean 接近零或落入不可执行方向。
+
+但 exact one-mode router 仍失败。nested state-held-out K=4 routing 得到：
+
+| features | Δ cosine | Δ relative error |
+|---|---:|---:|
+| planner | -.006 | +.014 |
+| planner + frozen CLS latent | +.017 | +.003 |
+| planner + true state, privileged | +.016 | +.029 |
+
+连 true physical state 也不能决定 mode，说明 label 主要依赖当前 sampled
+population 的 counterfactual outcomes，而不是静态 state quadrant。
+
+### 14.10 Set-valued optimizer operator：branch set 成立，hard top1 不成立
+
+据此把 operator 改成 permutation-equivariant population-to-set map。完整
+300-candidate population 先由 attention 编码；M=5 输出 no-op 加四个
+correction hypotheses，训练用 best-of-M physical update loss。所有 codebook、
+normalization、epoch/blend selection 仍严格在 outer training states 内完成。
+
+第一轮结果：
+
+| context | output | Δ cosine | Δ relative error |
+|---|---|---:|---:|
+| frozen CLS latent | M=1 top1 | +.028 | +.017 |
+| frozen CLS latent | M=5 top1 | +.007 | +.001 |
+| frozen CLS latent | M=5 top2 coverage | +.051 | -.034 |
+| frozen CLS latent | M=5 all coverage | +.106 | -.073 |
+| true state, privileged | M=1 top1 | +.076 | -.050 |
+| true state, privileged | M=5 top1 | +.058 | -.032 |
+| true state, privileged | M=5 top2 coverage | +.113 | -.081 |
+| true state, privileged | M=5 all coverage | **+.174** | **-.128** |
+
+`top2/all coverage` 用 oracle 在 retained hypotheses 中选最好者，只回答 branch
+set 是否覆盖正确 basin，**不是 deployable selection**。raw latent 的 top1
+best-mode rate 为 `21.1%`（chance `20%`），top2 contains-best 为 `39.5%`
+（chance `40%`）；true state 只提高到 `28.3% / 49.8%`。
+
+因此当前第一个可靠正结论是：
+
+```text
+single averaged optimizer update                 falsified
+set-valued optimizer-equivalent representation   supported
+learned hard top1 route                           not supported
+```
+
+### 14.11 dense spatial read path 与 vector imagined outcomes
+
+raw cache 只含 SIGReg projected CLS。为测试 spatial coordinates 是否被 CLS
+压掉，从同一 frozen ViT encoder 保存三帧 history 与 goal 的完整
+`16×16×192` patch grid；240 states cache 的 state/goal reconstruction mismatch
+均为 0。
+
+dense goal-relative cross-attention 的 M=5 结果（两个 seed 同向）：
+
+| output | Δ cosine | Δ relative error |
+|---|---:|---:|
+| learned top1 | +.012 | -.043 |
+| top2 coverage | +.058 | -.075 |
+| all-mode coverage | **+.111** | **-.111** |
+
+它把 best-mode rate 提到约 `27%`，接近 privileged state 的 `28%`，说明 frozen
+patch grid 的确保留了 spatial state；但它仍不能从静态几何决定
+population-specific mode。
+
+下一步保留 LeWM 对每个 candidate 的 signed imagined terminal-minus-goal vector，
+而不是只保留其 squared norm scalar cost。K3 vector outcome 得到：
+
+```text
+M=1 top1          +.037 / -.045
+M=5 top1          +.025 / -.047
+M=5 top2 coverage +.078 / -.083
+M=5 all coverage  +.122 / -.112
+```
+
+其中成对数值依次为 `Δcos / Δrel`。vector outcome 确有额外 signal，但仍不足以
+做 hard routing。把相同 vector 喂给 independent candidate reranker 的四个 seed
+反而一致恶化 relative error `+.042~+.064`，所以不能退回“再训一个 cost head”。
+
+one-step observable latent innovation、regret-aware/softmin router、以及 frozen
+dense moments 上的 structured pose dynamics 也全部失败：
+
+```text
+innovation M5 top1                    +.005 / -.011
+dense+innovation+outcome M5 top1      +.014 / -.033
+dense structured relative dynamics   Δrel ≈ +.147
+dense structured terminal dynamics   Δrel ≈ +.184
+```
+
+这排除了 raw CLS、静态 geometry、最近一步 prediction residual 或 routing loss
+任何一个单独作为剩余解释。
+
+### 14.12 cross-model vector disagreement 是当前最强 deployable signal
+
+用户提出“不同类型/尺度的 WM 可以与 LeWM 组合，而不是一概视为冲突”后，进一步在
+同一 K3 population 上缓存 K5 与 K10 的 signed candidate imagined outcomes。
+这与此前 shared-rank ensemble 不同：不平均 scalar ranks，而是让 set operator
+观察各模型保留方向的 counterfactual disagreement。
+
+| inputs | top1 `Δcos/Δrel` | top2 coverage | all-mode coverage |
+|---|---:|---:|---:|
+| K3 + K5 vectors | `+.037 / -.051` | `+.087 / -.085` | `+.147 / -.124` |
+| K3 + K10 vectors | **`+.045 / -.033`** | **`+.097 / -.079`** | **`+.164 / -.125`** |
+| K3 + K5 + K10 vectors | `+.029 / -.057` | `+.064 / -.081` | `+.111 / -.110` |
+| dense + all three vectors | `+.034 / -.026` | `+.091 / -.074` | `+.165 / -.125` |
+
+K3+K10 top1 的 cosine CI 为 `[+.024,+.066]`，首次得到稳定的 deployable
+cross-model signal，但仍低于 locked `+.10` Gate。只给 operator 多模型 scalar
+cost/rank 时 top1 为 `-.009~+.014`；有效部分来自 signed vector geometry，
+不是普通 score ensemble。
+
+这也解释为何“模型组合”本身不与现有 WM idea 冲突，而 naive ensemble 会冲突或
+失败：
+
+```text
+scalar opinion averaging                  catastrophic earlier control
+independent proposal portfolio            weak positive, compute-heavy
+vector disagreement → optimizer branches  new surviving mechanism
+```
+
+### 14.13 新的 surviving idea 与下一 Gate
+
+暂定方法名：
+
+> **Branch-Preserving Optimizer-Equivalent World Model（BP-OEWM）**
+
+定义从 scalar cost 改为 population-conditioned set operator：
+
+```text
+Fθ(o,g,q) = { (Δμm, Δlogσm, πm) }m=1…M
+```
+
+best-of-M OE loss 保证至少一个 branch 接近 true-dynamics optimizer update；
+多个 WM 的 signed imagined outcomes 提供可泛化 disagreement。关键实现约束是：
+不能在每轮 hard top1，也不能把 modes 重新平均成一个 Gaussian；必须递归保留
+proposal branches。
+
+下一步锁定 disjoint 12-state recursive Gate：
+
+```text
+train/calibrate: current 240-state H5 bank
+eval: week1 H5/off40 12 states, row overlap = 0
+inputs: K3 + K10 vector outcomes
+carry: B=2 branches, total N=300 (150 each)
+controls: ordinary K3 1×300; K3 2×150 multistart
+selection: model-side only; simulator/oracle only reports hidden ceiling
+```
+
+只有 learned branch reduction 在 recursive resampling 后同时超过 ordinary K3
+与 matched-compute multistart，才进入 H8/full MPC。若只剩 oracle union 增益，
+则 set-valued OE 仍只是 uncertainty ceiling，不能宣称方法 work。
+
+本轮 compact reports 已下载到
+`docs/knowledge/optimizer_equivalence_a100_20260720/`；大体积 caches 留在 A100。
+
+### 14.14 recursive + sparse + iso-compute：生成成立，选择目标错位
+
+12 个 row-disjoint states 上连续做了三轮 recursive re-sampling，并用 CRN
+重跑消除方法间 population noise。matched BP 的 deployable K10 selector 相对
+ordinary K3 `1×300` 为 `-2.87`、8/12 wins，但 CI
+`[-10.39,4.75]` 跨零；same-model `2×150` 为 `+2.61 [.32,5.19]`，所以
+branch mechanism 没有退化成普通 multistart，但仍未达到 work 标准。
+
+随后用 K3 先看全部 candidates、K10 只查询 K3 elite 10%：
+
+```text
+fixed trace top1/top2/all Δcos = +.026 / +.075 / +.133
+recursive K10 selector delta = -1.59, 6/12 wins
+recursive oracle union delta = -11.04, 7/12 wins
+oracle median / trimmed delta = -4.23 / -4.16
+```
+
+static primary/consensus 却为 `+3.91`。这说明 sparse cross-horizon signal
+生成的 branch set 有明显高 ceiling，但当前 router 学的是局部 oracle-moment
+mode，不是三轮后的 branch outcome；剩余 bottleneck 是 value-aligned pruning，
+不是继续改 winner-CE 或增加 mode 数。
+
+等算力 audit 又补了 K3 `1×600/2×300`：
+
+```text
+K3 1×600 vs 1×300              -0.01 [-1.60,1.60]
+K3 2×300 vs 1×300              +1.42
+BP full K10 vs K3 1×600        -3.31
+BP full oracle vs K3 1×600     -7.21
+sparse oracle vs K3 2×300     -12.46 [-31.18,-.04]
+```
+
+额外 K3 samples 已基本饱和，因此 branch rescue 不是多算力假象。新的 locked
+实验不再复用此前 12-state test 调 selector：
+
+1. 四折 OOF operator 在 240 training states 上生成 recursive branch pairs；
+2. simulator 只标两条最终 branch mean，避免再次执行完整 populations；
+3. 以 final outcome 训练 antisymmetric branch-value head；
+4. 超参只由 240-state shard-held-out CV 锁定；
+5. 新生成 60 个同时排除 training240 和旧 eval12 的 H5/off40 rows，一次性报告
+   ordinary K3、learned selector、K10 selector 与 hidden oracle union。
+
+同时保存每轮 proposal mean/std。若两条 branch 的前两个 action blocks 明显比
+末端更接近，则下一层方法可改为 observation-conditioned deferred commitment；
+若从第一步就同样分离，则关闭该路线，转向真正的 recursive value/pruning loss。
+
+### 14.15 fresh120 falsification：不要再调 selector，转向 basin topology
+
+完成了四折 OOF 的 240-state branch label bank，并连续开封两套互相以及与所有旧
+数据都 row-disjoint 的 fresh60。锁定 action-trajectory ridge selector 在 A 上
+相对 K3 `1×300` 为 `-2.83`，到 B 只剩 `-.04`；静态 K10 也在
+`+.73/-1.13` 间波动。说明当前 240 labels 学不到跨 state distribution 稳定的
+branch value。
+
+显式保留 ordinary K3 no-op anchor 在 A 上给出很强 post-hoc ceiling，于是用 B
+预注册确认：
+
+```text
+proposed calls = K3 anchor 300 + sparse BP 300
+adopt BP iff final K10(BP) < final K10(anchor)
+control = ordinary K3 600
+```
+
+confirm-B 的 adoption delta 为 `+.98 [-3.86,6.38]`，actual success
+`26.7% vs 33.3%`，失败。hidden anchor+two-branch oracle 的 true-cost delta
+仍为 `-6.31 [-9.47,-3.52]`，但 success 与 K3 `1×600` 同为 `33.3%`。
+
+同时，final branches 的 action-step normalized divergence 在 train/A/B 都几乎
+平坦，first-two/last-two ratio 为 `1.003/.969/.995`。branch 从第一 action
+block 就分开，无法先执行共同 prefix 再靠 observation 消歧。
+
+这轮最重要的不是又一个负数，而是把两层问题拆开：
+
+```text
+branch generation / continuous-cost coverage  reproducible
+deployable selection / task success           not reproducible
+```
+
+所以 frozen LeWM 上的 planner-side BP patch 到此停止。新的高上限问题改为：
+真实动力学的 low-cost set 是否本来就含多个 persistent basins，而 standard
+next-state training、AWM 式 convexification 或 latent straightening 会发生
+basin merge/drop？下一实验应在同一 action population 上做 lower-star/connected
+component iso-rate topology audit，比较 true、K3、K10；不是继续训练 final
+reranker。
+
+### 14.16 static topology → adaptive basin lineage
+
+完成 `240 states × 4 CEM rounds` 的 iso-rate `H0` audit 后，真实 top-10% action
+set 在 correction/full geometry 中平均都有约 `5` 个 connected basins，不支持把
+正确 planning landscape 预设成单一 convex basin。K3/K10 对这些 basins 的覆盖都
+很低，但 K10 在三种 geometry 上都一致优于 K3：
+
+```text
+                          correction  full-50D  random-2D
+K3 component coverage       .400        .432       .308
+K10 component coverage      .499        .544       .435
+K3 successful coverage      .454        .552       .383
+K10 successful coverage     .520        .627       .483
+```
+
+需要保留一个重要的 robustness 修正：K3 在 held-out correction subspace 中会
+fragment（persistent-count delta `+.50`），但在 full action graph 中反而比 K10
+merge/drop 更多（top-rate count delta `-3.00 vs -1.15`）。因此可靠现象是
+**basin correspondence/coverage failure**，不是简单的全局
+“short horizon rough、long horizon smooth”二分。
+
+naive horizon combination 仍失败。average ranks 的 top-rate recall `.235` 低于
+K10 `.296`；min-rank union 产生更多 spurious components。更强的是，把每个 scorer
+的 top-30 真正 refit 为 next CEM proposal，再在相同 10% support rate 下审计，
+K10 的 one-step mean/log-std error及 successful-basin coverage 仍稍好于 K3。
+
+这与早先“K10 fixed-bank 好、K3 recursive/MPC 更稳”形成新的严格矛盾：
+
+```text
+static candidate fidelity       K10 > K3
+one-step proposal fidelity      K10 > K3
+adaptive closed-loop planning   K3 > K10
+```
+
+所以 horizon-matching 的下一层对象不是某个固定 rate 或单张 landscape，而是
+proposal 随 CEM iteration 改变时的 **basin lineage**。更精确的 idea 是：
+
+> 在 planner-induced query sequence 上，匹配真实 dynamics 的 persistent basin
+> birth/death/continuation；smoothness 只在同一真实 basin 内使用，不能跨 barrier
+> 把多个有效 contact strategies 拉成 conditional mean。
+
+暂名 **Basin-Lineage World Model（BL-WM）**。它与原 LeWM 不冲突：LeWM 继续负责
+visual latent dynamics，新增 supervision 只约束其 action-cost pushforward 在
+planner proposal sequence 上的拓扑。实现优先使用 persistent pairing 的稀疏
+birth/saddle witnesses，而不是每步反传完整 persistence diagram：
+
+```text
+L = L_LeWM
+  + λcover · L_each_true_basin_has_low_model_witness
+  + λbarrier · L_true_saddles_remain_above_basin_minima
+  + λlineage · L_component_transport_across_optimizer_rounds
+```
+
+K3/K10 signed disagreement 的新角色是低成本 query acquisition：优先向 simulator
+查询可能发生 basin birth/death 的候选，不再作为 frozen inference ensemble。
+
+当前已启动同一套 fresh60 rows 上的 K3/K10 paired on-policy full-population trace。
+只有它证明 earlier basin death 能预测 final failure、且 K10 的 static advantage
+确实在自己的 adaptive path 中翻转，才进入 BL-WM fine-tune。这比直接拿静态
+topological loss 训练更慢一步，但能避免重复 fixed-trace OE 的同类错误。
+
+## 15. 2026-07-21 consolidation：paired path 为正，topology causal Gate 为负
+
+paired trace 确认了 K10 的 self-induced tail reversal：final true-top30 recall 在
+K3 path 是 `K3/K10=.096/.272`，在 K10 path 变为 `.197/.079`；path interaction
+为 `-.293 [-.381,-.207]`。但 counterfactual refit 表明这不是一个 K3 scorer swap
+或 component split 可以修的 failure：
+
+| K10-path final intervention | success |
+|---|---:|
+| stored / K10 global mean | `43.3%` |
+| K3 global mean | `45.0%` |
+| true global mean | `58.3%` |
+| true component oracle | `60.0%` |
+| candidate-support ceiling | `63.3%` |
+
+K3 swap 只净增 `+1.7pp [-6.7,+10.0]`，component oracle 在 true global 之上只救
+1/60 state。因此 §14.16 的 BL-WM promotion Gate **未通过**；true multi-basin
+structure 保留为 diagnostic，generic topology training 不启动。
+
+当前唯一开放的问题收紧为：如何在模型自己诱导的完整 proposal sequence 上维持
+low-cost-tail / elite-update validity，或对不可信 update 给出风险证书。它仍需先做
+新一轮 literature collision，不是已经锁定的新方法。统一停止清单、证据账本和
+下一 Gates 见
+[LeWM planning 研究现状总账](lewm_planning_status_20260721.md)。

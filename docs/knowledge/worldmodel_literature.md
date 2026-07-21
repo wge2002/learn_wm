@@ -1,5 +1,9 @@
 # Latent World Model / LeWM 文献地图（持续维护）
 
+> **当前实验状态：**2026-07-21 的统一因果结论、已停止路线与下一方法 Gate 见
+> [LeWM planning 研究现状总账](lewm_planning_status_20260721.md)。本文继续作为
+> literature/novelty source of truth；早期 idea 名称只用于追踪演化。
+>
 > 本文是仓库中**唯一的文献综述与竞品地图**。初始系统检索完成于
 > 2026-07-04，之后发现的论文继续按主题合并到本文，不再建立“旧 survey /
 > 新补充”文档。实验、理论和方法文档只保留必要引用与本文链接。
@@ -771,3 +775,249 @@ ensemble”。当前暂定的新方法定义是：
 因此文献结论不是“OE-WM 已经 work”，而是：它是当前第一个同时通过
 **mechanism evidence、matched-compute headroom、closed-loop falsifiability 和 novelty
 边界**四项筛选、值得进入训练 Gate 的 idea。
+
+### 11.7 2026-07-20 set-valued / branch-preserving OE 边界
+
+240-state operator audit 显示 correction prototypes 主要是两对相反的 spatial
+axes，单输出 conditional mean 会抵消；M=5 retained set 的 held-out coverage
+达到 `Δcos=+.164 / Δrel=-.125`，但 learned top1 只有
+`+.045 / -.033`。因此候选方法已经从 scalar OE 收缩为 branch-preserving OE。
+
+必须正面对账的更早原则与邻近方法：
+
+| work | 已占据的部分 | BP-OEWM 必须保留的差异 |
+|---|---|---|
+| [Value Equivalence Principle](https://arxiv.org/abs/2011.03506) | 两个 model 若对给定 functions/policies 产生相同 Bellman updates，则不必逐状态一致 | 不能 claim 首次提出 task-facing equivalence；新对象是 sampling optimizer 在当前 proposal `q` 上的 elite mean/cov update，并处理其 set-valued ambiguity |
+| [Minimal Value-Equivalent Partial Models](https://proceedings.mlr.press/v232/alver23a.html) | task-relevant partial model、robust planning 和 abstraction 已有系统化定义 | optimizer-specific sufficient statistic 与 adaptive query distribution 必须给出额外理论/实验价值 |
+| [MoP-JEPA](https://arxiv.org/abs/2607.05238) / multiple-hypothesis regression | best-of-M 避免 stochastic successor conditional mean 已被占据 | 不能 claim multiple heads 或 winner-take-all 本身；当前 modes 是 deterministic environment 中 true-vs-WM **optimizer updates**，不是 stochastic successor states |
+| [Branch MPC](https://arxiv.org/abs/2109.05128) | scenario-tree / branch planning 处理其他 agent 的 multimodal reactions | branch planning 不是新意；当前 branch source 是 learned-world-model counterfactual error，训练 supervision 是 optimizer equivalence |
+| mixture / multi-start CEM | 多 Gaussian search 和 branch search 是已有 optimizer 变体 | 必须对打 same-model `B×N/B` matched-compute control；generic mixture CEM 不能作为贡献 |
+| PETS / ordinary WM ensemble | model disagreement 与 trajectory sampling 已成熟 | 此前 shared scalar rank averaging 已在三 seeds 崩到 `6/14/4%`；幸存对象是 signed vector disagreement 路由独立 optimizer branches，而非 ensemble average |
+| conformal MPC ([Chee et al.](https://proceedings.mlr.press/v242/chee24a.html), [Dixit et al.](https://proceedings.mlr.press/v211/dixit23a.html)) | prediction sets、dynamics uncertainty regions 和 robust MPC guarantees 已有直接工作 | conformal calibration 只能是 branch-size/coverage 工具，不能作为 BP-OEWM 的 headline |
+
+不同结构的 WM 与 LeWM 组合不自动构成冲突。EV-WM 的 event readout、WAV 的
+reachability/cycle、task-sufficient structured WM 或 active exploration 都可以成为
+BP-OEWM 的 branch-resolution measurement channel。真正危险的冲突是把这些现有
+pipeline 原样重做后只改名；当前需要验证的是它们能否解析
+**population-conditioned optimizer ambiguity**，而不是是否也谈 task relevance。
+
+当前 claim 必须保持为：
+
+```text
+set-valued optimizer update is empirically necessary       supported
+cross-model signed outcomes provide routing information    supported
+hard top1 operator is deployable and sufficient            rejected
+recursive branch-preserving planner improves MPC           not tested yet
+```
+
+因此任何论文标题、摘要或训练扩张都必须等 disjoint recursive branch Gate；oracle
+在 retained branches 中挑最好者只是一条 ceiling，不能写成 method result。
+
+### 11.8 2026-07-20 optimizer-landscape topology 的直接近邻
+
+递归 Gate 后，idea 的高层表述不能只是“CEM 加多个分支”，而应更严格地问：
+
+> world model 是否保留了真实动力学对 planner 所诱导的 optimizer response
+> field / basin topology？
+
+这不是首次提出 planning-aware representation，也不是首次并行探索多个 optimum。
+当前最接近的 2026 工作给出以下边界：
+
+| work | 它解决的对象 | 与 BP-OE 的交界 |
+|---|---|---|
+| [GRASP / Parallel Stochastic Gradient-Based Planning](https://arxiv.org/abs/2602.00475) | lifted virtual states、stochastic state updates、action-gradient-only 的可微 WM planner，缓解长视距梯度不稳与 local minima | stochastic/parallel search 已被占据；BP-OE 必须证明 branches 来自可泛化的 **true-vs-model optimizer discrepancy**，而非再加随机重启。两者原则上可组合，OE 对象也不应永远绑定 CEM |
+| [Temporal Straightening](https://arxiv.org/abs/2603.12231) | 正则 latent trajectory curvature，使 Euclidean goal landscape 更好优化 | “让 latent 更 navigable”不是空位；当前证据提供的不同问题是单一平滑 basin 是否会提前抹掉真实可行的反向 optimizer modes |
+| [Learning Navigable World Models via Latent Energy Shaping](https://openreview.net/pdf?id=fnLHZcXZUW) | 显式塑造 convex-like energy basin 以稳定 latent planning | 不能泛称首次训练 optimizer-friendly WM；若主张 topology-preserving，必须展示 branch modes 对真实 task basin 有作用，而不只是 fixed-trace residual clustering |
+| [VidPlan](https://openreview.net/forum?id=gkSuORauJ4) | 用 uncertainty constraint 限制 action-conditioned video model hacking，并配 hierarchical reward | uncertainty-aware planning 已被占据；BP-OE 的差异是把 cross-model vector disagreement 用作**建设性的 branch generator**，而非只拒绝低置信 action |
+
+因此更高上限、同时更难被现有路线覆盖的定义是：
+
+```text
+point optimizer equivalence:
+  T(M,q) ≈ T(D,q)
+
+branch/topology-preserving equivalence:
+  {T_m(M_1,...,M_K,q)} contains the real-dynamics update basin
+  and recursive model-side pruning retains a useful branch
+```
+
+其中 `T` 是 proposal-conditioned optimizer sufficient statistic，而不是 latent
+state、pixel future 或 Bellman scalar。K3/K10 等不同训练视距的 WM 在这里是
+measurement channels：它们的 signed outcome disagreement 暴露 error-propagation
+差异；组合它们不等于重做任何一个 WM 的训练 pipeline。
+
+新的实验边界也更清楚：
+
+- 12-state recursive CRN 中，matched BP 的 deployable K10 selector 为
+  `Δ true cost=-2.87`、wins `8/12`，但 paired CI 跨零；这是 promising
+  mechanism，不是完成的方法。
+- full-compute branch ceiling 两轮为正向，但必须对打 K3 `1×600/2×300`。
+- 只查询 K3 elite `30/300` 的 K10 signed vectors，仍保留
+  `Δcos=+.075` 的 top2 branch coverage；因此普通 full ensemble 不是必要条件，
+  稀疏 cross-horizon measurement 是更高优先级的 deployable 形态。
+
+### 11.9 strict collision：真正的空位不是 landscape shaping，而是 basin multiplicity
+
+递归 branch ceiling 出现后又做了一轮更严格检索。最危险的直接近邻是
+[Closing the Train-Test Gap in World Models for Gradient-Based Planning /
+Adversarial World Modeling](https://arxiv.org/abs/2512.09929)：它不只泛谈
+planning-aware WM，而是在 PushT 等任务上用 planner/adversarial train-time data
+synthesis 微调 WM，并明确报告 action-level landscape 变得更 smooth、more convex、
+optimum basin 更宽。结合 [Temporal Straightening](https://arxiv.org/abs/2603.12231)
+与 [Navigable EBM](https://openreview.net/forum?id=fnLHZcXZUW)，以下 headline
+已经没有空位：
+
+```text
+train a WM for the downstream planner
+close next-state-training / action-optimization mismatch
+shape or smooth the planning landscape
+make the latent objective easier / more convex
+```
+
+因此只把 OE loss 写成另一种 planner-aware finetuning 会直接冲突。真正可能更高
+上限、且由当前 opposing-mode evidence 指向的命题应改成：
+
+> **planning fidelity is not the same as convexity**：真实接触动力学可能诱导多个
+> 分离但有效的 optimizer basins；把它们平滑成一个宽 basin，可能在两个可行接触
+> mode 之间制造不可执行的 conditional-mean shortcut。WM 应保留真实 landscape
+> 的 basin multiplicity / optimizer response topology，再单独解决有限预算搜索。
+
+其它近邻进一步限制实现层 claim：
+
+| work | 已占据的部分 | 当前只能怎样使用 |
+|---|---|---|
+| [BMPC](https://openreview.net/pdf?id=i7jAYFYDcM) / TD-MPC value learning | learned value/terminal value 指导 MPC | outcome-aligned branch-value head 只是必要 selector，不是论文 idea |
+| [Contingencies from Observations](https://arxiv.org/abs/2104.10558) / [Branch MPC](https://arxiv.org/abs/2109.05128) | conditional plans、scenario trees、推迟对 stochastic/agent futures 的承诺 | deferred commitment 不能 claim novel；只有当 branches 明确来自 WM error basins 且 observation 能消歧时才是组合贡献 |
+| [GRASP](https://arxiv.org/abs/2602.00475) | Langevin/parallel updates 跨越不利 basins | basin exploration 已有；BP-OE 必须校准“哪些 basin 应存在”，而不是只提高逃逸概率 |
+| [World Model as a Graph / L3P](https://proceedings.mlr.press/v139/zhang21x.html) | graph landmarks 与 reachability 保留 long-horizon planning structure | generic topology/graph planning 也不是空位；新拓扑必须定义在 proposal-conditioned optimizer response 上 |
+
+这使当前小实验的角色更诚实：
+
+- sparse K10 branch generator：证明不同 horizon WM 能暴露被单一 smooth surrogate
+  抹掉的 candidate-level方向；
+- recursive oracle union：证明这些 directions 对最终 basin 有用；
+- learned selector：只判断 ceiling 能否转成 deployable result；
+- prefix divergence：只判断能否借 observation 延迟承诺。
+
+若 selector Gate 为正，完整方法仍必须对打 AWM/straightening 类 training baseline，
+而不是只对打 frozen LeWM。最小旗舰证据应包括：
+
+1. ground-truth 与 WM planning landscape 的 basin correspondence，不只是一组 residual
+   vectors；
+2. 显示更 smooth/更低 prediction loss 的模型仍可能 merge/drop task-valid basins；
+3. topology/branch-preserving objective 在 iso-rate、iso-WM-calls 下提高 closed-loop
+   success；
+4. 至少一个接触 mode 多解任务和一个障碍/homotopy 多解任务；
+5. same-model multistart、AWM/straightening、ensemble uncertainty 与 branch MPC
+   全部作为明确 controls。
+
+这条边界比“BP-CEM 小改进”更难，但论文上限也明显更高。
+
+### 11.10 topology collision：工具都已有，空位只能落在 proposal-sequence lineage
+
+static basin audit 后继续按“topological loss / dynamic topology / motion planning”
+做严格碰撞。结论不是 persistent homology 新，而是它至多能作为当前问题的工具：
+
+| work | 已占据的主张 | 对当前 idea 的约束 |
+|---|---|---|
+| [Topological Autoencoders](https://openreview.net/forum?id=HkgtJRVFPS) | 用 differentiable persistent-homology loss 保留 input/latent multi-scale connectivity | 不能 claim 首次 topology-preserving representation；当前 topology 必须定义在 **action-cost sublevel set under planner proposal** |
+| [Optimizing Persistent Homology Based Functions](https://arxiv.org/abs/2010.08356)、[On the Convergence of PH-Based Losses](https://arxiv.org/abs/2206.02946) | persistence map 的可微优化、stochastic subgradient/convergence 与 regularized topology loss | “把 persistence diagram 放进 loss”没有方法 novelty；而且 combinatorial oscillation、稀疏 gradient 是已知风险 |
+| [Diffeomorphic Interpolation for Efficient Persistence-Based Topological Optimization](https://openreview.net/forum?id=gYjM1BZzdX)、[Scalable Persistence-Based Topological Optimization](https://openreview.net/forum?id=fqmGAcAeKS) | PH gradient 过稀，需 interpolation/subsampling 扩散更新 | 支持先提取 birth/saddle witnesses、再做局部 inequalities；但 gradient engineering 不是 headline |
+| [CP-RPN](https://arxiv.org/abs/2605.28362) | 在 robot path-planning region proposal 上用 PH continuity loss 强制候选 corridor 连通 | planning + topological loss 已有直接 2026 邻居；它只追求一个 connected region，当前必须说明为何真实 multi-basin **不能**被强制连通 |
+| [TAEASL](https://openreview.net/forum?id=sGPT1ws0Yf)、homotopy-aware planners | 显式保留多个 path homotopy classes | multiple planning classes 不是新意；当前对象不是障碍地图的已知 homotopy，而是 learned dynamics 诱导、随 optimizer query 改变的 contact basin |
+| [Zigzag Persistence](https://link.springer.com/article/10.1007/s10208-010-9066-0)、[Applications of Zigzag Persistence](https://arxiv.org/abs/1108.3545)、[Temporal Network Analysis](https://arxiv.org/abs/2205.11338) | 对会增删 simplices 的 dynamic spaces 追踪 feature birth/death | “跨时间追踪 topology”本身也不是新意；只能把它用于定义/审计 proposal rounds 的 basin correspondence |
+
+同时，当前 robustness audit 已经排除一个过强 claim。K3 只在 held-out
+optimizer-correction 2-D 中表现为 fragmentation；在 full 50-D action geometry
+里反而比 K10 merge/drop 更多。因此方法不能建立在“short-horizon WM 一定 rough、
+long-horizon WM 一定 over-smooth”这一普遍假设上。
+
+更稳的新边界来自一组三层矛盾：
+
+```text
+fixed K3-generated population:
+  K10 candidate/topology fidelity > K3
+
+same current proposal, one refit:
+  K10 update/topology fidelity > K3
+
+recursive/on-policy MPC:
+  K3 is more stable than K10
+```
+
+这说明 static topology matching 仍可能重复 fixed-trace OE 的错误。真正值得检验的
+对象是 **Basin-Lineage World Model（BL-WM）**：
+
+```text
+q0 --WM/CEM--> q1 --WM/CEM--> ... --WM/CEM--> qR
+ |              |                          |
+ true H0        true H0                    final success
+ components     birth/death/transport
+```
+
+训练 claim 只能是：
+
+> 在模型自身访问的 proposal sequence 上，用真实 dynamics 的 persistent
+> birth/saddle/continuation witnesses 约束 world-model-induced cost；同一真实
+> basin 内可 straightening，跨真实 barrier 不可 convexify。
+
+与直接邻居的最终区分：
+
+- AWM/temporal straightening/navigable EBM：改善固定 objective 的 conditioning
+  或 convex-like geometry；
+- branch/multistart/homotopy MPC：搜索多个已存在的 modes；
+- generic PH loss/zigzag persistence：提供 topology 的可微/动态工具；
+- BL-WM：校准 **learned dynamics → adaptive optimizer query distribution**
+  这条因果链中哪些 basins 应出生、延续或死亡。
+
+这仍不是已证明的 method。promotion 前至少需要：
+
+1. 同状态、CRN 的 K3/K10 on-policy full populations，证明 static K10 advantage
+   在进入自己的 proposal path 后如何变化；
+2. earlier successful-basin death 对 final failure 有 state-held-out predictive
+   power，胜过 rank correlation/update cosine；
+3. sparse witness loss 优于同量 candidate-wise rank loss、AWM/straightening 与
+   ordinary mixture-CEM；
+4. PushT contact modes 之外再有一个明确 homotopy/multi-route task，避免 topology
+   只是在单一 benchmark 上解释噪声。
+
+### 11.11 causal refit 后的 claim 收缩：topology 不是当前 headline
+
+§11.10 预注册的 paired on-policy population 已完成。它确实发现强 path
+interaction：K10 在 K3-generated final population 上的 true-top30 recall 为
+`.272`，高于 K3 的 `.096`；但在 K10 自己生成的 final population 上反而是
+`.079`，低于 K3 的 `.197`。difference-in-differences 为
+`-.293 [-.381,-.207]`，说明 fixed-bank/global rank 不能保证 self-induced
+low-cost-tail fidelity。
+
+然而随后执行的 causal refit 明确限制了 topology story。在 K10 path final
+population 上：
+
+```text
+stored/K10 global mean success   43.3%
+K3 global mean success           45.0%
+true global mean success         58.3%
+true component oracle success    60.0%
+candidate-support ceiling        63.3%
+```
+
+因此 K3 swap 只有 `+1.7pp [-6.7,+10.0]`；component decomposition 在 true
+global refit 之上只救回 1/60 state，而 true scalar ranking 本身能净救 9 states。
+这对 claim 的影响是：
+
+```text
+multi-basin true landscape                              SUPPORTED
+self-induced tail reversal                              SUPPORTED
+basin/global-mean collapse as dominant PushT failure    REJECTED
+BL-WM/topology loss as next flagship                    STOP
+adaptive proposal-flow / low-tail validity              OPEN QUESTION
+```
+
+所以不能再用“AWM convexifies、我们 preserve topology”作为当前主分界；现有因果
+证据尚不足以支撑它。新的候选问题更接近 planner-equilibrium tail validity：模型
+既改变未来查询，又必须在这些 adaptive queries 的 low-cost tail 上保持有效或显式
+拒绝不可信 update。但这个位置还必须与 AWM、performative prediction、adaptive
+conformal/risk control、pessimistic MPC 做新一轮严格检索，当前不能 claim novel。
+
+统一实验判决见
+[LeWM planning 研究现状总账](lewm_planning_status_20260721.md)。
