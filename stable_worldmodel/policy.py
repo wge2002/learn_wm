@@ -321,6 +321,11 @@ class WorldModelPolicy(BasePolicy):
         self.transform = transform or {}
         self._action_buffer: list[deque[torch.Tensor]] | None = None
         self._next_init: torch.Tensor | None = None
+        # Optional one-shot initial plan, consumed at the first solver call.
+        # This is separate from ``_next_init`` so the normal receding-horizon
+        # warm start can replace it with the unexecuted tail after that call.
+        self._initial_action: torch.Tensor | None = None
+        self._initial_action_pending: torch.Tensor | None = None
         # matched-history planning state (only used when cfg.history_len > 1):
         # frames are captured at action-block boundaries so the model sees the
         # same 3-frame/frameskip cadence it was trained with.
@@ -363,6 +368,28 @@ class WorldModelPolicy(BasePolicy):
 
         assert isinstance(self.solver, Solver), (
             'Solver must implement the Solver protocol'
+        )
+
+    def set_initial_action(self, actions: torch.Tensor | np.ndarray) -> None:
+        """Set a one-shot normalized plan for each environment.
+
+        The tensor must use solver layout ``(n_envs, horizon, action_dim)``;
+        ``action_dim`` already includes action-block flattening.  The plan is
+        consumed only on the first replan, after which ordinary MPC warm-start
+        behavior resumes.
+        """
+        if self.env is None:
+            raise RuntimeError('set_env must be called before set_initial_action')
+        dtype = getattr(self.solver, 'dtype', torch.float32)
+        value = torch.as_tensor(actions, dtype=dtype).detach().cpu()
+        expected = (self.env.num_envs, self.cfg.horizon, self.solver.action_dim)
+        if tuple(value.shape) != expected:
+            raise ValueError(
+                f'Initial action shape {tuple(value.shape)} != {expected}'
+            )
+        self._initial_action = value.clone()
+        self._initial_action_pending = torch.ones(
+            self.env.num_envs, dtype=torch.bool
         )
 
     def get_action(self, info_dict: dict, **kwargs: Any) -> np.ndarray:
@@ -459,6 +486,18 @@ class WorldModelPolicy(BasePolicy):
                 if self._next_init is not None
                 else None
             )
+            if self._initial_action is not None:
+                pending = self._initial_action_pending[idx_tensor]
+                if pending.any() and not pending.all():
+                    raise RuntimeError(
+                        'A solver batch mixed consumed and pending initial plans'
+                    )
+                if pending.all():
+                    sliced_init = self._initial_action[idx_tensor]
+                    self._initial_action_pending[idx_tensor] = False
+                    if not self._initial_action_pending.any():
+                        self._initial_action = None
+                        self._initial_action_pending = None
 
             outputs = self.solver(sliced, init_action=sliced_init)
 

@@ -577,6 +577,37 @@ class World:
         results['success_rate'] = (
             float(results['episode_successes'].sum()) / n * 100.0
         )
+        # OGBench-style manipulation datasets expose privileged object
+        # positions.  Preserve the continuous terminal task distance alongside
+        # binary success when those fields are available; generic environments
+        # remain unchanged.
+        object_fields = (
+            ('privileged_block_0_pos', 'privileged_block_0_pos'),
+            ('privileged/block_0_pos', 'privileged_block_0_pos'),
+        )
+        matched_fields = next(
+            (
+                (info_key, dataset_key, f'goal_{dataset_key}')
+                for info_key, dataset_key in object_fields
+                if info_key in self.infos
+                and dataset_key in init_state
+                and f'goal_{dataset_key}' in goal_state
+            ),
+            None,
+        )
+        if matched_fields is not None:
+            info_key, dataset_key, goal_object_key = matched_fields
+            final_pos = np.asarray(self.infos[info_key])
+            if final_pos.ndim >= 3 and final_pos.shape[1] == 1:
+                final_pos = final_pos[:, 0]
+            target_pos = np.asarray(goal_state[goal_object_key])
+            results['final_task_distance'] = np.linalg.norm(
+                final_pos - target_pos, axis=-1
+            )
+            initial_pos = np.asarray(init_state[dataset_key])
+            results['initial_task_distance'] = np.linalg.norm(
+                initial_pos - target_pos, axis=-1
+            )
         if frames:
             save_panel_videos(
                 Path(video),
@@ -658,10 +689,9 @@ def _seed_history_infos(
     action_hist = None
 
     for i, ep in enumerate(data):
-        state = np.asarray(ep['state'])
         # reset rows store NaN actions; match training's nan_to_num handling
         action = np.nan_to_num(np.asarray(ep['action'], dtype=np.float32))
-        rows = len(state)  # == start - lo + 1
+        rows = len(action)  # == start - lo + 1
 
         if action_hist is None:
             action_hist = np.zeros(
@@ -669,21 +699,33 @@ def _seed_history_infos(
             )
 
         raw = envs[i].unwrapped
-        can_render = hasattr(raw, '_set_state') and hasattr(raw, 'render')
+        can_render = hasattr(raw, 'render') and _can_set_dataset_state(raw, ep)
         for h in range(history_frames):
             ridx = max(rows - 1 - (history_frames - h) * history_frameskip, 0)
             if can_render:
-                raw._set_state(state[ridx])
+                _set_dataset_state(raw, ep, ridx)
                 pixels_hist[i, h] = raw.render()
+            elif 'pixels' in ep:
+                frame = np.asarray(ep['pixels'][ridx])
+                if frame.ndim == 3 and frame.shape[0] in (1, 3):
+                    frame = np.transpose(frame, (1, 2, 0))
+                pixels_hist[i, h] = frame
+            else:
+                raise KeyError(
+                    'Matched-history evaluation needs either a renderable '
+                    'dataset state (`state` or `qpos`/`qvel`) or stored pixels.'
+                )
             act = action[ridx : ridx + history_frameskip]
             if len(act) < history_frameskip:
                 act = np.concatenate(
                     [act, np.repeat(act[-1:], history_frameskip - len(act), 0)]
                 )
-            action_hist[i, h * history_frameskip : (h + 1) * history_frameskip] = act
+            action_hist[
+                i, h * history_frameskip : (h + 1) * history_frameskip
+            ] = act
 
         if can_render:
-            raw._set_state(state[rows - 1])  # restore the start state
+            _set_dataset_state(raw, ep, rows - 1)  # restore the start state
 
     infos['pixels_hist'] = pixels_hist
     infos['action_hist'] = action_hist
@@ -717,28 +759,73 @@ def _refresh_dataset_rendered_images(envs, infos, init_state, goal_state):
 
     if 'pixels' not in infos:
         return
-    if 'state' not in init_state:
-        return
 
-    init_states = init_state['state']
-    goal_states = goal_state.get('goal_state')
-    can_refresh_goal = 'goal' in infos and goal_states is not None
+    # Some environments expose a state-valued ``target`` but no rendered
+    # ``goal`` key.  Dataset-driven visual planning still needs an image goal;
+    # seed its correctly batched shape from the dataset before re-rendering it
+    # from the live simulator below.
+    if 'goal' not in infos and 'goal' in goal_state:
+        infos['goal'] = goal_state['goal'][:, None, ...].copy()
 
     for i, env in enumerate(envs):
         raw = env.unwrapped
-        if not hasattr(raw, '_set_state') or not hasattr(raw, 'render'):
-            continue
+        can_render = hasattr(raw, 'render')
+        can_set_init = _can_set_dataset_state(raw, init_state)
+        can_set_goal = _can_set_dataset_state(raw, goal_state, prefix='goal_')
 
-        if can_refresh_goal:
-            _set_goal_pose_from_state(raw, goal_states[i])
-            raw._set_state(goal_states[i])
+        if can_render and can_set_goal and 'goal' in infos:
+            goal_vector = goal_state.get('goal_state')
+            if goal_vector is not None:
+                _set_goal_pose_from_state(raw, goal_vector[i])
+            _set_dataset_state(raw, goal_state, i, prefix='goal_')
             goal_img = raw.render()
             infos['goal'][i, 0] = goal_img
             if hasattr(raw, '_goal'):
                 raw._goal = goal_img
+        elif 'goal' in infos and 'goal' in goal_state:
+            infos['goal'][i, 0] = goal_state['goal'][i]
 
-        raw._set_state(init_states[i])
-        infos['pixels'][i, 0] = raw.render()
+        if can_render and can_set_init:
+            _set_dataset_state(raw, init_state, i)
+            infos['pixels'][i, 0] = raw.render()
+        elif 'pixels' in init_state:
+            infos['pixels'][i, 0] = init_state['pixels'][i]
+
+
+def _can_set_dataset_state(env, source, prefix=''):
+    """Whether ``source`` contains a state representation understood by env."""
+    if f'{prefix}state' in source and hasattr(env, '_set_state'):
+        return True
+    return (
+        f'{prefix}qpos' in source
+        and f'{prefix}qvel' in source
+        and hasattr(env, 'set_state')
+    )
+
+
+def _set_dataset_state(env, source, index, prefix=''):
+    """Set PushT-style flat states or MuJoCo qpos/qvel dataset states."""
+    state_key = f'{prefix}state'
+    if state_key in source and hasattr(env, '_set_state'):
+        env._set_state(np.asarray(source[state_key][index]))
+        return
+
+    qpos_key, qvel_key = f'{prefix}qpos', f'{prefix}qvel'
+    if (
+        qpos_key in source
+        and qvel_key in source
+        and hasattr(env, 'set_state')
+    ):
+        env.set_state(
+            np.asarray(source[qpos_key][index]),
+            np.asarray(source[qvel_key][index]),
+        )
+        return
+
+    raise KeyError(
+        f'No supported dataset state for prefix {prefix!r}; expected '
+        '`state` with env._set_state or `qpos`/`qvel` with env.set_state.'
+    )
 
 
 def _set_goal_pose_from_state(env, state):

@@ -340,6 +340,7 @@ class MockSolver:
         self._config = None
         self.call_count = 0
         self.last_batch_size = None
+        self.last_init_action = None
 
     def configure(self, *, action_space, n_envs, config):
         self.configured = True
@@ -366,6 +367,7 @@ class MockSolver:
         )
         self.call_count += 1
         self.last_batch_size = batch
+        self.last_init_action = init_action
         return {
             'actions': torch.zeros(batch, self._config.horizon, action_dim)
         }
@@ -528,6 +530,40 @@ def test_worldmodel_policy_warm_start():
     policy.get_action(info)
     # After first plan, _next_init should be set (warm start)
     assert policy._next_init is not None
+
+
+def test_worldmodel_policy_one_shot_initial_action_then_warm_start():
+    """An explicit initial plan is consumed once, then MPC tail warm-starts."""
+    solver = MockSolver()
+    config = PlanConfig(
+        horizon=4, receding_horizon=2, action_block=1, warm_start=True
+    )
+    policy = WorldModelPolicy(solver=solver, config=config)
+
+    mock_env = MagicMock()
+    mock_env.num_envs = 1
+    mock_env.action_space = gym_spaces.Box(low=-1, high=1, shape=(2,))
+    mock_env.single_action_space = mock_env.action_space
+    policy.set_env(mock_env)
+
+    initial = torch.arange(8, dtype=torch.float32).reshape(1, 4, 2)
+    policy.set_initial_action(initial)
+    info = {
+        'pixels': np.random.rand(1, 1, 64, 64, 3).astype(np.float32),
+        'goal': np.random.rand(1, 1, 64, 64, 3).astype(np.float32),
+    }
+
+    policy.get_action(info)
+    assert torch.equal(solver.last_init_action, initial)
+    assert policy._initial_action is None
+    assert policy._next_init.shape == (1, 2, 2)
+
+    # Drain the first receding plan, then trigger a second solver call.
+    policy.get_action(info)
+    policy.get_action(info)
+    assert solver.call_count == 2
+    assert solver.last_init_action.shape == (1, 2, 2)
+    assert not torch.equal(solver.last_init_action, initial)
 
 
 def test_worldmodel_policy_selective_replan():
@@ -781,6 +817,24 @@ def test_worldmodel_policy_no_warmstart_without_actionable():
 
     assert solver.received_init_action.shape == (1, 5, 2)
     assert solver.received_init_action.eq(0).all()
+
+
+def test_non_actionable_warmstart_preserves_partial_dtype():
+    """Zero padding must not promote a bf16 warm start back to float32."""
+    from stable_worldmodel.solver.utils import prepare_init_action
+
+    non_actionable_model = MagicMock(spec=['get_cost'])
+    partial = torch.ones(1, 3, 2, dtype=torch.bfloat16)
+    full = prepare_init_action(
+        non_actionable_model,
+        {'pixels': torch.zeros(1, 1)},
+        partial,
+        horizon=5,
+        n_envs=1,
+        action_dim=2,
+    )
+    assert full.dtype == torch.bfloat16
+    assert full.shape == (1, 5, 2)
 
 
 ###########################

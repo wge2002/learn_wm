@@ -1,0 +1,15 @@
+Protocol: N=150, seeds=[42, 43, 44], initial_easy=28
+cell       success  final_distance
+zero_k1    0.373    0.1190
+zero_k5    0.380    0.1156
+prior_k1   0.693    0.0759
+prior_k5   0.653    0.0752
+
+Paired success deltas (right-left, state bootstrap 95% CI)
+zero_k5_minus_k1_success: 0.0067 [-0.0400, 0.0533]
+prior_k5_minus_k1_success: -0.0400 [-0.1000, 0.0200]
+k1_prior_minus_zero_success: 0.3200 [0.2400, 0.4000]
+k5_prior_minus_zero_success: 0.2733 [0.1933, 0.3533]
+success_difference_in_differences: -0.0467 [-0.1267, 0.0333]
+
+report -> /225010117/logs/ogbench_cube_support_prior_20260722/closedloop/formal_report.json

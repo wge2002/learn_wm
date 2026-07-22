@@ -1,0 +1,59 @@
+Protocol: N=16, natural=300, anchors=32, steps=[0, 4, 9, 19, 29], labels=['K1', 'K5']
+Pairing: round0 candidates=0.0e+00, true=0.0e+00, pred=0.0e+00; reset=0.0e+00, roundtrip=9.5e-07
+
+Natural CEM proposal / actual refit
+step  generator  coverage  nondegenerate  oracle_min  actual_success  actual_dist
+   0  ogb_cube_lewm_k1_s3072_ddp2_20260721  0.250     0.938          0.1594      0.062          0.1941
+   0  ogb_cube_lewm_k5_s3072_ddp2_20260721  0.250     0.938          0.1594      0.062          0.1949
+   4  ogb_cube_lewm_k1_s3072_ddp2_20260721  0.375     0.688          0.1474      0.125          0.1862
+   4  ogb_cube_lewm_k5_s3072_ddp2_20260721  0.375     0.688          0.1424      0.125          0.1862
+   9  ogb_cube_lewm_k1_s3072_ddp2_20260721  0.375     0.688          0.1486      0.125          0.1784
+   9  ogb_cube_lewm_k5_s3072_ddp2_20260721  0.312     0.625          0.1499      0.188          0.1753
+  19  ogb_cube_lewm_k1_s3072_ddp2_20260721  0.312     0.562          0.1552      0.125          0.1772
+  19  ogb_cube_lewm_k5_s3072_ddp2_20260721  0.312     0.438          0.1477      0.250          0.1703
+  29  ogb_cube_lewm_k1_s3072_ddp2_20260721  0.312     0.562          0.1540      0.188          0.1748
+  29  ogb_cube_lewm_k5_s3072_ddp2_20260721  0.375     0.500          0.1476      0.188          0.1749
+
+Natural population scorer fidelity (balanced over generator banks)
+step  scorer  rho_defined  rho  top30  top1_success  elite_success
+   0  K1      0.938       0.038  0.108  0.125         0.117
+   0  K5      0.938       0.030  0.110  0.188         0.133
+   4  K1      0.688       0.035  0.116  0.062         0.143
+   4  K5      0.688       0.041  0.110  0.188         0.147
+   9  K1      0.688       0.057  0.124  0.125         0.145
+   9  K5      0.688       0.068  0.124  0.125         0.146
+  19  K1      0.562       0.003  0.101  0.156         0.144
+  19  K5      0.562       0.037  0.094  0.156         0.143
+  29  K1      0.562       -0.005  0.113  0.188         0.165
+  29  K5      0.562       0.017  0.106  0.188         0.171
+
+Expert support audit
+exact anchor success=0.969, noise anchor success=0.940
+step  scorer  exact_rank_pct  top30_success  refit_success  refit_dist  update_cos
+   0  K1      0.000           0.887          0.938         0.0500     0.803
+   0  K5      0.001           0.902          0.938         0.0500     0.804
+   4  K1      0.000           0.795          0.750         0.0808     0.750
+   4  K5      0.001           0.823          0.812         0.0727     0.765
+   9  K1      0.000           0.760          0.750         0.0837     0.735
+   9  K5      0.001           0.761          0.625         0.1035     0.760
+  19  K1      0.001           0.622          0.500         0.1116     0.700
+  19  K5      0.001           0.616          0.531         0.1079     0.683
+  29  K1      0.001           0.560          0.406         0.1211     0.658
+  29  K5      0.001           0.533          0.531         0.1099     0.648
+
+Paired K5-K1 deltas at final CEM round (state bootstrap 95% CI)
+natural_proposal_coverage_k5gen_minus_k1gen: 0.0625 [0.0000, 0.1875]
+natural_oracle_min_k5gen_minus_k1gen: -0.0064 [-0.0144, -0.0006]
+actual_mean_success_k5gen_minus_k1gen: 0.0000 [-0.1875, 0.1875]
+actual_mean_distance_k5gen_minus_k1gen: 0.0001 [-0.0075, 0.0074]
+natural_rho_k5_minus_k1: 0.0201 [-0.0019, 0.0418]
+natural_top30_overlap_k5_minus_k1: -0.0063 [-0.0302, 0.0156]
+augmented_top30_success_k5_minus_k1: -0.0271 [-0.1146, 0.0615]
+augmented_top30_success_path_interaction: -0.2458 [-0.5042, -0.0729]
+augmented_refit_success_k5_minus_k1: 0.1250 [-0.0312, 0.2812]
+augmented_refit_success_path_interaction: 0.0000 [-0.3750, 0.3125]
+augmented_refit_distance_k5_minus_k1: -0.0113 [-0.0373, 0.0054]
+update_cosine_k5_minus_k1: -0.0102 [-0.0795, 0.0406]
+exact_anchor_rank_pct_k5_minus_k1: 0.0000 [-0.0020, 0.0015]
+
+report -> /225010117/logs/ogbench_cube_candidate_fidelity_20260722/formal_report.json

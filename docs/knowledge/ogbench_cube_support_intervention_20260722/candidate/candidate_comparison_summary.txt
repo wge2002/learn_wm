@@ -1,0 +1,23 @@
+Paired support intervention: N=16, prior=expert_next, steps=[0, 4, 9, 19, 29]
+step generator support(zero->prior) actual_success(zero->prior) actual_distance(zero->prior)
+   0 ogb_cube_lewm_k1_s3072_ddp2_20260721       0.250->1.000 0.062->0.938 0.1941->0.0468
+   0 ogb_cube_lewm_k5_s3072_ddp2_20260721       0.250->1.000 0.062->1.000 0.1949->0.0324
+   4 ogb_cube_lewm_k1_s3072_ddp2_20260721       0.375->1.000 0.125->0.750 0.1862->0.0803
+   4 ogb_cube_lewm_k5_s3072_ddp2_20260721       0.375->1.000 0.125->0.750 0.1862->0.0698
+   9 ogb_cube_lewm_k1_s3072_ddp2_20260721       0.375->1.000 0.125->0.438 0.1784->0.1278
+   9 ogb_cube_lewm_k5_s3072_ddp2_20260721       0.312->0.938 0.188->0.625 0.1753->0.0996
+  19 ogb_cube_lewm_k1_s3072_ddp2_20260721       0.312->0.938 0.125->0.438 0.1772->0.1249
+  19 ogb_cube_lewm_k5_s3072_ddp2_20260721       0.312->1.000 0.250->0.625 0.1703->0.1008
+  29 ogb_cube_lewm_k1_s3072_ddp2_20260721       0.312->0.875 0.188->0.375 0.1748->0.1436
+  29 ogb_cube_lewm_k5_s3072_ddp2_20260721       0.375->0.938 0.188->0.562 0.1749->0.1145
+
+Final paired prior-zero changes (state bootstrap 95% CI)
+natural_support ogb_cube_lewm_k1_s3072_ddp2_20260721: 0.5625 [0.3125, 0.8125]
+natural_support ogb_cube_lewm_k5_s3072_ddp2_20260721: 0.5625 [0.3125, 0.8125]
+actual_mean_success ogb_cube_lewm_k1_s3072_ddp2_20260721: 0.1875 [-0.0625, 0.4375]
+actual_mean_success ogb_cube_lewm_k5_s3072_ddp2_20260721: 0.3750 [0.1250, 0.6250]
+actual_mean_distance ogb_cube_lewm_k1_s3072_ddp2_20260721: -0.0312 [-0.0692, -0.0006]
+actual_mean_distance ogb_cube_lewm_k5_s3072_ddp2_20260721: -0.0604 [-0.1079, -0.0187]
+supported path-interaction change: 0.1333 [-0.0292, 0.3271]
+
+report -> /225010117/logs/ogbench_cube_support_prior_20260722/candidate_comparison_report.json
