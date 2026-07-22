@@ -51,7 +51,10 @@ def prepare_init_action(
 
     if not isinstance(model, Actionable):
         device = init_action.device if init_action is not None else 'cpu'
-        tail = torch.zeros(n_envs, remaining, action_dim, device=device)
+        dtype = init_action.dtype if init_action is not None else torch.float32
+        tail = torch.zeros(
+            n_envs, remaining, action_dim, device=device, dtype=dtype
+        )
         if init_action is not None:
             return torch.cat([init_action, tail], dim=1)
         return tail

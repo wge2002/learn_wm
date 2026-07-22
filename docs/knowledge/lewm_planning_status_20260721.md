@@ -1,4 +1,4 @@
-# LeWM planning 研究现状总账（截至 2026-07-21）
+# LeWM planning 研究现状总账（截至 2026-07-22）
 
 > **这是当前结论的唯一入口。** 2026-07-17 至 2026-07-21 的长文档保留为
 > chronological lab notebook；其中早期的 `Horizon-Bundle`、`BP-OEWM`、
@@ -7,11 +7,25 @@
 
 ## 0. 当前一句话结论
 
-我们已经确认一个真实且有控制价值的问题：
+我们已经确认：**world-model planning 的宏观对象不是 prediction error 本身，而是
+prediction、proposal support、adaptive elite/update 与最终 action conversion 组成的
+闭环。** 当前最紧凑的表达是：
 
-> **learned world-model cost 会在 CEM 的 low-cost tail 上产生错误的 elite/update；
-> 用真实动力学给同一批 candidates 排序并递归更新 proposal，可以显著改善后续
-> 搜索和最终 outcome。**
+```text
+control value = representation/dynamics fidelity
+              × task-aligned candidate support
+              × adaptive tail/update validity
+              × elite-to-action conversion
+```
+
+PushT 上，learned world-model cost 会在 CEM 的 low-cost tail 上产生错误的
+elite/update；用真实动力学排序并递归更新 proposal，有显著 outcome ceiling。新加入的
+OGBench Cube transfer 又给出两个关键校准：K5 的长时 latent MSE 明显更低，但 H5/H10
+closed-loop success 没有稳定提升；同时，K5 在 K1 path 上较好、在自己的 K5 path 上
+反而较差的 self-induced tail reversal 跨任务复现。随后完成的 hidden-oracle support
+intervention 又把层次进一步拆开：保证 task-aligned proposal support 能把 K1/K5
+closed-loop success 从 `37.3%/38.0%` 提高到 `69.3%/65.3%`，但没有解锁 K5 winner；
+高 support 的 CEM path 仍会随迭代侵蚀可成功 mean。
 
 但这几天测试的实现都没有把这个 oracle ceiling 稳定转成 deployable method：
 
@@ -21,7 +35,13 @@
 - true landscape 确实 multi-basin，但 component-wise refit 只带来极小增益；
 - K10 在自己诱导的 query path 上发生 tail-fidelity reversal，但最后一轮换成 K3
   scorer 几乎救不回来，说明损失是沿 proposal flow 累积的，不是一个 final selector
-  patch 可以修复。
+  patch 可以修复；
+- OGBench 的 vanilla Gaussian CEM 在 late rounds 只有约 `31–38%` states 含成功
+  candidate；K5 path 虽含略好的 oracle candidate，却没有转成更好的 mean action 或
+  closed-loop success，说明 proposal support 与 conversion 也是独立瓶颈。
+- exact future-action prior 把 final candidate support 提到 `87.5–93.8%`，并让两模型
+  closed-loop success 显著提高；但 K5−K1 仍为 `-4.0pp [-10.0,+2.0]pp`，且
+  candidate mean 从 round 0 的 `93.8–100%` 成功降到 round 29 的 `37.5–56.2%`。
 
 因此截至现在：
 
@@ -32,13 +52,18 @@ Horizon-Bundle                                             STOP
 OE-only dynamics fine-tuning                               STOP
 frozen BP-OE branch patch                                  STOP
 topology / BL-WM as main headline                          DOWNGRADE TO DIAGNOSTIC
-next open question                                         full-sequence adaptive tail fidelity
+cross-task adaptive tail reversal                          SUPPORTED AS DIAGNOSTIC
+proposal support as causal control lever                   SUPPORTED
+next deployable gate                                       GCBC prior + update-retention/early-stop
+conditional method question                                full-sequence adaptive tail fidelity
 ```
 
-现在**不应该直接开一个大规模 topology training**，也不应该继续调 frozen
-selector。下一步先把“planner-equilibrium / adaptive tail validity”与 AWM、
-Temporal Straightening、Navigable EBM、performative prediction、adaptive
-risk/conformal calibration 做严格碰撞，再决定是否还有足够独立且可实现的方法空间。
+现在**不应该直接开一个大规模 topology/tail training**，也不应该继续调 frozen
+selector。oracle support Gate 已说明 support 很重要，也说明它不是 K5
+prediction/control gap 的唯一 missing link。下一步先把 future-action oracle 换成只看
+current observation/goal 的 GCBC prior，并做 locked early-stop / prior-retention
+ablation；只有 deployable support 提升后 self-path reversal / conversion failure 仍持续，
+才进入“planner-equilibrium / adaptive tail validity”的方法与文献 Gate。
 
 ## 1. 这几天 idea 是怎样一步步变化的
 
@@ -52,19 +77,23 @@ risk/conformal calibration 做严格碰撞，再决定是否还有足够独立�
 | set-valued BP-OE | correction 是否应是一组 branches 而非一个平均向量 | branch set 有真实 lower-cost ceiling，cross-model vector disagreement 有信号；但 fresh60×2 selector/adoption confirmation 不 work | frozen planner patch `STOP` |
 | topology / BL-WM | 更 smooth 的模型是否 merge/drop 真实 basins | true low-cost set multi-basin；K10 静态 topology fidelity 更好；自己的 query path 上又发生 tail reversal | topology 是有效 diagnostic |
 | causal refit | tail reversal 是否真由多 basin / mean averaging造成 | final K3 swap只净增 1.7pp；true component oracle只比true global mean多1.7pp | basin multiplicity 不是当前主要 causal bottleneck |
+| OGBench Cube transfer | 长时 prediction 优势能否跨 benchmark 转成 control | K5 H10 latent MSE 低 22.5%，但 H5/H10 success 无显著优势；self-path tail reversal 复现，且 natural proposal support 低 | prediction/control gap 与 cross-task diagnostic `SUPPORTED` |
+| OGBench support intervention | proposal support 是否 causal、能否解锁 K5 | hidden expert prior 使 K1/K5 success `+32.0/+27.3pp`；K5 未成为 winner；高-support mean 仍随 CEM 侵蚀 | support causal `SUPPORTED`；下一步 GCBC prior + update-retention |
 
 这条演化不是“所有 idea 都失败了所以又换名字”。真正逐步收紧的是因果对象：
 
 ```text
-representation horizon
-  -> candidate selection
-  -> CEM sufficient-statistic update
-  -> multimodal correction set
-  -> adaptive proposal path
-  -> full-sequence low-cost-tail validity
+representation / dynamics fidelity
+  -> task-aligned candidate support
+  -> CEM tail ranking and sufficient-statistic update
+  -> self-induced adaptive proposal path
+  -> elite-to-action conversion
+  -> closed-loop task outcome
 ```
 
-前五层大多已经被控制实验排除或降级；最后一层仍是开放问题，但还不是完成的 idea。
+现在不是继续向某个更极端的内部模块钻，而是用便宜干预拆清这四层中哪一层先限制
+control。adaptive tail 是跨任务复现的真实现象，但还不能被直接升级成唯一主因或完成的
+方法 idea。
 
 ## 2. 最重要的证据账本
 
@@ -286,16 +315,87 @@ K10: 38 states have a successful candidate - 12 conversion failures = 26
 完整反事实报告见
 [counterfactual refit audit](optimizer_equivalence_a100_20260720/counterfactual_refit_a100_20260721/audit_v1/REPORT.md)。
 
+### 2.10 OGBench transfer：MSE 不转 success，但 self-path reversal 跨任务复现
+
+在 OGBench Cube Single 上，先用 `3 eval seeds × 50 paired episodes` 比较同一训练
+seed 的 K1/K5。共享 starts、goals 与 CEM noise：
+
+| protocol | K1 success | K5 success | K5−K1 |
+|---|---:|---:|---:|
+| H5，全部 150 | `62.7%` | `63.3%` | `+0.7pp [-4.7,+6.0]` |
+| H5，排除 initial-easy | `41.1%` | `42.1%` | `+1.1pp [-7.4,+9.5]` |
+| H10，全部 150 | `43.3%` | `43.3%` | `0.0pp [-6.0,+6.0]` |
+| H10，排除 initial-easy | `30.3%` | `30.3%` | `0.0pp [-7.4,+7.4]` |
+
+与此同时，fixed expert-action endpoint latent MSE 在 H10 上是 `.00703` 对
+`.00545`，K5 低 `22.5%`；H20 上约低 `40%`。因此这是明确的
+prediction/control non-conversion，而不是模型指标本身没有差异。
+
+随后对 16 个 fresh nontrivial states 保存 K1/K5 完整 CEM path，在 steps
+`0/4/9/19/29` 重放每轮 300 个自然 candidates，并 post-hoc 注入 32 个有效的 expert
+neighborhood anchors。自然 population 到 final round 只有 `.312/.375` 的 states 含
+任一成功 candidate；K5 path 的 oracle-min distance 反而略好
+`-.0064 [-.0144,-.0006]`，但 actual mean 都只有 `3/16` 成功。
+
+在 support-controlled bank 上，top-30 真实成功质量出现与 PushT 同构的 path
+interaction：
+
+```text
+(K5−K1 scorer gap on K5 path) − (gap on K1 path)
+
+step 0     .000
+step 4    -.060 [-.152,-.004]
+step 9    -.110 [-.244,-.023]
+step 19   -.233 [-.465,-.083]
+step 29   -.246 [-.504,-.073]
+```
+
+K5 final scorer 在 K1 path 的 top-30 成功率是 `.579`，在自己的 K5 path 上却只有
+`.487`；对应 K1 scorer 是 `.483/.637`。这支持 self-induced adaptive-tail reversal
+跨任务存在，但也同时显示：低 natural support、tail erosion 与 mean conversion 是三层
+不同问题，不能只凭这项 interaction 宣称已找到单一 causal repair。
+
+完整协议、paired bootstrap、审计与 artifacts 见
+[OGBench Cube transfer audit](ogbench_cube_transfer_20260722/README.md)。
+
+### 2.11 OGBench support intervention：support 是 causal，但 adaptive erosion 独立存在
+
+用 exact future expert continuation 只初始化第一次 CEM mean，在 fresh
+H10/budget50 四格中保持 `300 candidates × 30 rounds`、WM calls、models 与 150
+paired states 不变。这是 hidden-oracle causal diagnostic，不是 deployable benchmark
+result；绝对值不与前一份 budget100 H10 baseline 混比。
+
+| condition | K1 | K5 | K5−K1 |
+|---|---:|---:|---:|
+| zero | `37.3%` | `38.0%` | `+0.7pp [-4.0,+5.3]` |
+| expert prior | `69.3%` | `65.3%` | `-4.0pp [-10.0,+2.0]` |
+| prior−zero | `+32.0pp [24.0,40.0]` | `+27.3pp [19.3,35.3]` | DID `-4.7pp [-12.7,+3.3]` |
+
+排除 initial-easy 后，K1/K5 gain 为 `+39.3/+34.4pp`，且连续 final distance 同向
+下降。proposal support 因而是很大的 causal lever；但 K5 没有得到更大的 gain，较低
+latent MSE 仍未转成 robust control winner。
+
+同一 16-state candidate path 上，prior 将 round-0 support 提到 `100%`，但 actual
+mean success 从 `93.8%/100%` 逐轮降到 final `37.5%/56.2%`，此时 support 仍有
+`87.5%/93.8%`。support-controlled self-path interaction 也仍为
+`-.1125 [-.2187,-.0292]`。这比 baseline 数值上缓和，却证明 support、adaptive
+tail/update 与 mean conversion 是三个可独立失效的环节。
+
+完整结果见
+[OGBench proposal-support causal gate](ogbench_cube_support_intervention_20260722/README.md)。
+
 ## 3. 当前统一解释
 
 ### 3.1 已支持的因果链
 
 ```text
 learned dynamics / representation
+  -> task-aligned candidate support (may already be missing)
   -> distorted low-cost candidate tail
   -> wrong CEM elite sufficient statistics
   -> proposal moves into a model-specific query distribution
-  -> later tail fidelity and candidate support deteriorate
+  -> later tail fidelity/support deteriorate
+  -> elite mean may fail to convert hidden candidate quality
   -> final success/cost gap
 ```
 
@@ -304,7 +404,13 @@ learned dynamics / representation
 - `wrong elite -> wrong update`：强；
 - `oracle update -> better recursive outcome`：强 true-cost、small-N success evidence；
 - `model-specific path -> tail reversal`：强 observational interaction；
-- `tail reversal -> final failure`：存在 headroom，但 K3 swap 不是充分 repair；
+- `prediction MSE -> control success`：OGBench 给出明确反例；
+- `proposal support -> closed-loop outcome`：OGBench hidden-oracle intervention 给出强
+  paired causal evidence；
+- `high support -> adaptive erosion / conversion failure`：OGBench intermediate mean
+  replay 给出直接证据，但尚无 deployable repair；
+- `tail reversal -> final failure`：存在 headroom，但 K3 swap 与 support prior 都不是
+  充分 repair；
 - `basin multiplicity -> final failure`：当前 PushT evidence 弱。
 
 ### 3.2 为什么以前看起来互相矛盾
@@ -319,7 +425,7 @@ learned dynamics / representation
 不是这个 coupled dynamical system 的稳定性保证。另一方面，简单 on-policy replay
 没有 work，说明“多收自己路径上的数据”也不是充分解法。
 
-### 3.3 目前真正缺的不是哪个模块
+### 3.3 目前不能再把缺口压成单个模块
 
 不是：
 
@@ -331,18 +437,51 @@ learned dynamics / representation
 - generic PH/topology loss；
 - 只拟合一个平均 correction vector。
 
-真正缺的是一个能在**模型自己诱导的 proposal sequence**上维持 low-cost-tail
-validity，同时不破坏原 dynamics prediction 的训练对象或风险控制机制。
+现在能确定的缺口是端到端 **decision fidelity**，但还不能把它等同于一种 tail
+training objective。OGBench 要求先区分：
+
+1. proposal 根本没有覆盖 task-relevant success region；
+2. 有 support，但 adaptive scorer/update 把 success tail 挤出；
+3. population 内有好 candidate，但 Gaussian mean/refit 没有转成有效 action。
+
+hidden-oracle intervention 已经确认：受控增加 support 后第 2/3 层仍持续。但这只把
+sequence-level tail/update validity 提升为合理的 causal question，并不直接授权训练
+新 objective。还要先证明只使用 current observation/goal 的 deployable prior 也能
+提升 support，并与简单 early stopping、prior retention、uncertainty/pessimism baseline
+区分。
 
 ## 4. 当前 working question，而不是又一个过早命名的方法
 
-暂时不再给新方法取 acronym。当前值得研究的问题写成：
+暂时不再给新方法取 acronym。第一个因果问题已经回答：增加 oracle support 会显著
+提高 control，但不会稳定解锁 K5，且高-support path 仍有 adaptive erosion。
 
-> 给定 `q_{t+1}^M = T(M, q_t^M)`，如何让 learned model 在整个自诱导序列上
-> 保持 true low-cost tail / elite update 的有效性，或在无法保证时显式拒绝一次
-> 不可信的 proposal update？
+当前 working question 收紧为：
 
-可能的两个实现家族只是候选：
+> 不读取 test-time future actions时，一个 goal-conditioned action prior 能否复制 support
+> gain；如果能，简单 early stopping / prior retention 是否足以阻止 CEM 把它推坏？
+
+下一阶段只做 deployable planner baseline，不训练新 WM：
+
+```text
+zero mean vs GCBC initial mean
+×
+ordinary 30-round CEM vs locked early-stop / prior-retention
+
+锁定 checkpoints、paired rows、candidate count、success/distance 指标与训练数据边界。
+```
+
+它有清晰的三路判决：
+
+1. GCBC 不能提高 support：先修 proposal learner/data protocol；
+2. GCBC 提高 support，简单 early-stop/retention 又保住 outcome：采用强 planning
+   baseline，不发明新的 WM objective；
+3. deployable support 已提升，但 self-path reversal / conversion failure 仍在：才进入
+   sequence-level adaptive tail/update training 与条件式文献碰撞。
+
+只有第三路成立，后续方法问题才是：给定
+`q_{t+1}^M = T(M, q_t^M)`，如何让 learned model 在整个自诱导序列上保持 true
+low-cost tail / elite update 的有效性，或在无法保证时拒绝不可信 update？此时两个实现
+家族仍只是候选：
 
 1. **proposal-flow / planner-equilibrium training**：不是逐轮独立拟合 candidates，
    而是匹配多轮 proposal sufficient statistics，并用原 prediction replay 保持
@@ -357,7 +496,7 @@ validity，同时不破坏原 dynamics prediction 的训练对象或风险控制
 - 与 Temporal Straightening / Navigable EBM 的 landscape shaping 有何实质不同？
 - 与 ensemble uncertainty、pessimistic MPC、adaptive conformal/risk control 是否重合？
 - 相比 ordinary candidate-wise rank loss，sequence-level object 是否真有额外收益？
-- 能否在第二个明确 multi-route/contact task 上复现，而不只解释 PushT？
+- 能否在 PushT 与 OGBench 上都带来 locked closed-loop success，而不只是解释诊断量？
 
 如果严格碰撞后没有独立位置，就不应为了延续项目再造名字。
 
@@ -391,12 +530,34 @@ validity，同时不破坏原 dynamics prediction 的训练对象或风险控制
 
 ## 6. 下一轮进入 GPU 前的 Gate
 
-### Gate 1：严格文献碰撞
+### Gate 0：hidden-oracle support intervention（已完成）
 
-先确认 planner-equilibrium / adaptive tail certificate 是否有独立 claim。若只是
-AWM 或已有 robust/pessimistic planning 的改写，停止。
+exact expert prior 在 iso-WM-calls 下让 K1/K5 closed-loop success 分别提高
+`+32.0/+27.3pp`，同时 final candidate support 提高 `+56.3pp`。但 K5 未成为 winner，
+且 high-support mean 随 CEM rounds 明显恶化。判决：support causal `SUPPORTED`；
+support-only explanation `REJECTED`。
 
-### Gate 2：便宜的 held-out ceiling
+### Gate 1：deployable action prior 与 update-retention
+
+训练或复用 current-observation/goal-only GCBC prior，严格禁止 test-time future action。
+保持 K1/K5 checkpoints、paired rows、candidate count 与 outcome 指标不变，比较：
+
+```text
+zero vs GCBC initial proposal
+1 / 5 / 10 / 30 CEM rounds
+ordinary update vs prior-retention/trust-region
+```
+
+先确认 deployable support gain，再判断简单 early stopping/retention 是否已能保住
+outcome。若可以，就把它作为 planning baseline，不进入新 WM training。
+
+### Gate 2：条件式文献碰撞
+
+仅当 Gate 1 提升 deployable support 后仍保留 reversal/conversion failure，再确认
+planner-equilibrium / adaptive tail certificate 是否有独立 claim。若只是 AWM 或已有
+robust/pessimistic planning 的改写，停止。
+
+### Gate 3：便宜的 held-out ceiling
 
 在现有 row-disjoint query banks 上，比较：
 
@@ -411,9 +572,9 @@ true refit ceiling
 必须 state-held-out，并直接报告 recursive proposal/support/outcome，而不是只报告
 fixed-bank AUC、MSE 或 Spearman。
 
-### Gate 3：最小训练
+### Gate 4：最小训练
 
-只有 Gate 2 明显优于普通 rank/uncertainty baseline 后，才训练一个小 checkpoint：
+只有 Gate 3 明显优于普通 rank/uncertainty baseline 后，才训练一个小 checkpoint：
 
 - OE/tail loss 只能是 auxiliary；保留 original prediction replay；
 - train/calibration/eval rows 完全分离；
@@ -421,7 +582,7 @@ fixed-bank AUC、MSE 或 Spearman。
 - 先 H5/off40，再 H8/off60；
 - 必须过 recursive resampling，不能从 fixed trace 直接跳 full MPC。
 
-### Gate 4：方法 promotion
+### Gate 5：方法 promotion
 
 最终至少需要：
 
@@ -451,6 +612,10 @@ fixed-bank AUC、MSE 或 Spearman。
   self-induced tail reversal。
 - [Counterfactual refit audit](optimizer_equivalence_a100_20260720/counterfactual_refit_a100_20260721/audit_v1/REPORT.md)：
   final scorer/component causal decomposition。
+- [OGBench Cube transfer audit](ogbench_cube_transfer_20260722/README.md)：closed-loop
+  success、natural support、MuJoCo candidate replay 与 cross-task path interaction。
+- [OGBench proposal-support causal gate](ogbench_cube_support_intervention_20260722/README.md)：
+  hidden-oracle support intervention、150-state paired outcome 与 high-support path erosion。
 
 ### 关键复现脚本
 
@@ -463,9 +628,17 @@ fixed-bank AUC、MSE 或 Spearman。
 - `scripts/plan/oe_paired_basin_lineage_audit.py`：paired path interaction；
 - `scripts/plan/oe_counterfactual_refit_eval.py` 与
   `oe_counterfactual_refit_audit.py`：global/component counterfactual refit。
+- `scripts/plan/ogbench_candidate_fidelity.py`：OGBench 完整 CEM population 与 MuJoCo
+  candidate replay；
+- `scripts/plan/summarize_ogbench_candidate_fidelity.py`：state-paired support、fidelity、
+  path interaction 与 conversion summary。
+- `scripts/plan/compare_ogbench_support_intervention.py`：zero/prior candidate-path paired
+  comparison；
+- `scripts/plan/summarize_ogbench_support_closed_loop.py`：四格 closed-loop paired
+  bootstrap、McNemar 与 difference-in-differences。
 
-大体积 raw archives 只保存在 5090/A100；仓库中保存 compact JSON、report、必要的
-paired/refit NPZ。远端路径与 SHA-256 见各实验目录 README。
+大体积 raw archives 只保存在对应 5090/A100 server；仓库中保存 compact JSON、report、
+必要的 paired/refit NPZ。远端路径与 SHA-256 见各实验目录 README。
 
 ## 8. 后续实验统一协议
 
@@ -483,18 +656,28 @@ paired/refit NPZ。远端路径与 SHA-256 见各实验目录 README。
    原样确认；
 9. **recursive first**：fixed-bank improvement 先过 recursive resampling，再开 full
    MPC/训练；
-10. **stop discipline**：未过预注册 Gate 的 branch 不通过继续调同一 bank 来“救”。
+10. **support/conversion decomposition**：分别报告 population 是否含成功 candidate、
+    scorer elite 质量、refit/mean action 与 executed outcome；
+11. **prediction/control separation**：MSE 只能作为 mechanism metric，方法 promotion
+    必须看 paired closed-loop success；
+12. **stop discipline**：未过预注册 Gate 的 branch 不通过继续调同一 bank 来“救”。
 
 ## 9. 最终保留的科学贡献种子
 
 即使后续方法仍不 work，这几天已经形成一条可以独立整理的 scientific result：
 
-> **World-model planning failure is an optimizer-feedback problem, not merely a
-> prediction-error problem. A model can be more faithful on a fixed candidate
-> bank yet lose low-cost-tail fidelity on the proposal distribution induced by
-> its own planner. Oracle-equivalent CEM updates have recursive control value,
-> while static reranking, branch selection and topology matching do not reliably
-> realize that value.**
+> **World-model planning value is not determined by prediction error alone. It is
+> jointly limited by task-aligned candidate support, low-cost-tail validity on
+> the planner's self-induced proposal distribution, and elite-to-action
+> conversion. A model can have lower long-horizon prediction error and be more
+> faithful on another model's candidate bank, yet gain no closed-loop success and
+> lose tail fidelity on its own adaptive path. A controlled support intervention
+> materially raises success, yet does not unlock the lower-MSE model as a winner
+> and still permits high-support plans to erode under repeated CEM updates. This
+> interaction now appears on both PushT and OGBench Cube; oracle updates expose
+> control headroom, while static reranking, branch selection and topology matching
+> do not reliably realize it.**
 
-要把它升成方法论文，还缺一个真正能跨 fresh states、第二任务和强 training
-baselines 的 deployable mechanism；在那之前，最诚实的状态是“问题已定位，方法未找到”。
+要把它升成方法论文，还缺一个真正能跨 fresh states、两任务和强 planning/training
+baselines 的 deployable mechanism；在那之前，最诚实的状态是“现象与边界已定位，
+方法未找到”。

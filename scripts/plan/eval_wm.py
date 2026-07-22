@@ -4,7 +4,9 @@ import os
 
 os.environ['MUJOCO_GL'] = 'egl'
 
+import json
 import time
+import warnings
 from pathlib import Path
 
 import hydra
@@ -15,6 +17,20 @@ from omegaconf import DictConfig, OmegaConf
 from sklearn import preprocessing
 from torchvision.transforms import v2 as transforms
 import stable_worldmodel as swm
+
+
+warnings.filterwarnings(
+    'ignore',
+    message='.*Casting input x to numpy array.*',
+    category=UserWarning,
+    module='gymnasium.spaces.box',
+)
+warnings.filterwarnings(
+    'ignore',
+    message=".*Box (low|high)'s precision lowered.*",
+    category=UserWarning,
+    module='gymnasium.spaces.box',
+)
 
 
 def configure_torch_threads_from_env():
@@ -67,6 +83,49 @@ def get_dataset(cfg, dataset_name):
         keys_to_cache=list(cfg.dataset.keys_to_cache),
     )
     return dataset
+
+
+def build_dataset_initial_action_prior(
+    dataset,
+    episodes: np.ndarray,
+    starts: np.ndarray,
+    *,
+    horizon: int,
+    action_block: int,
+    action_scaler,
+    alignment: str = 'next',
+) -> np.ndarray:
+    """Build a hidden-oracle one-shot CEM initialization from dataset actions.
+
+    This is a support intervention, not a deployable policy input.  ``next``
+    matches datasets whose reset row has a NaN action and uses the actions on
+    the rows immediately following the seeded state.
+    """
+    if alignment not in {'next', 'same'}:
+        raise ValueError("dataset_action_prior.alignment must be 'next' or 'same'")
+    num_actions = int(horizon) * int(action_block)
+    chunks = dataset.load_chunk(
+        np.asarray(episodes),
+        np.asarray(starts),
+        np.asarray(starts) + num_actions + 1,
+    )
+    plans = []
+    for episode, start, chunk in zip(
+        episodes, starts, chunks, strict=True
+    ):
+        raw = np.asarray(chunk['action'], dtype=np.float32)
+        offset = 1 if alignment == 'next' else 0
+        selected = raw[offset : offset + num_actions]
+        if len(selected) != num_actions:
+            raise ValueError(
+                f'Action prior for episode={episode}, start={start} needs '
+                f'{num_actions} actions, got {len(selected)}'
+            )
+        normalized = action_scaler.transform(
+            np.nan_to_num(selected)
+        ).astype(np.float32, copy=False)
+        plans.append(normalized.reshape(horizon, -1))
+    return np.stack(plans)
 
 
 def to_container_or_none(value):
@@ -344,6 +403,32 @@ def run(cfg: DictConfig):
 
     world.set_policy(policy)
 
+    dataset_action_prior = cfg.get('dataset_action_prior')
+    use_dataset_action_prior = bool(
+        dataset_action_prior is not None
+        and dataset_action_prior.get('enabled', True)
+    )
+    if use_dataset_action_prior:
+        if cfg.policy == 'random' or solver is None:
+            raise ValueError('dataset_action_prior requires a world-model policy')
+        if 'action' not in process:
+            raise ValueError('dataset_action_prior requires an action scaler')
+        initial_action = build_dataset_initial_action_prior(
+            dataset,
+            eval_episodes,
+            eval_start_idx,
+            horizon=int(cfg.plan_config.horizon),
+            action_block=int(cfg.plan_config.action_block),
+            action_scaler=process['action'],
+            alignment=str(dataset_action_prior.get('alignment', 'next')),
+        )
+        policy.set_initial_action(initial_action)
+        print(
+            '[eval] hidden-oracle dataset action prior enabled: '
+            f'alignment={dataset_action_prior.get("alignment", "next")}, '
+            f'shape={initial_action.shape}. This is diagnostic only.'
+        )
+
     results_path.mkdir(parents=True, exist_ok=True)
     video_path = results_path if cfg.eval.get('video', True) else None
     if video_path is not None:
@@ -401,9 +486,65 @@ def run(cfg: DictConfig):
             history_frames=history_frames,
             history_frameskip=int(cfg.plan_config.action_block),
         )
+    if use_dataset_action_prior:
+        metrics['initial_action_prior'] = {
+            'type': 'dataset_expert',
+            'alignment': str(dataset_action_prior.get('alignment', 'next')),
+            'hidden_oracle': True,
+        }
     if solver is not None and hasattr(solver, 'selection_summary'):
         metrics['cross_validation'] = solver.selection_summary()
     end_time = time.time()
+
+    metrics_out = cfg.eval.get('metrics_out')
+    if metrics_out is not None:
+        metrics_path = Path(str(metrics_out))
+        metrics_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            'version': np.asarray(1),
+            'dataset_rows': np.asarray(random_episode_indices, dtype=np.int64),
+            'episodes': np.asarray(eval_episodes, dtype=np.int64),
+            'starts': np.asarray(eval_start_idx, dtype=np.int64),
+            'episode_successes': np.asarray(
+                metrics['episode_successes'], dtype=bool
+            ),
+            'success_rate': np.asarray(metrics['success_rate'], dtype=np.float64),
+            'elapsed_seconds': np.asarray(
+                end_time - start_time, dtype=np.float64
+            ),
+            'seed': np.asarray(int(cfg.seed), dtype=np.int64),
+            'policy': np.asarray(str(cfg.policy)),
+            'metadata': np.asarray(
+                json.dumps(
+                    {
+                        'dataset_action_prior': (
+                            OmegaConf.to_container(
+                                dataset_action_prior, resolve=True
+                            )
+                            if dataset_action_prior is not None
+                            else None
+                        ),
+                        'horizon': int(cfg.plan_config.horizon),
+                        'receding_horizon': int(
+                            cfg.plan_config.receding_horizon
+                        ),
+                        'action_block': int(cfg.plan_config.action_block),
+                        'goal_offset': int(cfg.eval.goal_offset_steps),
+                        'eval_budget': int(cfg.eval.eval_budget),
+                        'bf16': bool(cfg.get('bf16', False)),
+                        'num_samples': int(cfg.solver.num_samples),
+                        'cem_steps': int(cfg.solver.n_steps),
+                        'topk': int(cfg.solver.topk),
+                    },
+                    sort_keys=True,
+                )
+            ),
+        }
+        for key in ('initial_task_distance', 'final_task_distance'):
+            if key in metrics:
+                payload[key] = np.asarray(metrics[key], dtype=np.float64)
+        np.savez_compressed(metrics_path, **payload)
+        print(f'[eval] structured metrics -> {metrics_path}')
 
     print(metrics)
     if video_path is not None:
