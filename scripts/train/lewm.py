@@ -180,6 +180,46 @@ def lejepa_forward(self, batch, stage, cfg):
             preds.append(self.model.predict(ctx, actw)[:, -1])
         pred_emb = torch.stack(preds, dim=1)               # (B,unroll_tf,D)
         tgt_emb = emb[:, hs:hs + unroll_tf]
+    elif cfg.wm.get('aux_reg', None):
+        # HEAD-TO-HEAD baselines: K=1 single-step objective + a competitor
+        # auxiliary geometry regularizer, to test whether one-step + geometry
+        # produces the far-goal composition gain that coupled multi-step does.
+        #   'curvature' = Temporal Straightening (penalize TRUE trajectory
+        #                 tangent curvature; on-trajectory geometry).
+        #   'bisim'     = Invariant-JEPA-WM style reward-free bisimulation
+        #                 (latent metric = discounted next-latent metric).
+        # Prediction stays single-step (identical to K=1); only the aux term and
+        # a longer true-trajectory window (num_steps) differ.
+        hs = ctx_len
+        reg = str(cfg.wm.aux_reg)
+        beta = float(cfg.wm.get('aux_beta', 1.0))
+        pred_emb = self.model.predict(emb[:, :hs], act_emb[:, :hs])
+        tgt_emb = emb[:, 1:hs + 1]
+        base = (pred_emb - tgt_emb).pow(2).mean()
+        if reg == 'curvature':
+            v = emb[:, 1:] - emb[:, :-1]                       # (B,T-1,D) velocities
+            vn = v / v.norm(dim=-1, keepdim=True).clamp_min(1e-6)
+            cos = (vn[:, 1:] * vn[:, :-1]).sum(-1)             # (B,T-2)
+            aux = (1.0 - cos).mean()
+        elif reg == 'bisim':
+            gamma = float(cfg.wm.get('bisim_gamma', 0.9))
+            z0 = emb[:, hs - 1]                                # (B,D) current
+            znext = pred_emb[:, -1]                            # (B,D) predicted next
+            idx = torch.randperm(z0.shape[0], device=z0.device)
+            dz = (z0 - z0[idx]).norm(dim=-1)
+            dn = (znext - znext[idx]).norm(dim=-1).detach()
+            aux = (dz - gamma * dn).pow(2).mean()
+        else:
+            raise ValueError(f'unknown aux_reg {reg!r}')
+        output['aux_loss'] = aux
+        output['pred_loss'] = base + beta * aux
+        output['sigreg_loss'] = self.sigreg(emb.transpose(0, 1))
+        output['loss'] = output['pred_loss'] + lambd * output['sigreg_loss']
+        losses_dict = {
+            f'{stage}/{k}': v.detach() for k, v in output.items() if 'loss' in k
+        }
+        self.log_dict(losses_dict, on_step=True, sync_dist=True)
+        return output
     elif int(cfg.wm.get('thermo_k', 0) or 0) > 1:
         # CritWM thermostat: closed-loop critical training. Sensor = greedy
         # renormalized echo probe (measurement only, no_grad — the EchoReg v1

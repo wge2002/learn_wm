@@ -1,0 +1,16 @@
+defaults:
+  - lewm
+  - _self_
+
+# Head-to-head baseline: K=1 single-step + reward-free bisimulation regularizer
+# (Invariant-JEPA-WM style; latent metric = discounted next-latent metric).
+output_model_name: lewm_bisim
+
+wm:
+  aux_reg: bisim
+  aux_beta: 1.0
+  bisim_gamma: 0.9
+
+data:
+  dataset:
+    num_steps: 8
