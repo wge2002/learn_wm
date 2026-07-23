@@ -62,3 +62,28 @@ low-tail 误排?相关 → 方法线开;不相关 → 方法线关,转问题定�
   是否存在"细化为"反馈通道是否可行",且给出了判决实验;
 - ACID(2607.02403)必须进所有后续实验的 baseline 列;IMWM 的
   proposal-volume bound 和 G.5 诊断应被引用而非重做。
+
+## 5. 否决实验回填(2026-07-23)
+
+已在 A100 上按预锁定协议完成 `60/60` 个有效 next-replan state（前缀终止或
+截断 `0`），判决为 **`CLOSE`**：
+
+- honest prefix residual 对 baseline 下一次误排没有可泛化预测力：residual norm
+  Spearman `0.102 [-0.175, 0.358]`；固定 5-fold OOF ridge
+  `R²=-0.479`，MAE `0.121`，差于常数基线 `0.107`；
+- 在同一个 baseline population 上，即使逐 state 用真值事后从
+  `{alpha=0,.5,1}` 挑最好者，top30 recall 增益也只有
+  `0.015 [0.009, 0.022]`，其 CI 上界仍低于预锁定 `.05` 否决线；
+- 把修正放进全部 30 轮 CEM 后，held-out alpha 的 recursive recall 变化为
+  `-0.006 [-0.018, 0.003]`；returned-mean true cost 变化为
+  `+7.94 [-1.67, 25.33]`（越低越好），success 变化为 `0.000`。
+
+因此关闭“单 action-block 真实残差作为持久加性偏置、直接校准下一次 CEM
+tail-rank”的方法线，按原判决转向 **①②测量 + oracle ceiling 的问题定义线**。
+这是否决预注册的乐观反馈族，不是“所有非线性或历史条件反馈都不可能”的证明。
+
+复现实验协议见 `tail_validity_feedback_gate_protocol_20260723.md`；compact 结果、
+输入及实现 SHA-256 见
+`tail_validity_feedback_gate_20260723/REPORT.md` 与同目录 `report.json`。原始
+四个 shard 留在 A100：
+`/225010117/logs/tail_validity_feedback_gate_a100_20260723/`。

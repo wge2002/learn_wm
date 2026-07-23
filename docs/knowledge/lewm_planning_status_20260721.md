@@ -1,4 +1,4 @@
-# LeWM planning 研究现状总账（截至 2026-07-22）
+# LeWM planning 研究现状总账（截至 2026-07-23）
 
 > **这是当前结论的唯一入口。** 2026-07-17 至 2026-07-21 的长文档保留为
 > chronological lab notebook；其中早期的 `Horizon-Bundle`、`BP-OEWM`、
@@ -42,6 +42,10 @@ closed-loop success 从 `37.3%/38.0%` 提高到 `69.3%/65.3%`，但没有解锁 
 - exact future-action prior 把 final candidate support 提到 `87.5–93.8%`，并让两模型
   closed-loop success 显著提高；但 K5−K1 仍为 `-4.0pp [-10.0,+2.0]pp`，且
   candidate mean 从 round 0 的 `93.8–100%` 成功降到 round 29 的 `37.5–56.2%`。
+- 最乐观的 deployable tail-feedback Gate 也已关闭：执行一个 action block 后的真实
+  latent residual 不能预测下一次误排；把它作为持久加性修正放进全部 30 轮 CEM，
+  held-out recall 不升反降。逐 state 真值事后挑正 alpha 的 fixed-pop recall ceiling
+  也只有 `+0.015 [0.009,+0.022]`，低于预锁定 `+.05` 否决线。
 
 因此截至现在：
 
@@ -55,15 +59,16 @@ topology / BL-WM as main headline                          DOWNGRADE TO DIAGNOST
 cross-task adaptive tail reversal                          SUPPORTED AS DIAGNOSTIC
 proposal support as causal control lever                   SUPPORTED
 next deployable gate                                       GCBC prior + update-retention/early-stop
-conditional method question                                full-sequence adaptive tail fidelity
+executed-prefix additive tail feedback                     CLOSE
+tail-validity method line                                  CLOSE -> PROBLEM-DEFINITION PAPER
 ```
 
 现在**不应该直接开一个大规模 topology/tail training**，也不应该继续调 frozen
 selector。oracle support Gate 已说明 support 很重要，也说明它不是 K5
-prediction/control gap 的唯一 missing link。下一步先把 future-action oracle 换成只看
-current observation/goal 的 GCBC prior，并做 locked early-stop / prior-retention
-ablation；只有 deployable support 提升后 self-path reversal / conversion failure 仍持续，
-才进入“planner-equilibrium / adaptive tail validity”的方法与文献 Gate。
+prediction/control gap 的唯一 missing link；随后完成的文献碰撞与 honest-feedback
+否决实验又关闭了当前 tail-validity 方法线。GCBC prior + early-stop/retention 仍可作为
+deployable planning baseline 补齐，但不再是自动重开新 WM objective 的跳板。主线转为
+① learned-vs-true low-tail 测量、②误排沿 proposal flow 的累积规律与 oracle ceiling。
 
 ## 1. 这几天 idea 是怎样一步步变化的
 
@@ -79,6 +84,7 @@ ablation；只有 deployable support 提升后 self-path reversal / conversion f
 | causal refit | tail reversal 是否真由多 basin / mean averaging造成 | final K3 swap只净增 1.7pp；true component oracle只比true global mean多1.7pp | basin multiplicity 不是当前主要 causal bottleneck |
 | OGBench Cube transfer | 长时 prediction 优势能否跨 benchmark 转成 control | K5 H10 latent MSE 低 22.5%，但 H5/H10 success 无显著优势；self-path tail reversal 复现，且 natural proposal support 低 | prediction/control gap 与 cross-task diagnostic `SUPPORTED` |
 | OGBench support intervention | proposal support 是否 causal、能否解锁 K5 | hidden expert prior 使 K1/K5 success `+32.0/+27.3pp`；K5 未成为 winner；高-support mean 仍随 CEM 侵蚀 | support causal `SUPPORTED`；下一步 GCBC prior + update-retention |
+| Tail-validity feedback Gate | 已执行前缀的诚实残差能否预测并环内修正下一次 low-tail 误排 | 60-state OOF prediction 失败；fixed-pop positive-alpha oracle gain 仅 `+.015`；recursive recall `-.006` | 当前 additive feedback 方法族 `CLOSE`；转问题定义线 |
 
 这条演化不是“所有 idea 都失败了所以又换名字”。真正逐步收紧的是因果对象：
 
@@ -444,61 +450,34 @@ training objective。OGBench 要求先区分：
 2. 有 support，但 adaptive scorer/update 把 success tail 挤出；
 3. population 内有好 candidate，但 Gaussian mean/refit 没有转成有效 action。
 
-hidden-oracle intervention 已经确认：受控增加 support 后第 2/3 层仍持续。但这只把
-sequence-level tail/update validity 提升为合理的 causal question，并不直接授权训练
-新 objective。还要先证明只使用 current observation/goal 的 deployable prior 也能
-提升 support，并与简单 early stopping、prior retention、uncertainty/pessimism baseline
-区分。
+hidden-oracle intervention 已经确认：受控增加 support 后第 2/3 层仍持续。随后的一票
+否决实验又确认：最密、最低延迟的诚实执行反馈仍不足以校准下一次 tail rank。因此
+sequence-level tail/update validity 是成立的科学对象，但当前没有被证据授权的方法
+objective。
 
-## 4. 当前 working question，而不是又一个过早命名的方法
+## 4. 当前 working question：问题定义与测量
 
-暂时不再给新方法取 acronym。第一个因果问题已经回答：增加 oracle support 会显著
-提高 control，但不会稳定解锁 K5，且高-support path 仍有 adaptive erosion。
+暂时不再给新方法取 acronym。当前主问题收紧为：
 
-当前 working question 收紧为：
+> learned-vs-true low-tail 误排如何沿 CEM elite/refit proposal flow 累积；这个规律能否
+> 跨 PushT 与 OGBench 复现；在 support、rank 和 mean conversion 三层分别有多大的
+> oracle ceiling？
 
-> 不读取 test-time future actions时，一个 goal-conditioned action prior 能否复制 support
-> gain；如果能，简单 early stopping / prior retention 是否足以阻止 CEM 把它推坏？
+下一阶段优先把现有仪器整理成问题定义论文的证据链：
 
-下一阶段只做 deployable planner baseline，不训练新 WM：
+1. 用统一的 state-paired 指标报告每轮 support、true-top-k recall、oracle minimum、
+   refit mean 与 closed-loop outcome，不再用 global Spearman 代替 low-tail 测量；
+2. 在 PushT 与 OGBench-Cube 上复现 proposal-flow 累积曲线，并明确
+   prediction fidelity、support、rank 与 conversion 的条件关系；
+3. 把 true refit、hidden support prior、final scorer swap、executed-residual feedback
+   放进同一因果上限表，区分“问题存在”“可部署信号存在”“方法能转成 outcome”；
+4. 保留 GCBC prior + early-stop/retention 作为 deployable planning baseline；它若有效，
+   记作强 baseline，而不是自动升级成新 WM 方法。
 
-```text
-zero mean vs GCBC initial mean
-×
-ordinary 30-round CEM vs locked early-stop / prior-retention
-
-锁定 checkpoints、paired rows、candidate count、success/distance 指标与训练数据边界。
-```
-
-它有清晰的三路判决：
-
-1. GCBC 不能提高 support：先修 proposal learner/data protocol；
-2. GCBC 提高 support，简单 early-stop/retention 又保住 outcome：采用强 planning
-   baseline，不发明新的 WM objective；
-3. deployable support 已提升，但 self-path reversal / conversion failure 仍在：才进入
-   sequence-level adaptive tail/update training 与条件式文献碰撞。
-
-只有第三路成立，后续方法问题才是：给定
-`q_{t+1}^M = T(M, q_t^M)`，如何让 learned model 在整个自诱导序列上保持 true
-low-cost tail / elite update 的有效性，或在无法保证时拒绝不可信 update？此时两个实现
-家族仍只是候选：
-
-1. **proposal-flow / planner-equilibrium training**：不是逐轮独立拟合 candidates，
-   而是匹配多轮 proposal sufficient statistics，并用原 prediction replay 保持
-   dynamics geometry；
-2. **adaptive tail-risk certificate**：给 elite update 一个校准的可信度/风险上界，
-   在 model-induced adaptive queries 下控制 false optimistic candidates，而不是
-   再输出一个未经校准的 point scorer。
-
-它们在 promotion 前必须回答：
-
-- 与 AWM 的 planner-aware/adversarial data synthesis 是否只是同一 pipeline？
-- 与 Temporal Straightening / Navigable EBM 的 landscape shaping 有何实质不同？
-- 与 ensemble uncertainty、pessimistic MPC、adaptive conformal/risk control 是否重合？
-- 相比 ordinary candidate-wise rank loss，sequence-level object 是否真有额外收益？
-- 能否在 PushT 与 OGBench 上都带来 locked closed-loop success，而不只是解释诊断量？
-
-如果严格碰撞后没有独立位置，就不应为了延续项目再造名字。
+当前关闭的是预注册的 one-block persistent-additive feedback family，不是关于所有可能
+反馈函数的不可行性定理。但除非出现一个事前定义、只用部署时可得信息、在 held-out
+states 上同时提升 rank 与 returned action 的新信号，否则不重开
+proposal-flow training / adaptive tail-risk certificate 方法线。
 
 ## 5. 明确停止清单
 
@@ -528,7 +507,7 @@ low-cost tail / elite update 的有效性，或在无法保证时拒绝不可信
 - iso-rate topology 与 paired path interaction；
 - same-model multistart、AWM、straightening、uncertainty controls。
 
-## 6. 下一轮进入 GPU 前的 Gate
+## 6. 已完成 Gate 与剩余工作
 
 ### Gate 0：hidden-oracle support intervention（已完成）
 
@@ -551,45 +530,34 @@ ordinary update vs prior-retention/trust-region
 先确认 deployable support gain，再判断简单 early stopping/retention 是否已能保住
 outcome。若可以，就把它作为 planning baseline，不进入新 WM training。
 
-### Gate 2：条件式文献碰撞
+### Gate 2：文献碰撞（已完成）
 
-仅当 Gate 1 提升 deployable support 后仍保留 reversal/conversion failure，再确认
-planner-equilibrium / adaptive tail certificate 是否有独立 claim。若只是 AWM 或已有
-robust/pessimistic planning 的改写，停止。
+15-work 矩阵确认 ① learned-vs-true low-tail 误排与 ② proposal-flow 累积没有被
+直接覆盖；但 ACID、IMWM、performative prediction 与 adaptive conformal 已占据相邻
+方法词汇。三审稿人均分 `6.3/10`，只给出“诚实执行反馈先过一票否决实验”的窄门。
 
-### Gate 3：便宜的 held-out ceiling
+### Gate 3：honest executed-prefix feedback（已完成，`CLOSE`）
 
-在现有 row-disjoint query banks 上，比较：
+60-state、5-fold held-out、20,000 次 state bootstrap 的 A100 实验未发现可预测或可
+修正信号。fixed-pop per-state positive-alpha oracle gain 为
+`+.015 [+.009,+.022] < +.05`；recursive recall 为
+`-.006 [-.018,+.003]`，returned action 也无改善。详见
+`tail_validity_feedback_gate_20260723/REPORT.md`。
 
-```text
-ordinary candidate rank loss
-K3/K10 disagreement
-uncertainty / calibration baseline
-sequence-aware tail-risk or proposal-flow objective
-true refit ceiling
-```
+### Gate 4：问题定义证据链（当前）
 
-必须 state-held-out，并直接报告 recursive proposal/support/outcome，而不是只报告
-fixed-bank AUC、MSE 或 Spearman。
+不训练新 checkpoint；统一 PushT/OGBench 的 round-wise 仪器与因果上限表，直接报告
+support、true-top-k recall、oracle minimum、refit mean 和 closed-loop outcome。GCBC
+prior + retention 可补作 deployable planning baseline，但不承担“救活方法线”的任务。
 
-### Gate 4：最小训练
+### Gate 5：方法线重开条件
 
-只有 Gate 3 明显优于普通 rank/uncertainty baseline 后，才训练一个小 checkpoint：
+仅当出现一个事前锁定、只使用部署时可得信息的新信号，并在 fresh held-out states 上
+同时满足以下条件时重开：
 
-- OE/tail loss 只能是 auxiliary；保留 original prediction replay；
-- train/calibration/eval rows 完全分离；
-- 预锁定 epoch、risk threshold、planner calls；
-- 先 H5/off40，再 H8/off60；
-- 必须过 recursive resampling，不能从 fixed trace 直接跳 full MPC。
-
-### Gate 5：方法 promotion
-
-最终至少需要：
-
-- fresh state-paired success 和 true cost 同向；
-- iso-WM-calls 优于 K3、multistart、AWM/straightening/uncertainty；
-- 第二任务复现；
-- 不依赖 simulator/oracle inference selection；
+- low-tail rank 相对普通 K3/uncertainty baseline 有非零且有量级的 paired 增益；
+- recursive returned true cost 或 success 同向改善；
+- 第二任务复现且不依赖 simulator/oracle inference selection；
 - 原 prediction/dynamics 能力没有显著退化。
 
 ## 7. 文档与产物地图
@@ -600,6 +568,11 @@ fixed-bank AUC、MSE 或 Spearman。
 - [Horizon-Bundle temporal notebook](horizon_bundle_temporal.md)：从 7 月 17 日起的
   chronological experiment log；用于追溯，不把开头 proposal 当当前结论。
 - [World-model literature map](worldmodel_literature.md)：文献与 novelty 边界。
+- [Tail-validity 碰撞判决](tail_validity_verdict_20260723.md)：文献窄门、三审稿人
+  判决与 honest-feedback 否决实验回填。
+- [Tail-validity feedback Gate](tail_validity_feedback_gate_20260723/REPORT.md)：A100
+  60-state compact 结果；协议见
+  [locked protocol](tail_validity_feedback_gate_protocol_20260723.md)。
 
 ### 主要实验账本
 
@@ -636,6 +609,10 @@ fixed-bank AUC、MSE 或 Spearman。
   comparison；
 - `scripts/plan/summarize_ogbench_support_closed_loop.py`：四格 closed-loop paired
   bootstrap、McNemar 与 difference-in-differences。
+- `scripts/plan/tail_validity_feedback_gate.py`：执行前缀残差 + 下一次 recursive CEM
+  四 arm 采集；
+- `scripts/plan/summarize_tail_validity_feedback_gate.py`：state bootstrap、5-fold
+  held-out alpha 与预锁定 OPEN/HOLD/CLOSE 判决。
 
 大体积 raw archives 只保存在对应 5090/A100 server；仓库中保存 compact JSON、report、
 必要的 paired/refit NPZ。远端路径与 SHA-256 见各实验目录 README。
