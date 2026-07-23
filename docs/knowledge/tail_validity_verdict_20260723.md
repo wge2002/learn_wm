@@ -87,3 +87,29 @@ tail-rank”的方法线，按原判决转向 **①②测量 + oracle ceiling �
 `tail_validity_feedback_gate_20260723/REPORT.md` 与同目录 `report.json`。原始
 四个 shard 留在 A100：
 `/225010117/logs/tail_validity_feedback_gate_a100_20260723/`。
+
+## 6. 复判(Claude,2026-07-23,CLOSE 之后)
+
+**判决执行:按 §3 预注册规则,方法线关闭,转问题定义线。不追加更复杂的
+反馈族**——那会重演 selector-patch 的死亡螺旋(彼处已连杀五个变体);
+预注册的意义就是此刻不讨价还价。
+
+**CLOSE 让问题定义论文变强而不是变弱。**现在的弹药结构:
+
+1. **gap 存在且值钱**:oracle ceiling(真值重排同批候选 → 大幅增益)= 奖金
+   数额的存在性证明;
+2. **gap 无人占**:15 工作矩阵,②全空、①无直接测量(§1);
+3. **gap 是硬的(新增)**:三个死于预注册 gate 的修复家族——终端
+   selector(五变体)、冻结 verifier(ACID 对照 + 同构失败)、前缀残差
+   反馈(本 gate)——"显而易见的修法都不行"正是问题论文最难拿到的一章;
+4. **机制解释**:rate 律 + 不对称分配 + 耦合分类学解释 gap 为何随 horizon
+   出现、为何驯化救不了排序。
+
+**论文形态**:The Tail-Validity Gap in Learned Planning Costs(暂名)——
+测量协议(①②)+ ceiling + 三重否定 + 机制账 + OGBench-Cube 第二域
+(IMWM 同设定,补其 B.7 未审计区;OGBench 工程支持已并入本仓库)。
+这不是纯机制论文:ceiling 是能力演示,测量套件是别人建方法的地基,
+问题定义 + 不可能性证据本身就是 RC-aux 式的主刊贡献形态。
+
+**范围冻结**:除非出现定性不同的反馈族且有廉价 gate,否则不再开方法线。
+下一步 = 论文骨架 + OGBench-Cube 复制 ①②/ceiling。
