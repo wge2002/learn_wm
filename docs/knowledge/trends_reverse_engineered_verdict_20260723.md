@@ -99,32 +99,43 @@ dynamics** → 长程 fidelity 提升"。我们的横向发现是:horizon 诱导
 结构化,方向 B 作为 A 的生成式扩展(把"能力增益"从"远 goal 规划"升级到
 "可采样的校准多未来"),新颖性更强。
 
-## 3.5 方向 B gate 初测(2026-07-23,smoke,偏负)
+## 3.5 方向 B 严格 gate(A100,2026-07-23,正式 CLOSE)
 
-`outputs/gauge/conditional_variance.py`,iter2_multistep,num=1500:
+smoke 的分位近邻确实把跨条件漂移误当成了条件方差。正式协议改为:
 
-```text
-cond_std/scale = 0.79   aniso = 10.8   condvar_in_amp_span = 0.011 -> 表面 PASS
-```
+- 20,000 probe 窗口,去掉 181 个完全重复样本,实际 N=19,819;
+- 标准化条件空间中的**绝对半径**,拒绝"最紧 x%"分位规则;
+- `k=1` 且贪心选互不重叠的 pair,避免一个样本被多次计数;
+- 至少 30 个独立 pair 才判;同时查 current 17D 与三帧 history 51D 条件键;
+- kill 阈值锁定为 `median(cond_std)/latent_scale < 0.02`。
 
-但两个警告让它实为**偏负**:
-1. **核心前提不成立**:condvar_in_amp = 0.011 —— 条件方差方向几乎不在 top-3
-   放大方向上。方向 B 的立论是"innovation 由放大律塑形",若条件方差根本不沿
-   放大方向,分配律对 Σ 没有约束力,B 的新颖性 hook 塌掉;
-2. **0.79 几乎必然高估**:KNN 在 (state,action) 空间的最紧 40% 分组可能仍不够近,
-   测到的是跨条件系统变化而非真条件方差(expert PushT 应近确定)。需 A100 上
-   用严格近邻(半径阈值而非分位)复核真条件方差量级。
+达到 30 组要求的最小半径结果:
 
-**初判:方向 B 大概率死**——即便有随机性,它不沿放大方向,分配式 innovation
-失去理论根。等 A100 严格复核确认后正式关闭。**主线不依赖 B,方向 A 照推。**
+| 条件键 | 绝对半径 | 独立组 | cond_std/scale | anisotropy | amp 方差占比 | 随机基线富集 | 判决 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| current | 0.0125 | 32 | 0.01286 | 46.29 | 0.03961 | 2.54x | **KILL** |
+| history | 0.0250 | 32 | 0.01372 | 41.89 | 0.04116 | 2.63x | **KILL** |
+
+半径增大后才出现 PASS:current 到 0.030 时为 0.02362,history 到 0.045
+时为 0.02062。这个随半径扩张而越过阈值的形状正是**确定性局部漂移污染**,
+不是固定条件下的不可约随机性。
+
+严格结果也修正了 smoke 的另一个过度判断:完整条件协方差在 top-3 放大子空间
+中约占 4.0%–4.3%,是随机子空间基线的 2.4–2.8 倍,并非完全不对齐。但方差
+量级只有全局 latent scale 的 1.3%–1.7%,先触发"近确定"一票否决;一个有方向
+但随邻域收紧趋小的残差,不足以支撑 stochastic covariance head。
+
+**正式判决:方向 B 在 PushT 上 CLOSE,不再训练 stochastic-LeWM。**
+完整协议、半径扫描、8k/20k JSON 和 smoke 校准日志见
+`docs/knowledge/trends_a100_20260723/REPORT.md`。
 
 ## 4. 立即动作
 
-1. **零训练 gate(方向 B 生死)**:PushT 条件方差沿放大方向的结构——
-   现有 probe 数据 + 一个小脚本,今天可判;
-2. **主线(方向 A)**:verify wave 补种子 + head-to-head(K1+curv / K1+bisim)
-   已在 runbook,发 A100;
-3. 论文骨架按 GRWM 模板起草(现象→结构选择→定理→远 goal 能力→head-to-head)。
+1. **方向 B gate:已完成并 CLOSE**;不再消耗训练预算;
+2. **主线(方向 A):A100 已启动**。4 个 K1+curv/bisim 任务正在四卡并行,
+   完成后自动评测;verify wave 的 6 个新名字任务由同一 driver 接续执行;
+3. 等 head-to-head/verify 结果落盘后,按 GRWM 模板完成论文骨架
+   (现象→结构选择→定理→远 goal 能力→head-to-head)。
 
 **不再做**:CI-GWM/BA-GWM(已死)、CritWM 闭环、tail-validity 方法线(已 CLOSE)、
 任何否定式问题论文形态(被 GRWM 模板取代)。

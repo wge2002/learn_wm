@@ -1,0 +1,15 @@
+nohup: ignoring input
+/225010117/code/learn_wm_h2h_20260723/stable_worldmodel/envs/__init__.py:215: UserWarning: ale-py not found; ALE/* envs are unavailable. Install with: pip install 'stable-worldmodel[env]' or pip install ale-py.
+  from stable_worldmodel.envs import ale  # noqa: F401
+2026-07-23 10:40:58.124 | INFO     | stable_worldmodel.wm.utils:_resolve_folder:150 - Loading checkpoint from folder /225010117/stablewm/checkpoints/iter2_multistep_eval...
+/225010117/code/learn_wm_h2h_20260723/stable_worldmodel/wm/utils.py:81: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(checkpoint_path, map_location='cpu')
+10:41:03 | INFO  | atomic_chec~| [atomic_save] installed crash-safe checkpoint plugin (write to sibling .tmp + fsync + atomic rename)
+10:41:17 | INFO  | utils.py    | Created ViT-tiny from scratch with config: {'hidden_size': 192, 'num_hidden_layers': 12, 'num_attention_heads': 3, 'intermediate_size': 768, 'image_size': 224, 'patch_size': 14}
+iter2_multistep_eval N=7977 key=current/17D k=1 radius_q01=0.0360 q50=0.7462
+radius=0.0200 groups=8 -> INCONCLUSIVE (fewer than 20 strict-radius groups)
+radius=0.0250 groups=26 cond_std/scale=0.0248 aniso=39.44 amp_fraction=0.0406 enrichment=2.60x -> PASS (structured stochasticity)
+radius=0.0300 groups=35 cond_std/scale=0.0254 aniso=36.04 amp_fraction=0.0398 enrichment=2.55x -> PASS (structured stochasticity)
+radius=0.0400 groups=44 cond_std/scale=0.0258 aniso=24.31 amp_fraction=0.0435 enrichment=2.79x -> PASS (structured stochasticity)
+radius=0.0500 groups=63 cond_std/scale=0.0289 aniso=22.37 amp_fraction=0.0435 enrichment=2.78x -> PASS (structured stochasticity)
+radius=0.0600 groups=83 cond_std/scale=0.0314 aniso=19.12 amp_fraction=0.0432 enrichment=2.76x -> PASS (structured stochasticity)

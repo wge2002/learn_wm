@@ -7,6 +7,7 @@ import stable_pretraining as spt
 from stable_pretraining import data as dt
 import stable_worldmodel as swm
 import torch
+import torch.nn.functional as F
 from lightning.pytorch.loggers import WandbLogger
 from omegaconf import OmegaConf, open_dict
 from torchvision.transforms import v2
@@ -38,6 +39,49 @@ def get_img_preprocessor(source: str, target: str, img_size: int = 224):
     )
     resize = ResizeField(img_size, source=source, target=target)
     return dt.transforms.Compose(to_image, resize)
+
+
+def preprocess_pixels_on_device(batch, img_size: int):
+    """Apply the ImageNet pixel transform after Lightning moves a batch.
+
+    HDF5 clips are stored as uint8 tensors. Keeping them uint8 through the
+    DataLoader substantially reduces worker CPU time and shared-memory
+    traffic; resize and normalization are then batched on the accelerator.
+    This is opt-in so existing runs retain their original preprocessing path.
+    """
+
+    pixels = batch['pixels']
+    if pixels.ndim != 5:
+        raise ValueError(
+            'Expected pixels with shape (batch, time, channels, height, width), '
+            f'got {tuple(pixels.shape)}'
+        )
+
+    batch_size, num_steps, channels, height, width = pixels.shape
+    pixels = pixels.reshape(batch_size * num_steps, channels, height, width)
+    if not pixels.is_floating_point():
+        pixels = pixels.to(torch.float32).div_(255.0)
+
+    mean = pixels.new_tensor(dt.dataset_stats.ImageNet['mean']).view(
+        1, -1, 1, 1
+    )
+    std = pixels.new_tensor(dt.dataset_stats.ImageNet['std']).view(
+        1, -1, 1, 1
+    )
+    pixels = pixels.sub(mean).div(std)
+    if (height, width) != (img_size, img_size):
+        pixels = F.interpolate(
+            pixels,
+            size=(img_size, img_size),
+            mode='bilinear',
+            align_corners=False,
+            antialias=True,
+        )
+
+    batch['pixels'] = pixels.reshape(
+        batch_size, num_steps, channels, img_size, img_size
+    )
+    return batch
 
 
 class SaveCkptCallback(Callback):
@@ -94,6 +138,9 @@ class CritWMStateCallback(Callback):
 
 def lejepa_forward(self, batch, stage, cfg):
     """encode observations, predict next states, compute losses."""
+
+    if cfg.get('gpu_image_preprocess', False):
+        batch = preprocess_pixels_on_device(batch, cfg.img_size)
 
     ctx_len = cfg.wm.history_size
     n_preds = cfg.wm.num_preds
@@ -370,11 +417,13 @@ def run(cfg):
     dataset = swm.data.load_dataset(
         dataset_name, transform=None, cache_dir=cache_dir, **dataset_cfg
     )
-    transforms = [
-        get_img_preprocessor(
-            source='pixels', target='pixels', img_size=cfg.img_size
+    transforms = []
+    if not cfg.get('gpu_image_preprocess', False):
+        transforms.append(
+            get_img_preprocessor(
+                source='pixels', target='pixels', img_size=cfg.img_size
+            )
         )
-    ]
 
     with open_dict(cfg):
         for col in cfg.data.dataset.keys_to_load:

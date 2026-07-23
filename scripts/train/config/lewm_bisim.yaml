@@ -8,7 +8,9 @@ output_model_name: lewm_bisim
 
 wm:
   aux_reg: bisim
-  aux_beta: 1.0
+  # Scale-matched on A100: per-batch bisim values can be O(10), so 0.01 keeps
+  # the weighted auxiliary comparable to, but below, the K=1 prediction term.
+  aux_beta: 0.01
   bisim_gamma: 0.9
 
 data:

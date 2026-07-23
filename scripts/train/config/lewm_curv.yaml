@@ -9,7 +9,9 @@ output_model_name: lewm_curv
 
 wm:
   aux_reg: curvature
-  aux_beta: 1.0
+  # Scale-matched on A100: beta=1 made the auxiliary ~19x larger than the
+  # one-step prediction term and drove all weights to NaN within 20 batches.
+  aux_beta: 0.05
 
 data:
   dataset:

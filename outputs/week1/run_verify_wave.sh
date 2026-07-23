@@ -15,15 +15,29 @@ DS=${DS:-$HOME/.stable_worldmodel/pusht_expert_train.h5}
 PIXELS=${PIXELS:-${DS%.h5}_pixels.npy}
 OUT=${OUT:-outputs/week1}
 NGPU=${NGPU:-4}
+GPU_IDS=${GPU_IDS:-}
 WORKERS=${WORKERS:-2}
 PREFETCH=${PREFETCH:-1}
 PHASES=${PHASES:-train,eval}
+GPU_IMAGE_PREPROCESS=${GPU_IMAGE_PREPROCESS:-false}
+USE_PIXEL_SIDECAR=${USE_PIXEL_SIDECAR:-true}
+VERIFY_SUFFIX=${VERIFY_SUFFIX:-}
 CKPT_ROOT=${STABLEWM_HOME:-$HOME/.stable_worldmodel}/checkpoints
 export SWM_TORCH_THREADS=${SWM_TORCH_THREADS:-2}
 
 mkdir -p "$OUT"
 test -f "$DS"
 test "$NGPU" -ge 1
+if [ -n "$GPU_IDS" ]; then
+  IFS=',' read -r -a GPUS <<< "$GPU_IDS"
+  [ "${#GPUS[@]}" -eq "$NGPU" ] || {
+    echo "GPU_IDS must contain exactly NGPU=$NGPU comma-separated ids" >&2
+    exit 2
+  }
+else
+  GPUS=()
+  for ((g=0; g<NGPU; g++)); do GPUS+=("$g"); done
+fi
 
 declare -a PIDS=()
 declare -a JOBS=()
@@ -33,6 +47,13 @@ I=0
 has_phase() {
   case ",$PHASES," in
     *,"$1",*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+use_pixel_sidecar() {
+  case "$USE_PIXEL_SIDECAR" in
+    1|true|TRUE|yes|YES) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -60,7 +81,9 @@ train() { # NAME SEED CONFIG [OVERRIDES...]
   local seed=$2
   local config=$3
   shift 3
-  local gpu=$((I % NGPU))
+  local gpu=${GPUS[$((I % NGPU))]}
+  local -a pixel_args=()
+  use_pixel_sidecar && pixel_args=("+data.dataset.pixels_path=$PIXELS")
 
   if [ -f "$CKPT_ROOT/$name/weights_epoch_30.pt" ]; then
     echo "SKIP $name: epoch-30 checkpoint exists"
@@ -73,8 +96,8 @@ train() { # NAME SEED CONFIG [OVERRIDES...]
     output_model_name="$name" subdir="$name" seed="$seed" \
     trainer.max_epochs=30 trainer.devices=1 \
     loader.num_workers="$WORKERS" loader.prefetch_factor="$PREFETCH" \
-    data.dataset.name="$DS" \
-    +data.dataset.pixels_path="$PIXELS" "$@" \
+    data.dataset.name="$DS" gpu_image_preprocess="$GPU_IMAGE_PREPROCESS" \
+    "${pixel_args[@]}" "$@" \
     > "$OUT/train_$name.log" 2>&1 &
   PIDS+=("$!")
   JOBS+=("train_$name")
@@ -89,7 +112,7 @@ eval_model() { # NAME OFF SEED
   local name=$1
   local offset=$2
   local seed=$3
-  local gpu=$((I % NGPU))
+  local gpu=${GPUS[$((I % NGPU))]}
   local policy
   local job="plan_${name}_off${offset}_s${seed}"
 
@@ -119,13 +142,13 @@ eval_model() { # NAME OFF SEED
 }
 
 if has_phase train; then
-  test -f "$PIXELS"
-  train mix_d192_g10_s1 1 lewm_mix wm.mix_gamma=1.0
-  train mix_d192_g10_s7 7 lewm_mix wm.mix_gamma=1.0
-  train mix_d192_g05 3072 lewm_mix wm.mix_gamma=0.5
-  train mix_d192_g20 3072 lewm_mix wm.mix_gamma=2.0
-  train pd_d192_k5_s7 7 lewm_multistep
-  train pd_d192_k1_s7 7 lewm data.dataset.num_steps=4
+  use_pixel_sidecar && test -f "$PIXELS"
+  train "mix_d192_g10_s1${VERIFY_SUFFIX}" 1 lewm_mix wm.mix_gamma=1.0
+  train "mix_d192_g10_s7${VERIFY_SUFFIX}" 7 lewm_mix wm.mix_gamma=1.0
+  train "mix_d192_g05${VERIFY_SUFFIX}" 3072 lewm_mix wm.mix_gamma=0.5
+  train "mix_d192_g20${VERIFY_SUFFIX}" 3072 lewm_mix wm.mix_gamma=2.0
+  train "pd_d192_k5_s7${VERIFY_SUFFIX}" 7 lewm_multistep
+  train "pd_d192_k1_s7${VERIFY_SUFFIX}" 7 lewm data.dataset.num_steps=4
   if [ "${#PIDS[@]}" -gt 0 ]; then
     wait_batch
   fi
@@ -133,7 +156,8 @@ if has_phase train; then
 fi
 
 if has_phase eval; then
-  EVAL_MODELS=${EVAL_MODELS:-"mix_d192_g10_s1 mix_d192_g10_s7 mix_d192_g05 mix_d192_g20 pd_d192_k5_s7 pd_d192_k1_s7 mix_d192_g10 mix_d192_g03 mix_d192_g01"}
+  NEW_MODELS="mix_d192_g10_s1${VERIFY_SUFFIX} mix_d192_g10_s7${VERIFY_SUFFIX} mix_d192_g05${VERIFY_SUFFIX} mix_d192_g20${VERIFY_SUFFIX} pd_d192_k5_s7${VERIFY_SUFFIX} pd_d192_k1_s7${VERIFY_SUFFIX}"
+  EVAL_MODELS=${EVAL_MODELS:-"$NEW_MODELS mix_d192_g10 mix_d192_g03 mix_d192_g01"}
   for NAME in $EVAL_MODELS; do
     for OFF in 25 40; do
       for SEED in 42 123 7; do
