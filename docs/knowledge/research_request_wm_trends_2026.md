@@ -60,3 +60,7 @@
 
 判决对齐:`lewm_planning_status_20260721.md` §0、
 `new_model_candidates_20260723.md`(CI-GWM/BA-GWM 已死,别重提)。
+
+## 5. 调研产出
+
+- 2026-07-23：[`wm_trends_research_20260723.md`](wm_trends_research_20260723.md)
