@@ -13,8 +13,10 @@ from typing import Any
 import numpy as np
 from loguru import logger as logging
 
-DEFAULT_CACHE_DIR = os.path.expanduser('~/.stable_worldmodel')
-HF_BASE_URL = 'https://huggingface.co'
+DEFAULT_CACHE_DIR = os.path.expanduser(
+    os.environ.get('SWM_CACHE_DIR', '~/.stable_worldmodel')
+)
+HF_BASE_URL = os.environ.get('HF_ENDPOINT', 'https://huggingface.co').rstrip('/')
 
 
 def exists(val: Any) -> bool:
@@ -27,8 +29,10 @@ def default(val: Any, d: Any) -> Any:
     return val if exists(val) else d
 
 
-DEFAULT_CACHE_DIR = os.path.expanduser('~/.stable_worldmodel')
-HF_BASE_URL = 'https://huggingface.co'
+DEFAULT_CACHE_DIR = os.path.expanduser(
+    os.environ.get('SWM_CACHE_DIR', '~/.stable_worldmodel')
+)
+HF_BASE_URL = os.environ.get('HF_ENDPOINT', 'https://huggingface.co').rstrip('/')
 
 
 def pretraining(

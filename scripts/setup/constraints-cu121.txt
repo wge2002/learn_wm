@@ -1,0 +1,25 @@
+# Hard version pins for Aliyun DSW / DLC (driver 535.x, CUDA 12.2).
+#
+# Why each pin is load-bearing:
+#
+#   torch/torchvision/torchaudio/triton
+#     `pyproject.toml` declares a bare `torch`, so an unconstrained
+#     `pip install -e ".[train]"` resolves to torch 2.13.0 built against
+#     CUDA 13. cu13 wheels require driver >= 580; DSW ships 535.161.08
+#     (CUDA 12.2), where that build imports but `torch.cuda` is dead.
+#     Keep this in lockstep with the base image's driver.
+#
+#   numpy
+#     torch 2.3.1 is built against the numpy 1.x C ABI. stable-pretraining
+#     pulls numpy 2.x if allowed, which breaks torch at import time.
+#
+#   pillow
+#     stable-pretraining >=0.1.7 requires pillow>=11.3.0. The DSW base image
+#     ships 11.1.0, so this must be upgraded inside the venv (pure-Python
+#     upgrade, safe to shadow the system copy).
+torch==2.3.1
+torchvision==0.18.1
+torchaudio==2.3.1
+triton==2.3.1
+numpy<2
+pillow>=11.3.0

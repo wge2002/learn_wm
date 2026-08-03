@@ -1,0 +1,187 @@
+{
+  "config": {
+    "audit_samples": 8192,
+    "batch_size": 256,
+    "dynamics_samples": 100000,
+    "dynamics_sigreg_repeats": 32,
+    "key_bits": 12,
+    "knots": 17,
+    "latent_dim": 192,
+    "num_proj": 1024,
+    "seed": 20260801,
+    "sigreg_repeats": 6
+  },
+  "distribution_sketch": {
+    "codebook_12bit": {
+      "covariance_participation_rank": 187.62527912279145,
+      "covariance_relative_frobenius_error": 0.15283880369670602,
+      "mean_norm": 0.1500919481395391,
+      "sigreg_mean": 1.072918257333996,
+      "sigreg_std": 0.06174169275116585,
+      "support_description": "4096 atoms",
+      "support_dimension_upper_bound": 0
+    },
+    "fourier_3d_sheet": {
+      "covariance_participation_rank": 187.53045786311083,
+      "covariance_relative_frobenius_error": 0.15431662401339938,
+      "mean_norm": 0.15644919588227985,
+      "sigreg_mean": 1.0669923564454669,
+      "sigreg_std": 0.07532943990093167,
+      "support_description": "smooth nonlinear image of a 3-torus",
+      "support_dimension_upper_bound": 3
+    },
+    "linear_3d_sheet": {
+      "covariance_participation_rank": 2.9990912146521795,
+      "covariance_relative_frobenius_error": 7.919176884218335,
+      "mean_norm": 0.1558390815501861,
+      "sigreg_mean": 19.819023425984984,
+      "sigreg_std": 1.0679257348471487,
+      "support_description": "rank-3 linear support",
+      "support_dimension_upper_bound": 3
+    },
+    "true_gaussian": {
+      "covariance_participation_rank": 187.55485141300238,
+      "covariance_relative_frobenius_error": 0.1539595408992729,
+      "mean_norm": 0.14883840810246704,
+      "sigreg_mean": 1.047403251797698,
+      "sigreg_std": 0.04362774218300141,
+      "support_description": "full-dimensional density",
+      "support_dimension_upper_bound": 192
+    }
+  },
+  "dynamics": {
+    "controlled_radial_twist": {
+      "action_bilinear_linear_r2": 0.019938926499324938,
+      "copy_predictor_mse_per_coordinate": 2.19597981049796,
+      "local_conditional_mean_gain_p50": 3.7273181977380667,
+      "local_conditional_mean_gain_p95": 14.948008068154785,
+      "local_conditional_mean_gain_p99": 23.169701516355325,
+      "next_covariance_relative_frobenius_error": 0.004846898986954544,
+      "next_marginal_sigreg_mean": 1.0336154562885547,
+      "next_marginal_sigreg_std": 0.43237759980851687,
+      "next_mean_norm": 0.0035688471223412083,
+      "oracle_bayes_mse_per_coordinate": 0.0,
+      "paired_action_effect_per_coordinate": 2.049255561888684,
+      "state_only_linear_r2": 0.010599559885464682
+    },
+    "controlled_rotation": {
+      "action_bilinear_linear_r2": 1.0,
+      "copy_predictor_mse_per_coordinate": 0.9957734808278016,
+      "local_conditional_mean_gain_p50": 1.0,
+      "local_conditional_mean_gain_p95": 1.0,
+      "local_conditional_mean_gain_p99": 1.0,
+      "next_covariance_relative_frobenius_error": 0.0071855207838400275,
+      "next_marginal_sigreg_mean": 1.0263412507091376,
+      "next_marginal_sigreg_std": 0.5497863117247922,
+      "next_mean_norm": 0.005344517183552959,
+      "oracle_bayes_mse_per_coordinate": 0.0,
+      "paired_action_effect_per_coordinate": 2.987320442483404,
+      "state_only_linear_r2": 0.2500304755089364
+    },
+    "identity": {
+      "action_bilinear_linear_r2": 1.0,
+      "copy_predictor_mse_per_coordinate": 0.0,
+      "local_conditional_mean_gain_p50": 1.0,
+      "local_conditional_mean_gain_p95": 1.0,
+      "local_conditional_mean_gain_p99": 1.0,
+      "next_covariance_relative_frobenius_error": 0.0058224089566646575,
+      "next_marginal_sigreg_mean": 0.9729700575176677,
+      "next_marginal_sigreg_std": 0.4779629738410277,
+      "next_mean_norm": 0.0020113327119497828,
+      "oracle_bayes_mse_per_coordinate": 0.0,
+      "paired_action_effect_per_coordinate": 0.0,
+      "state_only_linear_r2": 1.0
+    },
+    "independent_refresh": {
+      "action_bilinear_linear_r2": 3.0215275208411718e-05,
+      "copy_predictor_mse_per_coordinate": 1.9942755144402147,
+      "local_conditional_mean_gain_p50": 0.0,
+      "local_conditional_mean_gain_p95": 0.0,
+      "local_conditional_mean_gain_p99": 0.0,
+      "next_covariance_relative_frobenius_error": 0.008777539914742869,
+      "next_marginal_sigreg_mean": 0.8956028202494073,
+      "next_marginal_sigreg_std": 0.49321277865959423,
+      "next_mean_norm": 0.0015984800987314113,
+      "oracle_bayes_mse_per_coordinate": 1.0,
+      "paired_action_effect_per_coordinate": 0.0,
+      "state_only_linear_r2": 7.448868078241411e-06
+    },
+    "ou_rho_0.85": {
+      "action_bilinear_linear_r2": 0.7220281560294436,
+      "copy_predictor_mse_per_coordinate": 0.2993099780899219,
+      "local_conditional_mean_gain_p50": 0.85,
+      "local_conditional_mean_gain_p95": 0.85,
+      "local_conditional_mean_gain_p99": 0.85,
+      "next_covariance_relative_frobenius_error": 0.004885891043934403,
+      "next_marginal_sigreg_mean": 1.0305702515776274,
+      "next_marginal_sigreg_std": 0.6151736033820975,
+      "next_mean_norm": 0.0017107247024937932,
+      "oracle_bayes_mse_per_coordinate": 0.2775000000000001,
+      "paired_action_effect_per_coordinate": 0.0,
+      "state_only_linear_r2": 0.7220218274180523
+    }
+  },
+  "horizon_allocation": {
+    "definition": "task Bayes risk minus shortcut Bayes risk; positive means prediction favors the shortcut",
+    "horizons": [
+      1,
+      2,
+      3,
+      5,
+      10
+    ],
+    "rows": [
+      {
+        "shortcut_advantage_by_horizon": {
+          "1": -0.4724999999999999,
+          "10": -0.21693561333560818,
+          "2": -0.4660031249999999,
+          "3": -0.43117692187499995,
+          "5": -0.35160257650095694
+        },
+        "shortcut_rho": 0.5
+      },
+      {
+        "shortcut_advantage_by_horizon": {
+          "1": 0.0,
+          "10": 0.0,
+          "2": 0.0,
+          "3": 0.0,
+          "5": 0.0
+        },
+        "shortcut_rho": 0.85
+      },
+      {
+        "shortcut_advantage_by_horizon": {
+          "1": 0.08750000000000013,
+          "10": 0.12421682711053872,
+          "2": 0.11079687500000013,
+          "3": 0.12529507812500007,
+          "5": 0.1371331910190431
+        },
+        "shortcut_rho": 0.9
+      },
+      {
+        "shortcut_advantage_by_horizon": {
+          "1": 0.25760000000000005,
+          "10": 0.6465622934667049,
+          "2": 0.34809488000000005,
+          "3": 0.420173464592,
+          "5": 0.5236564467665878
+        },
+        "shortcut_rho": 0.99
+      },
+      {
+        "shortcut_advantage_by_horizon": {
+          "1": 0.2775000000000001,
+          "10": 0.7497310851202024,
+          "2": 0.3777468750000001,
+          "3": 0.45944807812500005,
+          "5": 0.581795860999043
+        },
+        "shortcut_rho": 1.0
+      }
+    ],
+    "task_rho": 0.85
+  }
+}

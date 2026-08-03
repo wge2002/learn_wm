@@ -64,6 +64,15 @@
    distribution 上匹配 oracle elite-moment update。实验与 Gate 见
    [horizon_bundle_temporal.md §13](horizon_bundle_temporal.md)。
 
+8. **The Obsessed Encoder（2026-07-29）给出了“anti-collapse 只保证学到东西，
+   不保证学到 dynamics”的直接外部证据。**
+   它在 DINOv3、LeJEPA 和 LeWM 中植入低熵但跨 view/时间可预测的 key；
+   test arm 的训练 loss 更低，representation 却从按内容组织翻转为按 key 组织，
+   下游 probe / depth / PushT planning 同时失败。对当前项目最重要的边界是：
+   SIGReg/KoLeo 类约束只管 latent 是否展开，predictive objective 会把这份预算
+   分给最容易预测的因素；action conditioning 和 multi-step horizon 本身都不保证
+   control sufficiency。详见 §2.6。
+
 ## 1. 最相关论文速览
 
 | paper | 状态 | 核心做法 | 主要结论 | 对我们的影响 |
@@ -74,6 +83,7 @@
 | [What Drives Success in Physical Planning with JEPA-WMs?](https://arxiv.org/abs/2512.24497) | TMLR accepted，v3 2026-05 | 系统 ablation：encoder、AdaLN/RoPE predictor、rollout steps、context、proprioception、planner | 推荐 recipe：CEM/L2；sim nav 较短 rollout/context，real manipulation 更深 predictor、更长 rollout/context；提出比 DINO-WM/V-JEPA-2-AC 更强组合 | 必须作为强 related work。它覆盖“JEPA-WM 工程 recipe”，但未解决 self-drift 与 planning 可反向 |
 | [Causal-JEPA / C-JEPA](https://arxiv.org/abs/2602.11389) | ICML 2026 accepted | object-centric latent masking；mask object slots，让 masked object 由上下文推断 | counterfactual reasoning 约 +20%；control 中用 patch-based WM 1% latent features 达到可比 planning | 给我们一个“结构化部分可观测 / counterfactual query”的方向，但它偏 object-centric，不是 Gaussian JEPA sufficiency |
 | [Learning Invariant Visual Representations for Planning with JEPA-WMs](https://arxiv.org/abs/2602.18639) | arXiv 2026-02 | 在 DINO-WM 类 objective 外加 bisimulation encoder，压 slow visual features / distractors | background/distractor robustness 改善；latent 维度可小到 DINO-WM 的 1/10 | 与我们的 FoV shift 诊断强相关：慢特征不变性和 control relevance 是同一大问题 |
+| [The Obsessed Encoder](https://www.enigma.inc/posts/obsessed-encoder) | Enigma technical blog + full reproduction，2026-07-29 | 向 DINOv3/LeJEPA 植入 12-bit view-stable watermark；向 LeWM 植入 episode-constant 5×5 square，并构造自然 RandGoal | matched control 正常，predictable arm 取得更低 loss、表示按 key 而非 content 聚类，分类/深度/planning 同时塌坏 | 直接占据“低熵可预测特征绕过 anti-collapse、挤占 latent capacity”；我们的差异必须落在 recursive horizon 如何选择 controlled metric/error transport，并显式检查 task sufficiency |
 | [Temporal Straightening for Latent Planning](https://arxiv.org/abs/2603.12231) | ICML 2026 poster，v2 camera-ready | one-step reconstruction-free JEPA + latent velocity cosine curvature；主配置用 128-D learnable aggregation head 计算 curvature | 多个设置下改善 GD/CEM；在线性系统中连接 action Hessian 和 controllability Gramian，但 long-horizon PushT 结果并不单调 | “geometry improves planning”已被占据；但它约束真实轨迹切向，不直接控制 recursive error/Jacobian product、non-normal gain 或 imagination frontier |
 | [V-JEPA 2](https://arxiv.org/abs/2506.09985) | arXiv 2025-06 | 互联网视频自监督预训练 + 少量 robot interaction alignment，得到 V-JEPA-2-AC | motion understanding、VQA、robot planning 都展示 scaling potential | foundation encoder 路线；不适合直接当 LeWM 轻量 end-to-end follow-up，但会是强 baseline |
 | [V-JEPA 2.1](https://arxiv.org/abs/2603.14482) | arXiv 2026-03，v3 2026-06 | dense predictive loss、deep self-supervision、image/video tokenizer、scaling | 更强 dense features；偏 representation，不直接解决 MPC 目标 | 对 frozen encoder baseline 和 dense latent probing 有参考意义 |
@@ -278,6 +288,369 @@ refit-`D*`、goal 25/40/60 的 candidate rank inversion 和 planning success。
 amplification 是否是两个独立轴**：若 curvature 变好但 error gain/frontier 不变，
 正好支持我们的分界；若二者同步改善，则需进一步做 frozen-encoder、frozen-predictor
 与 aggregation-head ablation 归因。
+
+### 2.6 The Obsessed Encoder：anti-collapse 保证 variation，不保证 dynamics
+
+**来源与定位。**
+
+- 文章：[The Obsessed Encoder](https://www.enigma.inc/posts/obsessed-encoder)，
+  Enigma，2026-07-29；
+- 代码：[Enigma-Incorporated/The-Obsessed-Encoder](https://github.com/Enigma-Incorporated/The-Obsessed-Encoder)；
+- 形态是 technical blog + 完整复现仓库，不是同行评审论文；
+- 复现覆盖 DINOv3、LeJEPA、LeWorldModel，所有上游修改都放在
+  `# >>> obsessed-encoder` 标记块中，默认配置下 inert。
+
+**一句话结论。**
+
+> Anti-collapse 只要求 representation 不能是常数；predictive objective 会把
+> representation 的变化分配给最容易预测的因素，而这个因素不一定是语义内容、
+> action-sensitive state 或 dynamics。
+
+把三套系统抽象成：
+
+```text
+L = L_predict/invariance + lambda * L_anti-collapse
+```
+
+若输入同时含有高信息、难预测的内容 `c` 与低信息、极易预测的 key `k`，
+存在投机解：
+
+```text
+z = phi(x) ~= h(k(x))
+```
+
+其中 `h` 把少量 key 映射成充分分散、在有限统计量下近似健康的点云。
+于是 `L_predict` 很低，anti-collapse statistic 也不高，但 representation
+已经不再 task-sufficient。
+
+#### 2.6.1 共同的三臂因果设计
+
+| arm | 输入 | 作用 |
+| --- | --- | --- |
+| `clean` / `baseline` | 原始数据 | 正常基线 |
+| `watermarked` / predictable test | 加入跨 view 或跨时间稳定的低熵特征 | 测试容易预测的 shortcut |
+| `random_control` | 相同 renderer、位置尺度与像素能量，但破坏跨 view/时间共享 | 排除“输入只是被污染” |
+
+整篇依赖三个同时成立的读数：
+
+1. predictable arm 的训练 loss 低于 clean/control；
+2. predictable arm 的 probe、dense prediction 或 planning 反而失败；
+3. factor-swap cosine 从“按内容相似”翻转成“按 key 相似”。
+
+这比只报告下游掉点更强：更低的训练 loss 说明失败不是优化不足，而是 objective
+主动偏好坏解；matched control 正常则把原因从像素扰动收紧到 predictability。
+
+#### 2.6.2 12-bit 图像 watermark
+
+DINOv3 与 LeJEPA 使用同一个 watermark renderer：
+
+- 图像 dataset index 先经 SHA-256，避免标签排序泄漏；
+- 再折叠到 `4096 = 2^12` 个 key；
+- 12 个正负 wrapped-Gaussian bump 排成 `3×4` lattice，tile 为 32×32；
+- 第一个 cell 使用 Gabor origin anchor，消除周期图案的相位/bit-order 歧义；
+- 纯 luminance 扰动，R/G/B 同加一个 delta，能穿过 grayscale 与多数颜色增强；
+- 在 decoded source image 上、数据增强之前注入；
+- 每个 tile 的 RMS 被归一化到指定 opacity。
+
+两组只改 repetition：
+
+```text
+watermarked:
+  一张图上重复同一个 tile
+  -> 任意足够大的 crop 都携带同一个 12-bit key
+
+random_control:
+  每个空间 tile 使用不同 key
+  -> 局部扰动/能量匹配，但不同 crop 没有一个紧凑的共享 key
+```
+
+control 对 source region 是确定性的，重叠 crop 仍看到一致局部像素；它破坏的是
+可跨不同 crop 读取的全局低熵 code，而不是简单注入白噪声。严格说两组同时改变了
+长程空间重复/自相关，因此该对照把原因定位为“紧凑、跨 view 共享的重复特征”，
+不是对抽象 predictability 的无条件定理。
+
+#### 2.6.3 Paired-input cosine：直接问 encoder 在看什么
+
+记 encoder 为 `E(x, k)`，`x` 为内容，`k` 为 watermark、方块颜色或 goal pose。
+固定一组无自配对的 permutation，构造：
+
+```text
+S_content = cos(E(x_i, k_i), E(x_i, k_j))
+            # same content, different key
+
+S_key     = cos(E(x_i, k_i), E(x_j, k_i))
+            # different content, same key
+
+S_null    = cos(E(x_i, k_i), E(x_j, k_j))
+            # both different
+```
+
+所有 embedding 使用 own-pass 的同一个 reference mean 中心化，再取 pair cosine。
+健康 encoder 应满足：
+
+```text
+S_content ~= 1,  S_key ~= S_null ~= 0
+```
+
+被 shortcut 捕获后翻转为：
+
+```text
+S_key >> S_content ~= S_null
+```
+
+这是一个直接 factor intervention，比 linear probe 更能说明表示由哪个输入因素控制。
+实现见
+[common/pair_metrics.py](https://github.com/Enigma-Incorporated/The-Obsessed-Encoder/blob/main/common/pair_metrics.py)。
+
+#### 2.6.4 DINOv3：不同 anti-collapse 机制仍被劫持
+
+配置：
+
+- Meta DINOv3 `vitl_im1k_lin834` Fast setup，ViT-L/16；
+- ImageNet-1k，单 GPU batch 128；
+- 保留 500K schedule horizon，实验观察前 50K iterations；
+- watermark opacity 0.1；
+- clean / watermarked / random control 各 3 seeds；
+- passive online IN-1k probe 读 detached teacher CLS；
+- 每 5K checkpoint 做 NYU-depth patch-token linear probe；
+- 曲线为三 seed mean ± std，并做轻微 rolling smoothing。
+
+读图约值：
+
+| 50K 附近 | clean | random control | watermarked |
+| --- | ---: | ---: | ---: |
+| SSL total loss（低好） | ~12.5 | ~12.5–12.6 | **~10.7** |
+| IN-1k online top-1（高好） | ~43% | ~34% | **~6%**，中途峰值 ~11% 后下降 |
+| NYU-depth RMSE（低好） | ~0.69 | ~0.75 | **~0.96**，约 30K 后重新恶化 |
+
+pair cosine 的文章读数：
+
+```text
+random control: S_content ~= 0.99, S_key ~= 0.00
+watermarked:    S_content -> 0.14, S_key -> 0.61
+```
+
+这说明失败不只发生在 global CLS classification；patch-token dense depth 也退化。
+DINOv3 使用 self-distillation、centering/Sinkhorn 与 KoLeo，而非 SIGReg，
+仍出现同一模式，说明病理属于更宽的“spread/balance 不等于 semantic richness”。
+
+口径限制：online probe 不是完整 offline linear-probe protocol；NYU head 只训练
+标准 38.4K 中的 4.8K iterations。相对三臂轨迹有效，绝对数不应冒充完整 DINOv3
+benchmark。
+
+#### 2.6.5 LeJEPA：更淡 watermark 导致更彻底翻转
+
+配置：
+
+- 上游 minimal recipe，ViT-S/8；
+- ImageNet-1k，batch 256，`V=4` views；
+- SIGReg + invariance loss；
+- watermark opacity 0.05；
+- 30K steps，cosine LR 仍铺在 200K horizon 上；
+- 每 2K 在完整 validation split 上测 online probe 与 pair metric；
+- 三组各 3 seeds。
+
+结果：
+
+- watermarked LeJEPA loss 很快并持续低于 clean/control；
+- 30K 时 clean online top-1 约 15%，control 约 13–14%；
+- watermarked 约 8K 达到 ~4.5% 后反向下降，30K 接近 0；
+- control 始终 `S_content ~= 0.98, S_key ~= 0`；
+- watermarked 到 30K 约为
+  `S_content ~= 0.06, S_key ~= 0.88`。
+
+即同一原图只要换 key 就几乎不相似，不同图只要共享 key 就高度相似。
+详见
+[LeJEPA reproduction README](https://github.com/Enigma-Incorporated/The-Obsessed-Encoder/blob/main/lejepa/additional_files/README.md)。
+
+#### 2.6.6 LeWM：5×5 方块把 one-step dynamics 目标短路
+
+LeWM 目标可简写为：
+
+```text
+z_t       = phi(o_t)
+z_hat_t+1 = f(z_t, a_t)
+L         = ||z_hat_t+1 - phi(o_t+1)||^2 + lambda * SIGReg(z)
+```
+
+四个 arm：
+
+| arm | 变化 | 角色 |
+| --- | --- | --- |
+| `baseline` | 原始 PushT expert data，fixed goal | 基线 |
+| `colored_square_episode` | 左上角 5×5 RGB 方块，每 episode 一个颜色 | predictable test |
+| `colored_square_frame` | 同样方块，每 frame 换颜色 | matched temporal control |
+| `randgoal` | goal pose 每 episode 随机，脚本 expert 生成成功 demo | 自然、task-semantic shortcut |
+
+方块少于整图 0.05%。两条 square arm 的 renderer、大小、位置和颜色分布一致，
+只差：
+
+```text
+episode arm: k_t+1 = k_t
+frame arm:   k_t+1 与 k_t 无可利用关系
+```
+
+训练 10 epochs，每 2K steps 用原版 CEM/PushT protocol 做 in-training
+goal-reaching eval；每组 3 seeds。各 arm 在自己训练分布上评测，square-trained
+encoder 也在带相同 tag mode 的 frame 上 planning，因此不是 train/test tag mismatch。
+
+读图结果：
+
+| arm | prediction loss | planner success | pair signature |
+| --- | --- | ---: | --- |
+| baseline | 正常下降 | 最终 ~0.9 | 未做 key swap |
+| per-frame control | 与 baseline 几乎重合 | 最终 ~0.9 | `S_content ~= 1, S_key ~= 0` |
+| per-episode square | 很早即显著更低 | 多数约 0.05，偶发到 ~0.1 | `S_key ~= 0.8–0.93, S_content -> ~0.05` |
+| RandGoal | 低于 baseline，后期同样极低 | 接近 0 | `S_key ~= 0.85, S_content -> ~0.02` |
+
+这个 temporal control 是文章最干净的一组因果证据：同样的 5×5 pixels，
+只有时间可预测性不同。episode arm 可以用近似恒等传播：
+
+```text
+z_t ~= h(k_episode)
+f(z_t, a_t) ~= z_t
+partial f / partial a ~= 0  （允许的投机极限，不是文章直接测量值）
+```
+
+从而不用表征 block motion、contact 或 action effect 就降低 next-latent loss。
+文章没有直接报告 action Jacobian，所以上式最后一行应视为机制极限/待测预测，
+不能写成已证事实。
+
+#### 2.6.7 RandGoal：不能过滤掉的自然慢特征
+
+RandGoal 把目标 T 的位置与角度作为 episode-level variable：
+
+```text
+k = (x_goal, y_goal, alpha_goal)
+```
+
+它只有三个自由度、episode 内不变，因而极易预测；但它不是 nuisance，而是任务定义。
+这构成对“直接过滤 slow feature”方案的反例：若把静态 goal 从当前 observation
+滤掉，同一个 encoder 也会把 goal frame 中的 goal 信息滤掉。
+
+在 planning 中，当前 frame 与目标相关 frame 都携带同一个 goal outline。
+若 latent distance 主要由 outline 决定而忽略 block state，不同 action candidate
+的 terminal cost 就失去分辨力。文章实测的 near-zero success 与 factor-swap
+cosine 支持这条解释，但没有直接给出 candidate ranking/oracle-cost 证据；
+那是我们可以补的连接。
+
+RandGoal 没有完全 matched 的 semantic control：它同时改变 goal distribution、
+initial-state convention、expert dataset 与轨迹长度。它用于证明“自然、task-relevant
+变量也会表现得像 shortcut”，严格因果主证据仍是 episode-vs-frame square。
+
+#### 2.6.8 “低维 sheet 折到看起来 Gaussian”的 readout
+
+作者对 collapsed RandGoal checkpoint 做无 probe 的 encoder readout：
+
+1. 从 1024 张真实 RandGoal frame 的 embedding 拟合 top-2 PCA basis；
+2. 构造一条平滑的 `(x, y, alpha)` wander，共 800 点；
+3. panel A 固定 block/agent，只让 goal T 沿 wander 移动；
+4. panel B 固定 goal/agent，让 block T 沿完全相同的 wander 移动；
+5. 直接编码并投影到同一 PCA plane。
+
+结果是 goal motion 产生长而折叠的 path，block motion 几乎不移动。
+作者据此提出：
+
+> a low-dimensional sheet folded until it looks Gaussian
+
+准确解释是：
+
+- 三维 goal pose 经复杂 `h: R^3 -> R^192` 控制大量 latent variance；
+- finite-batch、finite-random-projection SIGReg statistic 可以保持健康；
+- 但 representation 的局部/内在信息来源仍主要是三个变量；
+- 这是 semantic collapse / feature suppression，不是 constant-vector collapse。
+
+该图是强 qualitative intervention，但 top-2 PCA path 本身不证明 intrinsic
+dimension 恰为 3，也不证明所有 block information 为零。应补：
+
+- local intrinsic dimension；
+- covariance effective rank 与 local ID 的并列；
+- SIGReg statistic / random-projection normality；
+- block/agent/action/state probe；
+- bidirectional reconstruction 或 conditional mutual information。
+
+实现见
+[LeWM readout.py](https://github.com/Enigma-Incorporated/The-Obsessed-Encoder/blob/main/leworldmodel/additional_files/readout.py)。
+
+#### 2.6.9 这篇真正证明与没有证明的内容
+
+**证明得比较强：**
+
+1. anti-collapse 的 statistical spread 不等于 semantic/task sufficiency；
+2. predictable low-entropy factor 可以支配高维 representation 的方差与相似性结构；
+3. prediction/invariance objective 会主动偏好这种解，因为坏 arm 的 loss 更低；
+4. action-conditioned input 不自动强迫 encoder 学 action-sensitive dynamics；
+5. 同一病理跨 SIGReg 系与 DINO self-distillation/KoLeo 系出现；
+6. 在 LeWM 中，natural task variable 也可能成为 shortcut，不能把所有 slow feature
+   简单当 nuisance 删除。
+
+**没有证明：**
+
+1. 所有生产 SSL 模型已经被真实 shortcut 同等严重地劫持；
+2. 12 bit 含有 1024 个独立信息维；准确说法是它控制了大量可见 variance/
+   similarity/downstream-readable capacity；
+3. collapsed encoder 完全没有保留 content；
+4. RandGoal 的全部失败都只由 feature suppression 引起；
+5. 更长训练、完整规模 DINOv3 会停在同样的定量终点；
+6. multi-step prediction 会修复还是恶化该病理。
+
+#### 2.6.10 对当前项目的直接影响
+
+这篇与当前 horizon-induced metric 方向同根但不重合：
+
+```text
+The Obsessed Encoder:
+  predictability 决定 latent budget 分配给什么内容；
+  headline 是 semantic/content allocation failure。
+
+当前项目:
+  recursive horizon 决定给定内容下 error/action 如何被 metric 化与传播；
+  headline 是 controlled metric / recursive error transport / co-adaptation。
+```
+
+最稳的 related-work 句：
+
+> The Obsessed Encoder shows that marginal Gaussianity does not secure
+> semantic content; we study why it also does not secure controlled geometry.
+
+它同时提高了当前方法 claim 的门槛：
+
+- 不能再把“SIGReg 不保证好 representation”当新意；
+- `rate(K)` / low Jacobian-product gain 只能是 dynamics 证书，不能当 task-sufficiency
+  证书；一个 shortcut-collapsed encoder 可能传播很稳定；
+- multi-step 目标未必修复 obsession：episode-constant key 在更长 horizon 上仍是
+  最容易预测的变量，甚至可能得到更强权重；
+- 任一 anchor-and-dose / CritWM / horizon method 都必须同时报告 content/state/action
+  sufficiency，而不能只报告 stability。
+
+**最小直接实验：`K × shortcut persistence`。**
+
+复用公开 square protocol，扫：
+
+```text
+K in {1, 2, 3, 5, 10}
+arm in {baseline, per-frame square, per-episode square}
+```
+
+统一报告：
+
+- prediction loss 与 SIGReg；
+- `S_content / S_key / S_null`；
+- state、block、goal、action probes；
+- local ID、covariance effective rank；
+- one-step fidelity、action gain、error-product rate；
+- goal 25/40/60 candidate rank inversion 与 planning success。
+
+两个结果都具有信息量：
+
+```text
+若 K 越大，per-episode obsession 越强：
+  多步稳定压力会放大 semantic shortcut，需要显式 sufficiency anchor。
+
+若 K 越大，obsession 反而减弱：
+  说明 action-conditioned recursive closure 提供了超出纯 predictability 的选择压力，
+  需要定位它通过 encoder、predictor 还是 co-adaptation 起效。
+```
 
 ## 3. 规划 / 控制类 world model 趋势
 
@@ -587,6 +960,9 @@ not by self-prediction alone.
 - [What Drives Success in Physical Planning with Joint-Embedding Predictive World Models?](https://arxiv.org/abs/2512.24497)
 - [Causal-JEPA: Learning World Models through Object-Level Latent Masking](https://arxiv.org/abs/2602.11389)
 - [Learning Invariant Visual Representations for Planning with Joint-Embedding Predictive World Models](https://arxiv.org/abs/2602.18639)
+- [The Obsessed Encoder](https://www.enigma.inc/posts/obsessed-encoder)
+- [The Obsessed Encoder reproduction repository](https://github.com/Enigma-Incorporated/The-Obsessed-Encoder)
+- [The Obsessed Encoder: LeWM reproduction notes](https://github.com/Enigma-Incorporated/The-Obsessed-Encoder/blob/main/leworldmodel/additional_files/README.md)
 - [Temporal Straightening for Latent Planning](https://arxiv.org/abs/2603.12231)
 - [Temporal Straightening official implementation](https://github.com/agentic-learning-ai-lab/temporal-straightening)
 - [Temporal Straightening at ICML 2026 (OpenReview)](https://openreview.net/forum?id=Ik1mKtUYlZ)
@@ -629,11 +1005,13 @@ not by self-prediction alone.
 | [RC-aux: Predictive but Not Plannable](https://arxiv.org/pdf/2605.07278) | **同 base model(LeWM)+ 同 headline gap**("预测准但 latent 不可规划"),用 reachability 监督修 | 无收缩理论/接触分析/证书;必须引用并正面击败 |
 | [TRM: Beyond Euclidean Proximity](https://arxiv.org/html/2605.22164v1) | **同 base model**,post-hoc 轨迹可达 terminal metric,LeWM TwoRoom 7%→97% | "latent L2 不是对的决策度量"正在被挖;时间窗收紧 |
 | [Invariant JEPA-WM](https://arxiv.org/abs/2602.18639) | **最危险**:JEPA WM 内联合训练 reward-free bisimulation encoder(1-step transition 相似) | 我们的 H-step 开环分歧 target 携带复合增益信息,1-step 对 G_K 梯度盲(Thm B 可证);需 head-to-head ablation |
+| [The Obsessed Encoder](https://www.enigma.inc/posts/obsessed-encoder) | **同 LeWM/SIGReg + PushT，且直接证明低熵 predictable feature 可取得更低 loss、同时挤掉 dynamics/content**；其 “allocation, not selection” 与我们早期 slack/allocation 语言高度接近 | 不能把 anti-collapse insufficiency、slow-feature capture 或 low-D sheet folding 当新意；差异钉在 recursive horizon 对 controlled metric/error transport 的选择，并用 `K × persistence` 与 sufficiency probes 证明不是稳定地编码 shortcut |
 | [Temporal Straightening](https://arxiv.org/abs/2603.12231) (ICML'26) | **叙事最近邻**：同为 reconstruction-free joint encoder-predictor，以显式 latent geometry 改善 planning，并已连接 linear action Hessian / Gramian | 它管真实轨迹 tangent curvature，我们管 off-trajectory recursive error transport；必须用 `K1+curv` 对打，不能只靠措辞区分 |
 | [NCDS](https://openreview.net/forum?id=iAYIRHOYy8) (ICLR'24) | 已在学出的 latent 空间用微分同胚不变性做收缩 | 杀死"首次 latent 收缩"措辞;我们的新意是反转:hybrid 系统分岔处不可收缩,均匀收缩是错的 |
 | [MICo](https://arxiv.org/pdf/2106.08229) + [Robust Bisim](https://arxiv.org/abs/2110.14096) (NeurIPS'21) | reward=0 的 MICo ≈ 我们的度量项;**坍缩病理已被证明并修复** | 必须继承其修复,不能只用 BN |
 | [Asadi et al.](https://proceedings.mlr.press/v80/asadi18a.html) (ICML'18) | Lipschitz 控制复合误差已是 established practice | 单独的收缩惩罚项无新意;新意在三难+margin |
 | [When Does LeJEPA Learn a World Model?](https://arxiv.org/abs/2605.26379) | 证明 Gaussian marginal 唯一给出线性可辨识性并支持最优 latent planning | **反对丢弃 SIGReg 的理论依据**;主形态保留 SIGReg |
+| [UR-JEPA](https://arxiv.org/abs/2606.01443) | 已明确提出满维 isotropic Gaussian target 与低维 manifold hypothesis 的张力，并用 uniform rectifiability 替换 SIGReg | “Gaussian 与 manifold 冲突”不是空位；当前项目固定 SIGReg，差异必须落在 controlled recursive horizon 如何选择局部 metric |
 
 另:早期版本 §0.3/§5.2 引用的"低 drift 反而坏 planning(82→22)"已于
 2026-07-02 被 Gate 0 证伪(评测伪影)；本文现已在原处更正。幸存的 gap 是
@@ -653,11 +1031,12 @@ not by self-prediction alone.
 | paper | 它已经占据的部分 | 对当前项目仍开放的部分 |
 | --- | --- | --- |
 | [LeWorldModel](https://arxiv.org/abs/2603.19312) | end-to-end JEPA world model；next-embedding MSE + SIGReg；latent L2 + CEM | prediction horizon 为什么主要改变 encoder，以及同一 Gaussian marginal 下的局部动力学几何 |
-| [When Does LeJEPA Learn a World Model?](https://arxiv.org/abs/2605.26379) | Gaussian marginal、线性可辨识性和 latent planning 的理论地基 | action-conditioned transition、operator product、非线性局部增益与 encoder-predictor 共适应 |
+| [When Does LeJEPA Learn a World Model?](https://arxiv.org/abs/2605.26379) | 匹配维度 Gaussian/OU 下的线性可辨识性、正交刚性和 latent planning 理论地基 | 论文明确留下的维度不匹配与 action-conditioned transition；以及 operator product、非线性局部增益、有限 predictor 和 encoder-predictor 共适应 |
 | [A Generalization Theory for JEPA-Based World Models](https://arxiv.org/abs/2606.27014) | action-conditioned co-occurrence 低秩分解、pretraining error 与 planning regret、维度权衡 | 不同 horizon 在同一边缘约束下如何选择 representation |
 | [Delta-JEPA](https://arxiv.org/abs/2606.31232) | 用 latent displacement 解码 action，强化一阶 action sensitivity | finite-horizon composition 和 error/action channel 的不对称变化 |
 | [Fast-LeWorldModel](https://arxiv.org/abs/2606.26217) | action-prefix、多 horizon 并行预测、避免 autoregressive compounding、加速 CEM | 它主要绕开自复合；没有解释自复合目标如何重写 encoder geometry |
 | [Sub-JEPA](https://arxiv.org/abs/2605.09241) | 随机低维子空间 Gaussian regularization | 给定 marginal regularizer 后，horizon 如何使用剩余自由度 |
+| [The Obsessed Encoder](https://www.enigma.inc/posts/obsessed-encoder) | 跨 DINOv3/LeJEPA/LeWM 的 predictable-key feature suppression；LeWM episode-square / frame-square matched control；RandGoal 低维 task key 折叠进 192-D 并绕过 SIGReg | 已占据“anti-collapse 只保 spread、不保 dynamics/content”；仍开放的是 horizon 如何改变 shortcut-vs-dynamics allocation、controlled local metric、error/action transport，以及稳定性与 task sufficiency 的联合 Gate |
 | [Temporal Straightening](https://arxiv.org/abs/2603.12231) | reconstruction-free one-step JEPA + 显式 trajectory curvature；主实现经 128-D MLP aggregation head 算 velocity cosine；线性 action Hessian / Gramian 分析 | SIGReg Gaussian marginal、self-composition gradient、nonlinear Jacobian-product error dynamics、encoder-predictor co-adaptation 与 imagination frontier |
 | [Predictive Objectives Discard Exogenous Control-Relevant Features](https://arxiv.org/abs/2606.30068) | predictive objective 可能丢失不可预测但控制相关变量 | 当前实验中的 angle 下降、agent/action 信号增强并不是简单的“控制信息侵蚀” |
 | [AdaJEPA](https://arxiv.org/abs/2606.32026) | MPC 期间的 test-time self-supervised adaptation | prediction update 在部署时究竟把 latent geometry 推向哪里 |
@@ -674,6 +1053,7 @@ not by self-prediction alone.
 | [Mind the Gap: Promises and Pitfalls of Hierarchical Planning in LeWorldModel](https://arxiv.org/abs/2607.12547) | high-level subgoal generation 与 low-level search distribution mismatch；data-supported macro actions 修复部分 long-horizon failure | 简单 hierarchy 已被占据；仍可追问 shared latent point subgoal 是否是错误抽象 |
 | [MoP-JEPA](https://arxiv.org/abs/2607.05238) | 单 regressor 在 stochastic transition 下预测无效 conditional mean；K-head successor set 改善 graph planning | 多模态 successor / mixture predictor 已被占据；不能把“多个未来”本身当主创新 |
 | [The SIGReg Objective as Variational Free Energy](https://arxiv.org/abs/2607.13612) | 在特定假设下解释 SIGReg 的 information-bottleneck 与 latent goal-cost 地位，并指出 state-epistemic 缺口 | 补强 SIGReg 的规范性，但没有解释 action-conditioned finite-horizon operator 或 horizon-dependent representation |
+| [Koopman Dreamer](https://arxiv.org/abs/2607.19719) | 谱约束的 Koopman latent core、bilinear action、multi-step rollout-error bound 与 stable imagination | “spectral stability / controlled rollout bound”已被直接占据；当前差异只能是固定 predictor family 下 horizon-induced encoder metric/gauge selection |
 | [Qantara](https://arxiv.org/abs/2607.04978) | 同一 JEPA checkpoint 支持 latent planning、BC action sampling、inverse dynamics | 若做方法 paper，需要作为强工程 baseline 或至少正面讨论 |
 | [Grounding Spatial Relations in a Compact World Model](https://arxiv.org/abs/2607.06925) | goal-conditioned dynamics 会产生 instruction leakage；goal 应只进入 planner/read path | 支持 goal/cost 不应污染 dynamics representation 的边界 |
 | [Write-Protected Discrete Bottlenecks](https://arxiv.org/abs/2607.08312) | 端到端语言梯度会让 discrete symbols collapse；使用 detach、外部 memory 与 DP-Means | 离散符号更适合作为受保护接口，而非当前 LeWM 的端到端 waypoint |

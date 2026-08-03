@@ -6,6 +6,13 @@
 > 文献综述与竞品地图统一维护在
 > [worldmodel_literature.md](worldmodel_literature.md)。本文只在具体论证处保留
 > 必要引用，不再复制 paper 摘要或建立增量文献章节。
+>
+> **2026-07-24 理论收敛更新：**本文早期的“Gaussian gauge”是操作性简称。
+> 等维 Gaussian/OU 的精确 population optimum 实际具有正交刚性；当前 PushT 的
+> 自由度主要来自 `D=192` 过完备、soft/sketched SIGReg、controlled non-OU
+> transition 与有限 predictor class。严格的维度分区、风险分解、controlled
+> metric 变分式和证伪 gates 见
+> [Gaussian Measure, Controlled Metric](horizon_induced_gaussian_gauge_20260724.md)。
 
 ---
 
