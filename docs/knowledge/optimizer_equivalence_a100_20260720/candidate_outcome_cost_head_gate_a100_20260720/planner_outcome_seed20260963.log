@@ -1,0 +1,15 @@
+# Candidate-level OE cost-head probe
+
+Architecture, epoch, and residual blend are selected on inner state-held-out data. Metrics pool one outer-fold prediction per state.
+
+- Cell: `h5_off40`
+- Features: `planner_outcome`
+- Hidden width: `128`
+
+| metric | baseline | corrected | delta | paired 95% CI |
+|---|---:|---:|---:|---:|
+| update_cosine | 0.181 | 0.213 | +0.031 | [+0.006, +0.058] |
+| relative_update_error | 1.141 | 1.182 | +0.042 | [+0.018, +0.067] |
+| elite_overlap | 0.190 | 0.205 | +0.015 | [+0.001, +0.030] |
+| selected_elite_true_cost | 100.883 | 100.735 | -0.148 | [-1.191, +0.860] |
+results -> /225010117/logs/candidate_outcome_cost_head_gate_a100_20260720/planner_outcome_seed20260963

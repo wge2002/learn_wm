@@ -1,0 +1,265 @@
+/225010117/code/learn_wm/stable_worldmodel/envs/__init__.py:215: UserWarning: ale-py not found; ALE/* envs are unavailable. Install with: pip install 'stable-worldmodel[env]' or pip install ale-py.
+  from stable_worldmodel.envs import ale  # noqa: F401
+15:18:35 | INFO  | utils.py    | Loading checkpoint from folder /225010117/stablewm/checkpoints/pd_d192_k3_eval...
+/225010117/code/learn_wm/stable_worldmodel/wm/utils.py:81: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(checkpoint_path, map_location='cpu')
+15:18:40 | INFO  | atomic_chec~| [atomic_save] installed crash-safe checkpoint plugin (write to sibling .tmp + fsync + atomic rename)
+15:18:40 | INFO  | utils.py    | Created ViT-tiny from scratch with config: {'hidden_size': 192, 'num_hidden_layers': 12, 'num_attention_heads': 3, 'intermediate_size': 768, 'image_size': 224, 'patch_size': 14}
+[2026-07-20 15:18:41,602][root][INFO] - Cached 'action' from '/225010117/data/pusht_expert_train.h5'
+[2026-07-20 15:18:41,642][root][INFO] - Cached 'proprio' from '/225010117/data/pusht_expert_train.h5'
+[2026-07-20 15:18:41,697][root][INFO] - Cached 'state' from '/225010117/data/pusht_expert_train.h5'
+[1/240] innovation_norm=2.6604
+[2/240] innovation_norm=2.4763
+[3/240] innovation_norm=2.6008
+[4/240] innovation_norm=1.7321
+[5/240] innovation_norm=3.6786
+[6/240] innovation_norm=1.0878
+[7/240] innovation_norm=1.5535
+[8/240] innovation_norm=1.7328
+[9/240] innovation_norm=3.9843
+[10/240] innovation_norm=3.3423
+[11/240] innovation_norm=1.1262
+[12/240] innovation_norm=1.8423
+[13/240] innovation_norm=2.8711
+[14/240] innovation_norm=2.1158
+[15/240] innovation_norm=1.9409
+[16/240] innovation_norm=1.1129
+[17/240] innovation_norm=2.6698
+[18/240] innovation_norm=0.9567
+[19/240] innovation_norm=1.1941
+[20/240] innovation_norm=0.9782
+[21/240] innovation_norm=1.9799
+[22/240] innovation_norm=1.4643
+[23/240] innovation_norm=1.3851
+[24/240] innovation_norm=3.6056
+[25/240] innovation_norm=1.3919
+[26/240] innovation_norm=1.3877
+[27/240] innovation_norm=2.7664
+[28/240] innovation_norm=1.7209
+[29/240] innovation_norm=2.4935
+[30/240] innovation_norm=2.6819
+[31/240] innovation_norm=3.5390
+[32/240] innovation_norm=0.9506
+[33/240] innovation_norm=1.4787
+[34/240] innovation_norm=1.6455
+[35/240] innovation_norm=0.9849
+[36/240] innovation_norm=1.1026
+[37/240] innovation_norm=2.1465
+[38/240] innovation_norm=2.3930
+[39/240] innovation_norm=1.3593
+[40/240] innovation_norm=2.6606
+[41/240] innovation_norm=2.5535
+[42/240] innovation_norm=2.7140
+[43/240] innovation_norm=8.7155
+[44/240] innovation_norm=4.5881
+[45/240] innovation_norm=2.6908
+[46/240] innovation_norm=2.1247
+[47/240] innovation_norm=1.0457
+[48/240] innovation_norm=1.8943
+[49/240] innovation_norm=1.4668
+[50/240] innovation_norm=2.2930
+[51/240] innovation_norm=3.1609
+[52/240] innovation_norm=1.0617
+[53/240] innovation_norm=2.3811
+[54/240] innovation_norm=1.7041
+[55/240] innovation_norm=4.2999
+[56/240] innovation_norm=2.6875
+[57/240] innovation_norm=2.4487
+[58/240] innovation_norm=2.2107
+[59/240] innovation_norm=1.1255
+[60/240] innovation_norm=2.9707
+[61/240] innovation_norm=1.0833
+[62/240] innovation_norm=1.1443
+[63/240] innovation_norm=2.7265
+[64/240] innovation_norm=1.7775
+[65/240] innovation_norm=1.7683
+[66/240] innovation_norm=1.4170
+[67/240] innovation_norm=2.8692
+[68/240] innovation_norm=3.1387
+[69/240] innovation_norm=6.3279
+[70/240] innovation_norm=1.4657
+[71/240] innovation_norm=1.4742
+[72/240] innovation_norm=2.0679
+[73/240] innovation_norm=5.2678
+[74/240] innovation_norm=1.4897
+[75/240] innovation_norm=2.0966
+[76/240] innovation_norm=1.8384
+[77/240] innovation_norm=1.7102
+[78/240] innovation_norm=1.3128
+[79/240] innovation_norm=2.1140
+[80/240] innovation_norm=1.6022
+[81/240] innovation_norm=3.5952
+[82/240] innovation_norm=2.9985
+[83/240] innovation_norm=1.4618
+[84/240] innovation_norm=1.8749
+[85/240] innovation_norm=2.6068
+[86/240] innovation_norm=1.1749
+[87/240] innovation_norm=1.4030
+[88/240] innovation_norm=0.8367
+[89/240] innovation_norm=1.6520
+[90/240] innovation_norm=1.7350
+[91/240] innovation_norm=4.9463
+[92/240] innovation_norm=3.6003
+[93/240] innovation_norm=2.1891
+[94/240] innovation_norm=3.1258
+[95/240] innovation_norm=4.6964
+[96/240] innovation_norm=1.3605
+[97/240] innovation_norm=1.6937
+[98/240] innovation_norm=1.3168
+[99/240] innovation_norm=1.1903
+[100/240] innovation_norm=1.4358
+[101/240] innovation_norm=4.3642
+[102/240] innovation_norm=1.7999
+[103/240] innovation_norm=1.4950
+[104/240] innovation_norm=2.7732
+[105/240] innovation_norm=2.0463
+[106/240] innovation_norm=2.2901
+[107/240] innovation_norm=1.2001
+[108/240] innovation_norm=8.2989
+[109/240] innovation_norm=1.7878
+[110/240] innovation_norm=3.0422
+[111/240] innovation_norm=1.8431
+[112/240] innovation_norm=1.3786
+[113/240] innovation_norm=3.1202
+[114/240] innovation_norm=1.6293
+[115/240] innovation_norm=3.7006
+[116/240] innovation_norm=1.4183
+[117/240] innovation_norm=1.4465
+[118/240] innovation_norm=0.6156
+[119/240] innovation_norm=2.1956
+[120/240] innovation_norm=1.7578
+[121/240] innovation_norm=3.3895
+[122/240] innovation_norm=2.4659
+[123/240] innovation_norm=2.5401
+[124/240] innovation_norm=3.1720
+[125/240] innovation_norm=2.1872
+[126/240] innovation_norm=2.3686
+[127/240] innovation_norm=1.9059
+[128/240] innovation_norm=2.4336
+[129/240] innovation_norm=1.4568
+[130/240] innovation_norm=3.3684
+[131/240] innovation_norm=1.3216
+[132/240] innovation_norm=1.2339
+[133/240] innovation_norm=1.2104
+[134/240] innovation_norm=0.7659
+[135/240] innovation_norm=6.6595
+[136/240] innovation_norm=1.0900
+[137/240] innovation_norm=1.5710
+[138/240] innovation_norm=3.2350
+[139/240] innovation_norm=2.3707
+[140/240] innovation_norm=1.9172
+[141/240] innovation_norm=1.3575
+[142/240] innovation_norm=2.5192
+[143/240] innovation_norm=1.4787
+[144/240] innovation_norm=1.5002
+[145/240] innovation_norm=1.5310
+[146/240] innovation_norm=3.2406
+[147/240] innovation_norm=1.2629
+[148/240] innovation_norm=2.0003
+[149/240] innovation_norm=3.3682
+[150/240] innovation_norm=2.2971
+[151/240] innovation_norm=1.5565
+[152/240] innovation_norm=1.7399
+[153/240] innovation_norm=1.7206
+[154/240] innovation_norm=1.9529
+[155/240] innovation_norm=2.0469
+[156/240] innovation_norm=4.6542
+[157/240] innovation_norm=3.5037
+[158/240] innovation_norm=1.5283
+[159/240] innovation_norm=0.9037
+[160/240] innovation_norm=3.7674
+[161/240] innovation_norm=5.0169
+[162/240] innovation_norm=2.8035
+[163/240] innovation_norm=2.3363
+[164/240] innovation_norm=1.8417
+[165/240] innovation_norm=4.6599
+[166/240] innovation_norm=2.2228
+[167/240] innovation_norm=2.2524
+[168/240] innovation_norm=2.1267
+[169/240] innovation_norm=2.9017
+[170/240] innovation_norm=1.7651
+[171/240] innovation_norm=1.4053
+[172/240] innovation_norm=1.7881
+[173/240] innovation_norm=1.6492
+[174/240] innovation_norm=1.1075
+[175/240] innovation_norm=3.7053
+[176/240] innovation_norm=3.1276
+[177/240] innovation_norm=1.4237
+[178/240] innovation_norm=1.1324
+[179/240] innovation_norm=2.1510
+[180/240] innovation_norm=0.8572
+[181/240] innovation_norm=1.9988
+[182/240] innovation_norm=2.5071
+[183/240] innovation_norm=2.3165
+[184/240] innovation_norm=1.0136
+[185/240] innovation_norm=2.7047
+[186/240] innovation_norm=1.8002
+[187/240] innovation_norm=1.9288
+[188/240] innovation_norm=3.1939
+[189/240] innovation_norm=2.1015
+[190/240] innovation_norm=1.7535
+[191/240] innovation_norm=2.2660
+[192/240] innovation_norm=2.1270
+[193/240] innovation_norm=0.8623
+[194/240] innovation_norm=0.9142
+[195/240] innovation_norm=1.5223
+[196/240] innovation_norm=1.4247
+[197/240] innovation_norm=1.0537
+[198/240] innovation_norm=1.3987
+[199/240] innovation_norm=0.8031
+[200/240] innovation_norm=7.2531
+[201/240] innovation_norm=2.2165
+[202/240] innovation_norm=1.0495
+[203/240] innovation_norm=4.6936
+[204/240] innovation_norm=5.9571
+[205/240] innovation_norm=1.3835
+[206/240] innovation_norm=3.1527
+[207/240] innovation_norm=1.5796
+[208/240] innovation_norm=0.8996
+[209/240] innovation_norm=2.2893
+[210/240] innovation_norm=4.8745
+[211/240] innovation_norm=2.1351
+[212/240] innovation_norm=0.7559
+[213/240] innovation_norm=2.6130
+[214/240] innovation_norm=1.9829
+[215/240] innovation_norm=1.2037
+[216/240] innovation_norm=0.7381
+[217/240] innovation_norm=2.6666
+[218/240] innovation_norm=1.1706
+[219/240] innovation_norm=3.9051
+[220/240] innovation_norm=1.0512
+[221/240] innovation_norm=1.3116
+[222/240] innovation_norm=3.5026
+[223/240] innovation_norm=1.4305
+[224/240] innovation_norm=1.2548
+[225/240] innovation_norm=4.1371
+[226/240] innovation_norm=2.6116
+[227/240] innovation_norm=1.5873
+[228/240] innovation_norm=1.9236
+[229/240] innovation_norm=1.8439
+[230/240] innovation_norm=1.4745
+[231/240] innovation_norm=0.9936
+[232/240] innovation_norm=2.1238
+[233/240] innovation_norm=0.9594
+[234/240] innovation_norm=1.4578
+[235/240] innovation_norm=1.5615
+[236/240] innovation_norm=1.2611
+[237/240] innovation_norm=1.8339
+[238/240] innovation_norm=2.1732
+[239/240] innovation_norm=2.0052
+[240/240] innovation_norm=1.0235
+innovation cache -> /225010117/logs/innovation_gate_a100_20260720/h5_innovation.npz
+{
+  "dataset": "/225010117/data/pusht_expert_train.h5",
+  "feature_width": 192,
+  "max_goal_mismatch": 0.0,
+  "max_innovation_norm": 8.71546745300293,
+  "max_state_mismatch": 0.0,
+  "mean_innovation_norm": 2.2221744060516357,
+  "median_innovation_norm": 1.9001257419586182,
+  "policy": "pd_d192_k3_eval",
+  "rows": 240,
+  "source": "/225010117/logs/operator_query_bank_a100_20260720/h5_off40_k3_n240_merged_v1.npz",
+  "source_sha256": "845a1f15e14af2e7fa672c176af5d4efee455d2f96ea28f2d7944cab48a99ca1",
+  "version": 1
+}

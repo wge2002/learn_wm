@@ -73,15 +73,20 @@ def main() -> None:
         'mean_weight',
         'logstd_weight',
         'anchor_weight',
+        'relative_update_weight',
+        'calibrate_elite_mass',
+        'replay_sha256',
+        'replay_weight',
+        'replay_batch_size',
         'trainable_modules',
     )
     for run in runs[1:]:
         for key in invariant_keys:
-            if run['audit'][key] != reference[key]:
+            if run['audit'].get(key) != reference.get(key):
                 raise ValueError(
                     f'run mismatch for {key}: '
-                    f'{run["name"]}={run["audit"][key]!r}, '
-                    f'reference={reference[key]!r}'
+                    f'{run["name"]}={run["audit"].get(key)!r}, '
+                    f'reference={reference.get(key)!r}'
                 )
 
     state_owners: dict[int, str] = {}
@@ -105,6 +110,11 @@ def main() -> None:
         for run in runs
         for epoch in common_epochs
     )
+    has_replay_metrics = all(
+        run['epochs'][epoch].get('replay_validation_mse') is not None
+        for run in runs
+        for epoch in common_epochs
+    )
 
     fold_rows = []
     aggregate_rows = []
@@ -125,6 +135,15 @@ def main() -> None:
                 )
                 / total_weight
             )
+        if has_replay_metrics:
+            aggregate['replay_validation_mse'] = float(
+                np.mean(
+                    [
+                        run['epochs'][epoch]['replay_validation_mse']
+                        for run in runs
+                    ]
+                )
+            )
         aggregate_rows.append(aggregate)
 
         for run in runs:
@@ -142,6 +161,10 @@ def main() -> None:
                     for metric in metric_names
                 }
             )
+            if has_replay_metrics:
+                row['replay_validation_mse'] = float(
+                    run['epochs'][epoch]['replay_validation_mse']
+                )
             fold_rows.append(row)
             if has_state_metrics:
                 for state_row in run['epochs'][epoch]['val_state_metrics']:
@@ -159,6 +182,10 @@ def main() -> None:
             row[f'{metric}_delta_vs_epoch0'] = float(row[metric]) - float(
                 baseline[metric]
             )
+        if has_replay_metrics:
+            row['replay_validation_mse_delta_vs_epoch0'] = float(
+                row['replay_validation_mse']
+            ) - float(baseline['replay_validation_mse'])
 
     if has_state_metrics:
         baseline_by_state = {
@@ -221,9 +248,10 @@ def main() -> None:
         },
         'common_epochs': common_epochs,
         'state_level_metrics_available': has_state_metrics,
+        'replay_metrics_available': has_replay_metrics,
         'bootstrap': args.bootstrap if has_state_metrics else None,
         'bootstrap_seed': args.seed if has_state_metrics else None,
-        'invariants': {key: reference[key] for key in invariant_keys},
+        'invariants': {key: reference.get(key) for key in invariant_keys},
     }
     (args.out_dir / 'audit.json').write_text(
         json.dumps(audit, indent=2, sort_keys=True) + '\n',
@@ -237,14 +265,36 @@ def main() -> None:
         f'- Unique held-out states: {len(state_owners)}',
         f'- Trainable modules: `{", ".join(reference["trainable_modules"])}`',
         f'- Selected source steps: `{reference["selected_steps"]}`',
+        *(
+            [
+                f'- Dynamics replay weight: '
+                f'`{reference.get("replay_weight", 0.0)}`',
+                f'- Dynamics replay cache: '
+                f'`{reference.get("replay_sha256")}`',
+            ]
+            if has_replay_metrics
+            else []
+        ),
         '',
         'Each row pools predictions made by a model that did not train on '
         'that row’s held-out states. This is a feasibility diagnostic, not a '
         'deployable single-checkpoint or closed-loop MPC result.',
         '',
-        '| epoch | update cosine | Δ cosine | relative error | Δ rel. error '
-        '| elite overlap | Δ overlap | selected-elite true cost | Δ true cost |',
-        '|---:|---:|---:|---:|---:|---:|---:|---:|---:|',
+        (
+            '| epoch | update cosine | Δ cosine | relative error '
+            '| Δ rel. error | elite overlap | Δ overlap '
+            '| selected-elite true cost | Δ true cost | replay MSE '
+            '| Δ replay MSE |'
+            if has_replay_metrics
+            else '| epoch | update cosine | Δ cosine | relative error '
+            '| Δ rel. error | elite overlap | Δ overlap '
+            '| selected-elite true cost | Δ true cost |'
+        ),
+        (
+            '|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|'
+            if has_replay_metrics
+            else '|---:|---:|---:|---:|---:|---:|---:|---:|---:|'
+        ),
     ]
     for row in aggregate_rows:
         if has_state_metrics:
@@ -263,6 +313,12 @@ def main() -> None:
             relative_delta = (
                 f'{row["relative_update_error_delta_vs_epoch0"]:+.3f}'
             )
+        replay_columns = (
+            f'| {row["replay_validation_mse"]:.5f} '
+            f'| {row["replay_validation_mse_delta_vs_epoch0"]:+.5f} '
+            if has_replay_metrics
+            else ''
+        )
         lines.append(
             f'| {row["epoch"]} '
             f'| {row["update_cosine"]:.3f} '
@@ -272,7 +328,8 @@ def main() -> None:
             f'| {row["elite_overlap"]:.3f} '
             f'| {row["elite_overlap_delta_vs_epoch0"]:+.3f} '
             f'| {row["selected_elite_true_cost"]:.2f} '
-            f'| {row["selected_elite_true_cost_delta_vs_epoch0"]:+.2f} |'
+            f'| {row["selected_elite_true_cost_delta_vs_epoch0"]:+.2f} '
+            f'{replay_columns}|'
         )
     (args.out_dir / 'report.md').write_text(
         '\n'.join(lines) + '\n',

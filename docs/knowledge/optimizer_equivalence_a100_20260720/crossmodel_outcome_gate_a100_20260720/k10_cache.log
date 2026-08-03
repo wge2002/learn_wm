@@ -1,0 +1,275 @@
+/225010117/code/learn_wm/stable_worldmodel/envs/__init__.py:215: UserWarning: ale-py not found; ALE/* envs are unavailable. Install with: pip install 'stable-worldmodel[env]' or pip install ale-py.
+  from stable_worldmodel.envs import ale  # noqa: F401
+15:37:17 | INFO  | utils.py    | Loading checkpoint from folder /225010117/stablewm/checkpoints/pd_d192_k10_eval...
+/225010117/code/learn_wm/stable_worldmodel/wm/utils.py:81: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(checkpoint_path, map_location='cpu')
+15:37:22 | INFO  | atomic_chec~| [atomic_save] installed crash-safe checkpoint plugin (write to sibling .tmp + fsync + atomic rename)
+15:37:22 | INFO  | utils.py    | Created ViT-tiny from scratch with config: {'hidden_size': 192, 'num_hidden_layers': 12, 'num_attention_heads': 3, 'intermediate_size': 768, 'image_size': 224, 'patch_size': 14}
+[2026-07-20 15:37:23,700][root][INFO] - Cached 'action' from '/225010117/data/pusht_expert_train.h5'
+[2026-07-20 15:37:23,744][root][INFO] - Cached 'proprio' from '/225010117/data/pusht_expert_train.h5'
+[2026-07-20 15:37:23,804][root][INFO] - Cached 'state' from '/225010117/data/pusht_expert_train.h5'
+[1/240] rounds=4 population=300 external_scorer
+[2/240] rounds=4 population=300 external_scorer
+[3/240] rounds=4 population=300 external_scorer
+[4/240] rounds=4 population=300 external_scorer
+[5/240] rounds=4 population=300 external_scorer
+[6/240] rounds=4 population=300 external_scorer
+[7/240] rounds=4 population=300 external_scorer
+[8/240] rounds=4 population=300 external_scorer
+[9/240] rounds=4 population=300 external_scorer
+[10/240] rounds=4 population=300 external_scorer
+[11/240] rounds=4 population=300 external_scorer
+[12/240] rounds=4 population=300 external_scorer
+[13/240] rounds=4 population=300 external_scorer
+[14/240] rounds=4 population=300 external_scorer
+[15/240] rounds=4 population=300 external_scorer
+[16/240] rounds=4 population=300 external_scorer
+[17/240] rounds=4 population=300 external_scorer
+[18/240] rounds=4 population=300 external_scorer
+[19/240] rounds=4 population=300 external_scorer
+[20/240] rounds=4 population=300 external_scorer
+[21/240] rounds=4 population=300 external_scorer
+[22/240] rounds=4 population=300 external_scorer
+[23/240] rounds=4 population=300 external_scorer
+[24/240] rounds=4 population=300 external_scorer
+[25/240] rounds=4 population=300 external_scorer
+[26/240] rounds=4 population=300 external_scorer
+[27/240] rounds=4 population=300 external_scorer
+[28/240] rounds=4 population=300 external_scorer
+[29/240] rounds=4 population=300 external_scorer
+[30/240] rounds=4 population=300 external_scorer
+[31/240] rounds=4 population=300 external_scorer
+[32/240] rounds=4 population=300 external_scorer
+[33/240] rounds=4 population=300 external_scorer
+[34/240] rounds=4 population=300 external_scorer
+[35/240] rounds=4 population=300 external_scorer
+[36/240] rounds=4 population=300 external_scorer
+[37/240] rounds=4 population=300 external_scorer
+[38/240] rounds=4 population=300 external_scorer
+[39/240] rounds=4 population=300 external_scorer
+[40/240] rounds=4 population=300 external_scorer
+[41/240] rounds=4 population=300 external_scorer
+[42/240] rounds=4 population=300 external_scorer
+[43/240] rounds=4 population=300 external_scorer
+[44/240] rounds=4 population=300 external_scorer
+[45/240] rounds=4 population=300 external_scorer
+[46/240] rounds=4 population=300 external_scorer
+[47/240] rounds=4 population=300 external_scorer
+[48/240] rounds=4 population=300 external_scorer
+[49/240] rounds=4 population=300 external_scorer
+[50/240] rounds=4 population=300 external_scorer
+[51/240] rounds=4 population=300 external_scorer
+[52/240] rounds=4 population=300 external_scorer
+[53/240] rounds=4 population=300 external_scorer
+[54/240] rounds=4 population=300 external_scorer
+[55/240] rounds=4 population=300 external_scorer
+[56/240] rounds=4 population=300 external_scorer
+[57/240] rounds=4 population=300 external_scorer
+[58/240] rounds=4 population=300 external_scorer
+[59/240] rounds=4 population=300 external_scorer
+[60/240] rounds=4 population=300 external_scorer
+[61/240] rounds=4 population=300 external_scorer
+[62/240] rounds=4 population=300 external_scorer
+[63/240] rounds=4 population=300 external_scorer
+[64/240] rounds=4 population=300 external_scorer
+[65/240] rounds=4 population=300 external_scorer
+[66/240] rounds=4 population=300 external_scorer
+[67/240] rounds=4 population=300 external_scorer
+[68/240] rounds=4 population=300 external_scorer
+[69/240] rounds=4 population=300 external_scorer
+[70/240] rounds=4 population=300 external_scorer
+[71/240] rounds=4 population=300 external_scorer
+[72/240] rounds=4 population=300 external_scorer
+[73/240] rounds=4 population=300 external_scorer
+[74/240] rounds=4 population=300 external_scorer
+[75/240] rounds=4 population=300 external_scorer
+[76/240] rounds=4 population=300 external_scorer
+[77/240] rounds=4 population=300 external_scorer
+[78/240] rounds=4 population=300 external_scorer
+[79/240] rounds=4 population=300 external_scorer
+[80/240] rounds=4 population=300 external_scorer
+[81/240] rounds=4 population=300 external_scorer
+[82/240] rounds=4 population=300 external_scorer
+[83/240] rounds=4 population=300 external_scorer
+[84/240] rounds=4 population=300 external_scorer
+[85/240] rounds=4 population=300 external_scorer
+[86/240] rounds=4 population=300 external_scorer
+[87/240] rounds=4 population=300 external_scorer
+[88/240] rounds=4 population=300 external_scorer
+[89/240] rounds=4 population=300 external_scorer
+[90/240] rounds=4 population=300 external_scorer
+[91/240] rounds=4 population=300 external_scorer
+[92/240] rounds=4 population=300 external_scorer
+[93/240] rounds=4 population=300 external_scorer
+[94/240] rounds=4 population=300 external_scorer
+[95/240] rounds=4 population=300 external_scorer
+[96/240] rounds=4 population=300 external_scorer
+[97/240] rounds=4 population=300 external_scorer
+[98/240] rounds=4 population=300 external_scorer
+[99/240] rounds=4 population=300 external_scorer
+[100/240] rounds=4 population=300 external_scorer
+[101/240] rounds=4 population=300 external_scorer
+[102/240] rounds=4 population=300 external_scorer
+[103/240] rounds=4 population=300 external_scorer
+[104/240] rounds=4 population=300 external_scorer
+[105/240] rounds=4 population=300 external_scorer
+[106/240] rounds=4 population=300 external_scorer
+[107/240] rounds=4 population=300 external_scorer
+[108/240] rounds=4 population=300 external_scorer
+[109/240] rounds=4 population=300 external_scorer
+[110/240] rounds=4 population=300 external_scorer
+[111/240] rounds=4 population=300 external_scorer
+[112/240] rounds=4 population=300 external_scorer
+[113/240] rounds=4 population=300 external_scorer
+[114/240] rounds=4 population=300 external_scorer
+[115/240] rounds=4 population=300 external_scorer
+[116/240] rounds=4 population=300 external_scorer
+[117/240] rounds=4 population=300 external_scorer
+[118/240] rounds=4 population=300 external_scorer
+[119/240] rounds=4 population=300 external_scorer
+[120/240] rounds=4 population=300 external_scorer
+[121/240] rounds=4 population=300 external_scorer
+[122/240] rounds=4 population=300 external_scorer
+[123/240] rounds=4 population=300 external_scorer
+[124/240] rounds=4 population=300 external_scorer
+[125/240] rounds=4 population=300 external_scorer
+[126/240] rounds=4 population=300 external_scorer
+[127/240] rounds=4 population=300 external_scorer
+[128/240] rounds=4 population=300 external_scorer
+[129/240] rounds=4 population=300 external_scorer
+[130/240] rounds=4 population=300 external_scorer
+[131/240] rounds=4 population=300 external_scorer
+[132/240] rounds=4 population=300 external_scorer
+[133/240] rounds=4 population=300 external_scorer
+[134/240] rounds=4 population=300 external_scorer
+[135/240] rounds=4 population=300 external_scorer
+[136/240] rounds=4 population=300 external_scorer
+[137/240] rounds=4 population=300 external_scorer
+[138/240] rounds=4 population=300 external_scorer
+[139/240] rounds=4 population=300 external_scorer
+[140/240] rounds=4 population=300 external_scorer
+[141/240] rounds=4 population=300 external_scorer
+[142/240] rounds=4 population=300 external_scorer
+[143/240] rounds=4 population=300 external_scorer
+[144/240] rounds=4 population=300 external_scorer
+[145/240] rounds=4 population=300 external_scorer
+[146/240] rounds=4 population=300 external_scorer
+[147/240] rounds=4 population=300 external_scorer
+[148/240] rounds=4 population=300 external_scorer
+[149/240] rounds=4 population=300 external_scorer
+[150/240] rounds=4 population=300 external_scorer
+[151/240] rounds=4 population=300 external_scorer
+[152/240] rounds=4 population=300 external_scorer
+[153/240] rounds=4 population=300 external_scorer
+[154/240] rounds=4 population=300 external_scorer
+[155/240] rounds=4 population=300 external_scorer
+[156/240] rounds=4 population=300 external_scorer
+[157/240] rounds=4 population=300 external_scorer
+[158/240] rounds=4 population=300 external_scorer
+[159/240] rounds=4 population=300 external_scorer
+[160/240] rounds=4 population=300 external_scorer
+[161/240] rounds=4 population=300 external_scorer
+[162/240] rounds=4 population=300 external_scorer
+[163/240] rounds=4 population=300 external_scorer
+[164/240] rounds=4 population=300 external_scorer
+[165/240] rounds=4 population=300 external_scorer
+[166/240] rounds=4 population=300 external_scorer
+[167/240] rounds=4 population=300 external_scorer
+[168/240] rounds=4 population=300 external_scorer
+[169/240] rounds=4 population=300 external_scorer
+[170/240] rounds=4 population=300 external_scorer
+[171/240] rounds=4 population=300 external_scorer
+[172/240] rounds=4 population=300 external_scorer
+[173/240] rounds=4 population=300 external_scorer
+[174/240] rounds=4 population=300 external_scorer
+[175/240] rounds=4 population=300 external_scorer
+[176/240] rounds=4 population=300 external_scorer
+[177/240] rounds=4 population=300 external_scorer
+[178/240] rounds=4 population=300 external_scorer
+[179/240] rounds=4 population=300 external_scorer
+[180/240] rounds=4 population=300 external_scorer
+[181/240] rounds=4 population=300 external_scorer
+[182/240] rounds=4 population=300 external_scorer
+[183/240] rounds=4 population=300 external_scorer
+[184/240] rounds=4 population=300 external_scorer
+[185/240] rounds=4 population=300 external_scorer
+[186/240] rounds=4 population=300 external_scorer
+[187/240] rounds=4 population=300 external_scorer
+[188/240] rounds=4 population=300 external_scorer
+[189/240] rounds=4 population=300 external_scorer
+[190/240] rounds=4 population=300 external_scorer
+[191/240] rounds=4 population=300 external_scorer
+[192/240] rounds=4 population=300 external_scorer
+[193/240] rounds=4 population=300 external_scorer
+[194/240] rounds=4 population=300 external_scorer
+[195/240] rounds=4 population=300 external_scorer
+[196/240] rounds=4 population=300 external_scorer
+[197/240] rounds=4 population=300 external_scorer
+[198/240] rounds=4 population=300 external_scorer
+[199/240] rounds=4 population=300 external_scorer
+[200/240] rounds=4 population=300 external_scorer
+[201/240] rounds=4 population=300 external_scorer
+[202/240] rounds=4 population=300 external_scorer
+[203/240] rounds=4 population=300 external_scorer
+[204/240] rounds=4 population=300 external_scorer
+[205/240] rounds=4 population=300 external_scorer
+[206/240] rounds=4 population=300 external_scorer
+[207/240] rounds=4 population=300 external_scorer
+[208/240] rounds=4 population=300 external_scorer
+[209/240] rounds=4 population=300 external_scorer
+[210/240] rounds=4 population=300 external_scorer
+[211/240] rounds=4 population=300 external_scorer
+[212/240] rounds=4 population=300 external_scorer
+[213/240] rounds=4 population=300 external_scorer
+[214/240] rounds=4 population=300 external_scorer
+[215/240] rounds=4 population=300 external_scorer
+[216/240] rounds=4 population=300 external_scorer
+[217/240] rounds=4 population=300 external_scorer
+[218/240] rounds=4 population=300 external_scorer
+[219/240] rounds=4 population=300 external_scorer
+[220/240] rounds=4 population=300 external_scorer
+[221/240] rounds=4 population=300 external_scorer
+[222/240] rounds=4 population=300 external_scorer
+[223/240] rounds=4 population=300 external_scorer
+[224/240] rounds=4 population=300 external_scorer
+[225/240] rounds=4 population=300 external_scorer
+[226/240] rounds=4 population=300 external_scorer
+[227/240] rounds=4 population=300 external_scorer
+[228/240] rounds=4 population=300 external_scorer
+[229/240] rounds=4 population=300 external_scorer
+[230/240] rounds=4 population=300 external_scorer
+[231/240] rounds=4 population=300 external_scorer
+[232/240] rounds=4 population=300 external_scorer
+[233/240] rounds=4 population=300 external_scorer
+[234/240] rounds=4 population=300 external_scorer
+[235/240] rounds=4 population=300 external_scorer
+[236/240] rounds=4 population=300 external_scorer
+[237/240] rounds=4 population=300 external_scorer
+[238/240] rounds=4 population=300 external_scorer
+[239/240] rounds=4 population=300 external_scorer
+[240/240] rounds=4 population=300 external_scorer
+candidate outcome cache -> /225010117/logs/crossmodel_outcome_gate_a100_20260720/h5_k10_candidate_outcomes.npz
+{
+  "dataset": "/225010117/data/pusht_expert_train.h5",
+  "goal_shape": [
+    192
+  ],
+  "max_cost_mismatch": null,
+  "max_goal_mismatch": 0.0,
+  "max_state_mismatch": 0.0,
+  "mean_cost_mae": null,
+  "mean_top30_overlap": null,
+  "policy": "pd_d192_k10_eval",
+  "population": 300,
+  "rounds": 4,
+  "rows": 240,
+  "source": "/225010117/logs/operator_query_bank_a100_20260720/h5_off40_k3_n240_merged_v1.npz",
+  "source_has_matching_scorer": false,
+  "source_sha256": "845a1f15e14af2e7fa672c176af5d4efee455d2f96ea28f2d7944cab48a99ca1",
+  "terminal_shape": [
+    4,
+    300,
+    192
+  ],
+  "version": 1
+}

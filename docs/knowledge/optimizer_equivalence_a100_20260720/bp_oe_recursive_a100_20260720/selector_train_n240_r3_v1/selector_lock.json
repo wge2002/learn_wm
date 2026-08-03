@@ -1,0 +1,28 @@
+{
+  "locked_at_utc": "2026-07-20T17:51:16Z",
+  "fresh_evaluation_opened": false,
+  "selection_protocol": "four OOF-operator shards; leave-one-shard-out selector CV; minimize 90th-percentile-capped true branch regret",
+  "method": "bp_sparse_matched",
+  "selected_config": {
+    "alpha": 0.1,
+    "family": "action",
+    "target": "clipped_delta"
+  },
+  "train_oof": {
+    "accuracy": 0.6083333333333334,
+    "delta_vs_k10_selector": -0.06643956418479699,
+    "delta_vs_primary": -1.3771898270620648,
+    "mean_oracle_gap": 3.026321731872294
+  },
+  "deferred_commitment_pretest_audit": {
+    "first_two_over_last_two_normalized_branch_divergence": 1.0033533576596536,
+    "verdict": "closed: branches diverge equally from the first action block"
+  },
+  "sha256": {
+    "selector_script": "2a2ae81ff40a2f06bdbb20ccbc56bd564c562a28fa738fce8805b63537463120",
+    "shard_0_60": "1e54c7bba0a708bf6cb48f7d5547766cd2b06dfd06de36c869251ee5dafef060",
+    "shard_60_120": "7aba95cf2babc871ed2af5f85d56f4373eb2c3df6c1ac552d17a455989889af9",
+    "shard_120_180": "bd765e4bdfb337b3c00e35cc52a489c91d42d275f464dfbc343e394cae84336b",
+    "shard_180_240": "92ebd94b4442d909a5e33788a069a9052070f8914fb89b129bf31a088381436f"
+  }
+}

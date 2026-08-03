@@ -1,0 +1,62 @@
+{
+  "adoption_rate": 0.45,
+  "anchor": {
+    "actual_success": 0.35,
+    "mean_cost": 69.08234554483124
+  },
+  "anchor_adoption_gate": {
+    "actual_success": 0.36666666666666664,
+    "bootstrap_ci95": [
+      -7.218214709122154,
+      -0.6658604448272346
+    ],
+    "mean_cost": 65.08545023985477,
+    "mean_delta": -3.996895304976488,
+    "median_delta": 0.0,
+    "num_states": 60,
+    "success_rate_cost_lt_20": 0.35,
+    "ties": 33,
+    "trimmed_delta": -4.325617106036086,
+    "wins": 21
+  },
+  "anchor_method": "k3_1x300",
+  "anchor_plus_two_branch_oracle": {
+    "actual_success": 0.45,
+    "bootstrap_ci95": [
+      -11.320406442449743,
+      -5.841356892206959
+    ],
+    "mean_cost": 60.62653841262748,
+    "mean_delta": -8.455807132203779,
+    "median_delta": -3.9603061151590175,
+    "num_states": 60,
+    "success_rate_cost_lt_20": 0.45,
+    "ties": 23,
+    "trimmed_delta": -8.003529172390573,
+    "wins": 37
+  },
+  "comparison": {
+    "actual_success": 0.35,
+    "mean_cost": 69.08234554483124
+  },
+  "comparison_method": "k3_1x300",
+  "learned_branch_without_anchor": {
+    "actual_success": 0.3333333333333333,
+    "bootstrap_ci95": [
+      -7.139308202548972,
+      1.6118538882580369
+    ],
+    "mean_cost": 66.24902808739651,
+    "mean_delta": -2.833317457434737,
+    "median_delta": -1.6150220248674279,
+    "num_states": 60,
+    "success_rate_cost_lt_20": 0.26666666666666666,
+    "ties": 0,
+    "trimmed_delta": -3.121915884441171,
+    "wins": 33
+  },
+  "rows": 60,
+  "rule": "adopt learned BP branch iff its final K10 cost is lower than the ordinary K3 anchor final K10 cost",
+  "threshold_fitted": false,
+  "version": 1
+}

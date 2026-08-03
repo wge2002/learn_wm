@@ -1,0 +1,274 @@
+/225010117/code/learn_wm/stable_worldmodel/envs/__init__.py:215: UserWarning: ale-py not found; ALE/* envs are unavailable. Install with: pip install 'stable-worldmodel[env]' or pip install ale-py.
+  from stable_worldmodel.envs import ale  # noqa: F401
+14:50:00 | INFO  | utils.py    | Loading checkpoint from folder /225010117/stablewm/checkpoints/pd_d192_k3_eval...
+/225010117/code/learn_wm/stable_worldmodel/wm/utils.py:81: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(checkpoint_path, map_location='cpu')
+14:50:17 | INFO  | atomic_chec~| [atomic_save] installed crash-safe checkpoint plugin (write to sibling .tmp + fsync + atomic rename)
+14:50:42 | INFO  | utils.py    | Created ViT-tiny from scratch with config: {'hidden_size': 192, 'num_hidden_layers': 12, 'num_attention_heads': 3, 'intermediate_size': 768, 'image_size': 224, 'patch_size': 14}
+[2026-07-20 14:50:54,556][root][INFO] - Cached 'action' from '/225010117/data/pusht_expert_train.h5'
+[2026-07-20 14:50:54,659][root][INFO] - Cached 'proprio' from '/225010117/data/pusht_expert_train.h5'
+[2026-07-20 14:50:54,850][root][INFO] - Cached 'state' from '/225010117/data/pusht_expert_train.h5'
+[1/240] rounds=4 population=300 max_cost_diff=0.000e+00
+[2/240] rounds=4 population=300 max_cost_diff=0.000e+00
+[3/240] rounds=4 population=300 max_cost_diff=0.000e+00
+[4/240] rounds=4 population=300 max_cost_diff=0.000e+00
+[5/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[6/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[7/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[8/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[9/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[10/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[11/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[12/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[13/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[14/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[15/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[16/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[17/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[18/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[19/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[20/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[21/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[22/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[23/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[24/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[25/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[26/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[27/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[28/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[29/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[30/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[31/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[32/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[33/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[34/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[35/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[36/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[37/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[38/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[39/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[40/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[41/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[42/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[43/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[44/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[45/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[46/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[47/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[48/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[49/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[50/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[51/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[52/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[53/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[54/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[55/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[56/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[57/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[58/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[59/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[60/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[61/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[62/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[63/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[64/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[65/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[66/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[67/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[68/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[69/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[70/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[71/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[72/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[73/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[74/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[75/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[76/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[77/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[78/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[79/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[80/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[81/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[82/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[83/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[84/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[85/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[86/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[87/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[88/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[89/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[90/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[91/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[92/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[93/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[94/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[95/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[96/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[97/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[98/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[99/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[100/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[101/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[102/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[103/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[104/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[105/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[106/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[107/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[108/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[109/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[110/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[111/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[112/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[113/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[114/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[115/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[116/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[117/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[118/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[119/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[120/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[121/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[122/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[123/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[124/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[125/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[126/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[127/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[128/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[129/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[130/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[131/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[132/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[133/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[134/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[135/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[136/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[137/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[138/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[139/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[140/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[141/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[142/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[143/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[144/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[145/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[146/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[147/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[148/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[149/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[150/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[151/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[152/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[153/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[154/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[155/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[156/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[157/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[158/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[159/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[160/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[161/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[162/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[163/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[164/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[165/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[166/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[167/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[168/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[169/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[170/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[171/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[172/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[173/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[174/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[175/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[176/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[177/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[178/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[179/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[180/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[181/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[182/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[183/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[184/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[185/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[186/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[187/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[188/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[189/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[190/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[191/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[192/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[193/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[194/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[195/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[196/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[197/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[198/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[199/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[200/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[201/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[202/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[203/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[204/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[205/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[206/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[207/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[208/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[209/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[210/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[211/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[212/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[213/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[214/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[215/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[216/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[217/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[218/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[219/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[220/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[221/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[222/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[223/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[224/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[225/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[226/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[227/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[228/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[229/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[230/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[231/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[232/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[233/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[234/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[235/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[236/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[237/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[238/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[239/240] rounds=4 population=300 max_cost_diff=3.640e+01
+[240/240] rounds=4 population=300 max_cost_diff=3.640e+01
+candidate outcome cache -> /225010117/logs/candidate_outcome_gate_a100_20260720/h5_candidate_outcomes.npz
+{
+  "dataset": "/225010117/data/pusht_expert_train.h5",
+  "goal_shape": [
+    192
+  ],
+  "max_cost_mismatch": 36.40235900878906,
+  "max_goal_mismatch": 0.0,
+  "max_state_mismatch": 0.0,
+  "mean_cost_mae": 0.008803649366503427,
+  "mean_top30_overlap": 0.9996527777777778,
+  "policy": "pd_d192_k3_eval",
+  "population": 300,
+  "rounds": 4,
+  "rows": 240,
+  "source": "/225010117/logs/operator_query_bank_a100_20260720/h5_off40_k3_n240_merged_v1.npz",
+  "source_sha256": "845a1f15e14af2e7fa672c176af5d4efee455d2f96ea28f2d7944cab48a99ca1",
+  "terminal_shape": [
+    4,
+    300,
+    192
+  ],
+  "version": 1
+}

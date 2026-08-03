@@ -11,6 +11,11 @@ subdir: ${hydra:job.id}
 resume_ckpt_path: null
 resume_weights_only: false
 
+# Optional exported model state_dict used when a full Lightning checkpoint is
+# unavailable. epoch_offset keeps newly exported filenames monotonic.
+init_weights_path: null
+epoch_offset: 0
+
 num_workers: 6
 train_split: 0.9
 seed: 3072

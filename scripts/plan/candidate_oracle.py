@@ -97,8 +97,15 @@ def stratify(costs: np.ndarray, per_state: int, rng) -> np.ndarray:
     return np.asarray(selected, dtype=np.int64)
 
 
-def sample_starts(dataset, num_states: int, goal_offset: int, rng):
-    """Exactly match eval_wm's row-uniform sampling protocol."""
+def sample_starts(
+    dataset,
+    num_states: int,
+    goal_offset: int,
+    rng,
+    *,
+    excluded_rows=None,
+):
+    """Match eval_wm's row-uniform protocol, optionally without used rows."""
     col = 'episode_idx' if 'episode_idx' in dataset.column_names else 'ep_idx'
     episode_idx = np.asarray(dataset.get_col_data(col))
     step_idx = np.asarray(dataset.get_col_data('step_idx'))
@@ -109,7 +116,12 @@ def sample_starts(dataset, num_states: int, goal_offset: int, rng):
     # ``eval_wm`` samples integer positions from ``len(valid) - 1`` and then
     # indexes the valid-row array. Preserve that historical off-by-one here so
     # the same seed gives the exact same ordered starts for paired audits.
-    population = len(valid) - 1
+    eligible = valid[:-1]
+    if excluded_rows is not None:
+        excluded = np.asarray(excluded_rows, dtype=np.int64).reshape(-1)
+        if len(excluded):
+            eligible = eligible[~np.isin(eligible, excluded)]
+    population = len(eligible)
     if population < num_states:
         raise ValueError(
             f'Only {population} evaluator-matched starts for goal offset '
@@ -117,7 +129,7 @@ def sample_starts(dataset, num_states: int, goal_offset: int, rng):
             f'but oracle.num_states={num_states}'
         )
     positions = rng.choice(population, size=num_states, replace=False)
-    rows = np.sort(valid[positions])
+    rows = np.sort(eligible[positions])
     return rows, episode_idx[rows], step_idx[rows]
 
 

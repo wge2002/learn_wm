@@ -1,0 +1,219 @@
+/225010117/code/learn_wm/stable_worldmodel/envs/__init__.py:215: UserWarning: ale-py not found; ALE/* envs are unavailable. Install with: pip install 'stable-worldmodel[env]' or pip install ale-py.
+  from stable_worldmodel.envs import ale  # noqa: F401
+17:41:21 | INFO  | utils.py    | Loading checkpoint from folder /225010117/stablewm/checkpoints/pd_d192_k3_eval...
+/225010117/code/learn_wm/stable_worldmodel/wm/utils.py:81: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(checkpoint_path, map_location='cpu')
+17:41:26 | INFO  | atomic_chec~| [atomic_save] installed crash-safe checkpoint plugin (write to sibling .tmp + fsync + atomic rename)
+17:41:26 | INFO  | utils.py    | Created ViT-tiny from scratch with config: {'hidden_size': 192, 'num_hidden_layers': 12, 'num_attention_heads': 3, 'intermediate_size': 768, 'image_size': 224, 'patch_size': 14}
+17:41:27 | INFO  | utils.py    | Loading checkpoint from folder /225010117/stablewm/checkpoints/pd_d192_k10_eval...
+/225010117/code/learn_wm/stable_worldmodel/wm/utils.py:81: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(checkpoint_path, map_location='cpu')
+17:41:27 | INFO  | utils.py    | Created ViT-tiny from scratch with config: {'hidden_size': 192, 'num_hidden_layers': 12, 'num_attention_heads': 3, 'intermediate_size': 768, 'image_size': 224, 'patch_size': 14}
+[2026-07-20 17:41:27,615][root][INFO] - Cached 'action' from '/225010117/data/pusht_expert_train.h5'
+[2026-07-20 17:41:27,653][root][INFO] - Cached 'proprio' from '/225010117/data/pusht_expert_train.h5'
+[2026-07-20 17:41:27,710][root][INFO] - Cached 'state' from '/225010117/data/pusht_expert_train.h5'
+[source=180 local=1/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.0m
+[source=180 local=1/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.0m
+[source=180 local=1/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.0m
+[source=181 local=2/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.0m
+[source=181 local=2/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.0m
+[source=181 local=2/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.0m
+[source=182 local=3/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.0m
+[source=182 local=3/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.0m
+[source=182 local=3/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.0m
+[source=183 local=4/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.0m
+[source=183 local=4/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.0m
+[source=183 local=4/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.0m
+[source=184 local=5/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.0m
+[source=184 local=5/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.0m
+[source=184 local=5/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.0m
+[source=185 local=6/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.0m
+[source=185 local=6/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.0m
+[source=185 local=6/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.0m
+[source=186 local=7/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=186 local=7/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=186 local=7/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=187 local=8/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=187 local=8/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=187 local=8/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=188 local=9/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=188 local=9/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=188 local=9/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=189 local=10/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=189 local=10/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=189 local=10/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=190 local=11/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=190 local=11/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=190 local=11/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=191 local=12/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=191 local=12/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=191 local=12/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=192 local=13/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=192 local=13/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=192 local=13/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=193 local=14/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=193 local=14/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=193 local=14/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=194 local=15/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=194 local=15/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=194 local=15/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=195 local=16/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=195 local=16/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=195 local=16/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=196 local=17/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=196 local=17/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=196 local=17/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=197 local=18/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=197 local=18/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=197 local=18/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.1m
+[source=198 local=19/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.1m
+[source=198 local=19/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.1m
+[source=198 local=19/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=199 local=20/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=199 local=20/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=199 local=20/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=200 local=21/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=200 local=21/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=200 local=21/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=201 local=22/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=201 local=22/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=201 local=22/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=202 local=23/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=202 local=23/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=202 local=23/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=203 local=24/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=203 local=24/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=203 local=24/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=204 local=25/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=204 local=25/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=204 local=25/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=205 local=26/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=205 local=26/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=205 local=26/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=206 local=27/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=206 local=27/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=206 local=27/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=207 local=28/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=207 local=28/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=207 local=28/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=208 local=29/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=208 local=29/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=208 local=29/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=209 local=30/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=209 local=30/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=209 local=30/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=210 local=31/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.2m
+[source=210 local=31/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.2m
+[source=210 local=31/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.2m
+[source=211 local=32/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=211 local=32/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=211 local=32/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=212 local=33/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=212 local=33/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=212 local=33/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=213 local=34/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=213 local=34/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=213 local=34/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=214 local=35/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=214 local=35/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=214 local=35/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=215 local=36/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=215 local=36/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=215 local=36/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=216 local=37/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=216 local=37/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=216 local=37/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=217 local=38/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=217 local=38/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=217 local=38/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=218 local=39/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=218 local=39/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=218 local=39/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=219 local=40/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=219 local=40/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=219 local=40/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=220 local=41/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=220 local=41/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=220 local=41/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=221 local=42/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=221 local=42/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=221 local=42/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=222 local=43/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=222 local=43/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=222 local=43/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=223 local=44/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.3m
+[source=223 local=44/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.3m
+[source=223 local=44/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.3m
+[source=224 local=45/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=224 local=45/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=224 local=45/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=225 local=46/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=225 local=46/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=225 local=46/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=226 local=47/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=226 local=47/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=226 local=47/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=227 local=48/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=227 local=48/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=227 local=48/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=228 local=49/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=228 local=49/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=228 local=49/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=229 local=50/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=229 local=50/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=229 local=50/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=230 local=51/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=230 local=51/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=230 local=51/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=231 local=52/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=231 local=52/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=231 local=52/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=232 local=53/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=232 local=53/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=232 local=53/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=233 local=54/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=233 local=54/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=233 local=54/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=234 local=55/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=234 local=55/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=234 local=55/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=235 local=56/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.4m
+[source=235 local=56/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.4m
+[source=235 local=56/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.4m
+[source=236 local=57/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.5m
+[source=236 local=57/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.5m
+[source=236 local=57/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.5m
+[source=237 local=58/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.5m
+[source=237 local=58/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.5m
+[source=237 local=58/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.5m
+[source=238 local=59/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.5m
+[source=238 local=59/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.5m
+[source=238 local=59/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.5m
+[source=239 local=60/60] bp_sparse_matched round=1/3 simulator=skipped branches=2 elapsed=0.5m
+[source=239 local=60/60] bp_sparse_matched round=2/3 simulator=skipped branches=2 elapsed=0.5m
+[source=239 local=60/60] bp_sparse_matched round=3/3 simulator=skipped branches=2 elapsed=0.5m
+{
+  "bp_sparse_matched": {
+    "consensus": {
+      "mean_true": 97.03059321439356,
+      "success": 0.25
+    },
+    "k10": {
+      "mean_true": 97.94604549682636,
+      "success": 0.23333333333333334
+    },
+    "k3": {
+      "mean_true": 97.32842258088917,
+      "success": 0.25
+    },
+    "oracle_union": {
+      "mean_true": 94.80008022633682,
+      "success": 0.26666666666666666
+    },
+    "primary": {
+      "mean_true": 98.44518584661756,
+      "success": 0.25
+    }
+  }
+}
+branch-preserving result -> /225010117/logs/bp_oe_recursive_a100_20260720/selector_train_n240_r3_v1/shard_180_240.npz

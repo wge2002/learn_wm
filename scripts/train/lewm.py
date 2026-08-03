@@ -87,22 +87,33 @@ def preprocess_pixels_on_device(batch, img_size: int):
 class SaveCkptCallback(Callback):
     """Callback to save model checkpoint after each epoch using save_pretrained."""
 
-    def __init__(self, run_name, cfg, epoch_interval: int = 1):
+    def __init__(
+        self,
+        run_name,
+        cfg,
+        epoch_interval: int = 1,
+        epoch_offset: int = 0,
+    ):
         super().__init__()
         self.run_name = run_name
         self.cfg = cfg
         self.epoch_interval = epoch_interval
+        self.epoch_offset = epoch_offset
 
     def on_train_epoch_end(self, trainer, pl_module):
         super().on_train_epoch_end(trainer, pl_module)
 
         if trainer.is_global_zero:
-            if (trainer.current_epoch + 1) % self.epoch_interval == 0:
-                self._save(pl_module.model, trainer.current_epoch + 1)
+            local_epoch = trainer.current_epoch + 1
+            exported_epoch = self.epoch_offset + local_epoch
+            saved = False
+            if exported_epoch % self.epoch_interval == 0:
+                self._save(pl_module.model, exported_epoch)
+                saved = True
 
             # save final epoch
-            if (trainer.current_epoch + 1) == trainer.max_epochs:
-                self._save(pl_module.model, trainer.current_epoch + 1)
+            if local_epoch == trainer.max_epochs and not saved:
+                self._save(pl_module.model, exported_epoch)
 
     def _save(self, model, epoch):
         save_pretrained(
@@ -244,10 +255,26 @@ def lejepa_forward(self, batch, stage, cfg):
         tgt_emb = emb[:, 1:hs + 1]
         base = (pred_emb - tgt_emb).pow(2).mean()
         if reg == 'curvature':
-            v = emb[:, 1:] - emb[:, :-1]                       # (B,T-1,D) velocities
-            vn = v / v.norm(dim=-1, keepdim=True).clamp_min(1e-6)
-            cos = (vn[:, 1:] * vn[:, :-1]).sum(-1)             # (B,T-2)
-            aux = (1.0 - cos).mean()
+            # Temporal tangent direction is undefined when two consecutive
+            # observations have identical embeddings. PushT contains exact
+            # duplicate-frame transitions: normalizing those zero velocities
+            # injected a 1/eps gradient and eventually destabilized otherwise
+            # finite multi-epoch runs. Compute the angle in fp32 and exclude
+            # tangent pairs for which either velocity is too small.
+            v = (emb[:, 1:] - emb[:, :-1]).float()              # (B,T-1,D)
+            min_speed = float(cfg.wm.get('curvature_min_speed', 0.1))
+            if min_speed <= 0:
+                raise ValueError(
+                    f'curvature_min_speed must be positive, got {min_speed}'
+                )
+            speed = v.norm(p=2, dim=-1)
+            valid_speed = speed >= min_speed
+            vn = v / speed.clamp_min(min_speed).unsqueeze(-1)
+            cos = (vn[:, 1:] * vn[:, :-1]).sum(-1).clamp(-1, 1)
+            valid_pair = valid_speed[:, 1:] & valid_speed[:, :-1]
+            valid_pair_f = valid_pair.to(cos.dtype)
+            aux = ((1.0 - cos) * valid_pair_f).sum()
+            aux = aux / valid_pair_f.sum().clamp_min(1.0)
         elif reg == 'bisim':
             gamma = float(cfg.wm.get('bisim_gamma', 0.9))
             z0 = emb[:, hs - 1]                                # (B,D) current
@@ -262,6 +289,25 @@ def lejepa_forward(self, batch, stage, cfg):
         output['pred_loss'] = base + beta * aux
         output['sigreg_loss'] = self.sigreg(emb.transpose(0, 1))
         output['loss'] = output['pred_loss'] + lambd * output['sigreg_loss']
+        components = {
+            'base': base,
+            'aux': aux,
+            'sigreg': output['sigreg_loss'],
+            'total': output['loss'],
+        }
+        bad_components = [
+            name
+            for name, value in components.items()
+            if not bool(torch.isfinite(value.detach()).all())
+        ]
+        if bad_components:
+            summary = ', '.join(
+                f'{name}={float(value.detach())}'
+                for name, value in components.items()
+            )
+            raise FloatingPointError(
+                f'non-finite {reg} loss components {bad_components}: {summary}'
+            )
         losses_dict = {
             f'{stage}/{k}': v.detach() for k, v in output.items() if 'loss' in k
         }
@@ -462,8 +508,30 @@ def run(cfg):
     ##############################
 
     world_model = hydra.utils.instantiate(cfg.model)
+    init_weights_path = cfg.get('init_weights_path')
+    if init_weights_path:
+        init_path = Path(init_weights_path).expanduser().resolve()
+        if not init_path.is_file():
+            raise FileNotFoundError(
+                f'init_weights_path does not exist: {init_path}'
+            )
+        state_dict = torch.load(
+            init_path,
+            map_location='cpu',
+            weights_only=True,
+        )
+        world_model.load_state_dict(state_dict, strict=True)
+        print(f'Loaded model initialization from {init_path}')
 
-    total_steps = cfg.trainer.max_epochs * len(train)
+    devices = cfg.trainer.get('devices', 1)
+    if devices == 'auto':
+        num_devices = torch.cuda.device_count()
+    elif isinstance(devices, int):
+        num_devices = devices
+    else:
+        num_devices = len(devices)
+    world_size = max(1, num_devices * int(cfg.trainer.get('num_nodes', 1)))
+    total_steps = cfg.trainer.max_epochs * max(1, len(train) // world_size)
     optimizers = {
         'model_opt': {
             'modules': 'model',
@@ -503,15 +571,21 @@ def run(cfg):
     with open(run_dir / 'config.yaml', 'w') as f:
         OmegaConf.save(cfg, f)
 
+    epoch_offset = int(cfg.get('epoch_offset', 0) or 0)
+    if epoch_offset < 0:
+        raise ValueError(f'epoch_offset must be non-negative, got {epoch_offset}')
     object_dump_callback = SaveCkptCallback(
         run_name=cfg.output_model_name,
         cfg=cfg,
         epoch_interval=1,
+        epoch_offset=epoch_offset,
     )
     critwm_state_callback = CritWMStateCallback()
 
+    trainer_kwargs = OmegaConf.to_container(cfg.trainer, resolve=True)
+    trainer_kwargs.setdefault('default_root_dir', str(run_dir))
     trainer = pl.Trainer(
-        **cfg.trainer,
+        **trainer_kwargs,
         callbacks=[object_dump_callback, critwm_state_callback],
         num_sanity_val_steps=1,
         logger=logger,

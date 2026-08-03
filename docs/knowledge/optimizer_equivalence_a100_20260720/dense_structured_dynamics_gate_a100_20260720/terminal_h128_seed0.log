@@ -1,0 +1,15 @@
+# Structured counterfactual dynamics-head probe
+
+Training epoch and frozen/structured cost fusion are selected on inner held-out states. Every reported prediction is from an outer state-held-out model.
+
+- Cell: `h5_off40`
+- Context: `dense_moment`
+- Supervision: `terminal`
+
+| metric | frozen LeWM | structured | delta | paired 95% CI |
+|---|---:|---:|---:|---:|
+| update_cosine | 0.181 | 0.187 | +0.006 | [-0.035, +0.047] |
+| relative_update_error | 1.141 | 1.324 | +0.184 | [+0.138, +0.230] |
+| elite_overlap | 0.190 | 0.179 | -0.011 | [-0.032, +0.011] |
+| selected_elite_true_cost | 100.883 | 102.521 | +1.638 | [-0.324, +3.543] |
+results -> /225010117/logs/dense_structured_dynamics_gate_a100_20260720/terminal_h128_seed0

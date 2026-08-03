@@ -1,0 +1,1869 @@
+nohup: ignoring input
+topology audit 10/240 states
+topology audit 20/240 states
+topology audit 30/240 states
+topology audit 40/240 states
+topology audit 50/240 states
+topology audit 60/240 states
+topology audit 70/240 states
+topology audit 80/240 states
+topology audit 90/240 states
+topology audit 100/240 states
+topology audit 110/240 states
+topology audit 120/240 states
+topology audit 130/240 states
+topology audit 140/240 states
+topology audit 150/240 states
+topology audit 160/240 states
+topology audit 170/240 states
+topology audit 180/240 states
+topology audit 190/240 states
+topology audit 200/240 states
+topology audit 210/240 states
+topology audit 220/240 states
+topology audit 230/240 states
+topology audit 240/240 states
+{
+  "basis_energy": {
+    "0": {
+      "first_dim": 0.5100520115395364,
+      "raw_selected_dims": 0.2769169774757493,
+      "selected_dims": 0.9847431064666506
+    },
+    "1": {
+      "first_dim": 0.4981019197435438,
+      "raw_selected_dims": 0.27417555874312083,
+      "selected_dims": 0.9821659385595871
+    },
+    "2": {
+      "first_dim": 0.5480457049551599,
+      "raw_selected_dims": 0.26583243862637296,
+      "selected_dims": 0.9839961471018998
+    },
+    "3": {
+      "first_dim": 0.5066752142165395,
+      "raw_selected_dims": 0.26804472320767125,
+      "selected_dims": 0.9800650915075735
+    }
+  },
+  "codebook_modes": 4,
+  "components": {
+    "k12_r0.05": {
+      "k10": {
+        "component_coverage": {
+          "ci95": [
+            0.34898556622775373,
+            0.40369018589917016
+          ],
+          "mean": 0.3761561673280423,
+          "median_state_mean": 0.37023809523809526,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.48020833333333335,
+            0.09273437499999773
+          ],
+          "mean": -0.19583333333333333,
+          "median_state_mean": -0.25,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.19770833333333332,
+            0.23493055555555553
+          ],
+          "mean": 0.21604166666666663,
+          "median_state_mean": 0.19999999999999998,
+          "states": 240
+        }
+      },
+      "k3": {
+        "component_coverage": {
+          "ci95": [
+            0.21675120177854554,
+            0.2580601898824555
+          ],
+          "mean": 0.2375796021108521,
+          "median_state_mean": 0.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            1.0125,
+            1.734375
+          ],
+          "mean": 1.371875,
+          "median_state_mean": 1.0,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.11215277777777777,
+            0.13680555555555554
+          ],
+          "mean": 0.124375,
+          "median_state_mean": 0.11666666666666667,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "component_coverage": {
+          "ci95": [
+            0.1866180248426342,
+            0.22677084272787396
+          ],
+          "mean": 0.20624614101176603,
+          "median_state_mean": 0.16160714285714284,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            5.340625,
+            5.917708333333334
+          ],
+          "mean": 5.627083333333333,
+          "median_state_mean": 5.5,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.04479166666666667,
+            0.05104166666666667
+          ],
+          "mean": 0.04791666666666667,
+          "median_state_mean": 0.05,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          4.538541666666666,
+          5.064583333333333
+        ],
+        "mean": 4.801041666666666,
+        "median_state_mean": 5.0,
+        "states": 240
+      }
+    },
+    "k12_r0.1": {
+      "k10": {
+        "component_coverage": {
+          "ci95": [
+            0.47426641219024024,
+            0.5245495661745663
+          ],
+          "mean": 0.4994547408609908,
+          "median_state_mean": 0.5027777777777778,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.74375,
+            -0.04375
+          ],
+          "mean": -0.396875,
+          "median_state_mean": -0.375,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.27600694444444446,
+            0.3165277777777778
+          ],
+          "mean": 0.2962152777777778,
+          "median_state_mean": 0.29166666666666663,
+          "states": 240
+        }
+      },
+      "k3": {
+        "component_coverage": {
+          "ci95": [
+            0.3754981850470132,
+            0.42381382347397967
+          ],
+          "mean": 0.39960318616568613,
+          "median_state_mean": 0.422979797979798,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            0.925,
+            1.7447916666666667
+          ],
+          "mean": 1.3364583333333333,
+          "median_state_mean": 1.25,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.17430555555555555,
+            0.20545138888888884
+          ],
+          "mean": 0.18975694444444444,
+          "median_state_mean": 0.18333333333333332,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "component_coverage": {
+          "ci95": [
+            0.4018541866119991,
+            0.4444923310196748
+          ],
+          "mean": 0.42293520426332926,
+          "median_state_mean": 0.3940972222222222,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            8.147916666666667,
+            8.787526041666665
+          ],
+          "mean": 8.465625,
+          "median_state_mean": 8.75,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.09638888888888889,
+            0.10302083333333334
+          ],
+          "mean": 0.09968749999999998,
+          "median_state_mean": 0.09999999999999999,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          4.688541666666667,
+          5.248958333333333
+        ],
+        "mean": 4.966666666666667,
+        "median_state_mean": 4.75,
+        "states": 240
+      }
+    },
+    "k12_r0.2": {
+      "k10": {
+        "component_coverage": {
+          "ci95": [
+            0.607201570492586,
+            0.6495113542418229
+          ],
+          "mean": 0.6284014307451807,
+          "median_state_mean": 0.6354166666666667,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.33125,
+            0.165625
+          ],
+          "mean": -0.08541666666666667,
+          "median_state_mean": 0.0,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.40097222222222223,
+            0.4435768229166666
+          ],
+          "mean": 0.42203124999999997,
+          "median_state_mean": 0.44166666666666665,
+          "states": 240
+        }
+      },
+      "k3": {
+        "component_coverage": {
+          "ci95": [
+            0.6293105374804594,
+            0.6703057453252764
+          ],
+          "mean": 0.6499255143005144,
+          "median_state_mean": 0.6681547619047619,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            0.12604166666666666,
+            0.6177083333333333
+          ],
+          "mean": 0.37083333333333335,
+          "median_state_mean": 0.25,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.28704861111111113,
+            0.3244448784722222
+          ],
+          "mean": 0.30576388888888884,
+          "median_state_mean": 0.3208333333333333,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "component_coverage": {
+          "ci95": [
+            0.552583329575517,
+            0.5865113945660819
+          ],
+          "mean": 0.5694028251840753,
+          "median_state_mean": 0.5625,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            5.009348958333334,
+            5.433333333333334
+          ],
+          "mean": 5.225,
+          "median_state_mean": 5.5,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.19741319444444444,
+            0.20383680555555556
+          ],
+          "mean": 0.2006423611111111,
+          "median_state_mean": 0.19999999999999998,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          3.6125,
+          3.9447916666666667
+        ],
+        "mean": 3.7760416666666665,
+        "median_state_mean": 3.75,
+        "states": 240
+      }
+    },
+    "k20_r0.05": {
+      "k10": {
+        "component_coverage": {
+          "ci95": [
+            0.43115586764219577,
+            0.4937695105820106
+          ],
+          "mean": 0.46218625992063495,
+          "median_state_mean": 0.4583333333333333,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.503125,
+            -0.08645833333333333
+          ],
+          "mean": -0.29270833333333335,
+          "median_state_mean": -0.25,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.19756944444444446,
+            0.23493055555555556
+          ],
+          "mean": 0.21604166666666663,
+          "median_state_mean": 0.19999999999999998,
+          "states": 240
+        }
+      },
+      "k3": {
+        "component_coverage": {
+          "ci95": [
+            0.2770304026124338,
+            0.3289808304398148
+          ],
+          "mean": 0.30295758928571426,
+          "median_state_mean": 0.3,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            0.5322916666666667,
+            1.0479166666666666
+          ],
+          "mean": 0.7885416666666667,
+          "median_state_mean": 0.75,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.11208333333333333,
+            0.13673611111111109
+          ],
+          "mean": 0.124375,
+          "median_state_mean": 0.11666666666666667,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "component_coverage": {
+          "ci95": [
+            0.26967409680886245,
+            0.3181749958664021
+          ],
+          "mean": 0.29375537367724863,
+          "median_state_mean": 0.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            4.760416666666667,
+            5.177083333333333
+          ],
+          "mean": 4.970833333333333,
+          "median_state_mean": 5.0,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.044861111111111115,
+            0.051041666666666666
+          ],
+          "mean": 0.04791666666666667,
+          "median_state_mean": 0.05,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          2.888541666666667,
+          3.2416666666666667
+        ],
+        "mean": 3.0635416666666666,
+        "median_state_mean": 3.0,
+        "states": 240
+      }
+    },
+    "k20_r0.1": {
+      "k10": {
+        "component_coverage": {
+          "ci95": [
+            0.5909324260085979,
+            0.6454068287037036
+          ],
+          "mean": 0.6184408068783068,
+          "median_state_mean": 0.6375,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.31354166666666666,
+            0.04479166666666667
+          ],
+          "mean": -0.134375,
+          "median_state_mean": 0.0,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.2760755208333333,
+            0.3165277777777778
+          ],
+          "mean": 0.2962152777777778,
+          "median_state_mean": 0.29166666666666663,
+          "states": 240
+        }
+      },
+      "k3": {
+        "component_coverage": {
+          "ci95": [
+            0.4879265046296296,
+            0.5460606088789682
+          ],
+          "mean": 0.5171188822751323,
+          "median_state_mean": 0.5208333333333333,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            0.159375,
+            0.53125
+          ],
+          "mean": 0.34479166666666666,
+          "median_state_mean": 0.375,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.17434027777777777,
+            0.20541753472222216
+          ],
+          "mean": 0.18975694444444444,
+          "median_state_mean": 0.18333333333333332,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "component_coverage": {
+          "ci95": [
+            0.5849285300925927,
+            0.6327670304232803
+          ],
+          "mean": 0.6087735615079365,
+          "median_state_mean": 0.6041666666666666,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            4.428125,
+            4.770833333333333
+          ],
+          "mean": 4.602083333333334,
+          "median_state_mean": 4.75,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.09635416666666667,
+            0.10302083333333334
+          ],
+          "mean": 0.09968749999999998,
+          "median_state_mean": 0.09999999999999999,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          2.426041666666667,
+          2.684375
+        ],
+        "mean": 2.5541666666666667,
+        "median_state_mean": 2.5,
+        "states": 240
+      }
+    },
+    "k20_r0.2": {
+      "k10": {
+        "component_coverage": {
+          "ci95": [
+            0.7576931423611112,
+            0.8003101438492063
+          ],
+          "mean": 0.7795659722222222,
+          "median_state_mean": 0.8125,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.03125,
+            0.16666666666666666
+          ],
+          "mean": 0.06770833333333333,
+          "median_state_mean": 0.0,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.40107638888888886,
+            0.4429865451388888
+          ],
+          "mean": 0.42203124999999997,
+          "median_state_mean": 0.44166666666666665,
+          "states": 240
+        }
+      },
+      "k3": {
+        "component_coverage": {
+          "ci95": [
+            0.7816367807539684,
+            0.8218258308531745
+          ],
+          "mean": 0.8021254960317461,
+          "median_state_mean": 0.8416666666666667,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.246875,
+            -0.075
+          ],
+          "mean": -0.16145833333333334,
+          "median_state_mean": -0.25,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.28710069444444447,
+            0.3245138888888889
+          ],
+          "mean": 0.30576388888888884,
+          "median_state_mean": 0.3208333333333333,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "component_coverage": {
+          "ci95": [
+            0.7564831349206348,
+            0.7910020461309524
+          ],
+          "mean": 0.7738392857142856,
+          "median_state_mean": 0.75,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.071875,
+            0.10208333333333333
+          ],
+          "mean": 0.015625,
+          "median_state_mean": 0.0,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.19743055555555553,
+            0.20383680555555556
+          ],
+          "mean": 0.2006423611111111,
+          "median_state_mean": 0.19999999999999998,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          1.778125,
+          1.9052083333333334
+        ],
+        "mean": 1.8395833333333333,
+        "median_state_mean": 1.75,
+        "states": 240
+      }
+    },
+    "k8_r0.05": {
+      "k10": {
+        "component_coverage": {
+          "ci95": [
+            0.3049042306796213,
+            0.3536408557443714
+          ],
+          "mean": 0.3290147844054095,
+          "median_state_mean": 0.3259424603174603,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.4354166666666667,
+            0.24583333333333332
+          ],
+          "mean": -0.09479166666666666,
+          "median_state_mean": -0.25,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.19777777777777777,
+            0.23486111111111108
+          ],
+          "mean": 0.21604166666666663,
+          "median_state_mean": 0.19999999999999998,
+          "states": 240
+        }
+      },
+      "k3": {
+        "component_coverage": {
+          "ci95": [
+            0.18137652928668552,
+            0.21688308046120544
+          ],
+          "mean": 0.19916665510415513,
+          "median_state_mean": 0.20928030303030304,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            1.3229166666666667,
+            2.142708333333333
+          ],
+          "mean": 1.7302083333333333,
+          "median_state_mean": 1.25,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.11215277777777777,
+            0.13673611111111109
+          ],
+          "mean": 0.124375,
+          "median_state_mean": 0.11666666666666667,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "component_coverage": {
+          "ci95": [
+            0.13779507818570316,
+            0.16799035173449237
+          ],
+          "mean": 0.1524666623885374,
+          "median_state_mean": 0.11976010101010101,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            5.164583333333334,
+            5.840625
+          ],
+          "mean": 5.5,
+          "median_state_mean": 5.0,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.04479166666666667,
+            0.05111111111111111
+          ],
+          "mean": 0.04791666666666667,
+          "median_state_mean": 0.05,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          5.997890625,
+          6.626041666666667
+        ],
+        "mean": 6.315625,
+        "median_state_mean": 6.75,
+        "states": 240
+      }
+    },
+    "k8_r0.1": {
+      "k10": {
+        "component_coverage": {
+          "ci95": [
+            0.41717457888583387,
+            0.4647209564336083
+          ],
+          "mean": 0.4408142962576497,
+          "median_state_mean": 0.45388257575757573,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.8958333333333334,
+            0.1125260416666644
+          ],
+          "mean": -0.39479166666666665,
+          "median_state_mean": -0.5,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.27597222222222223,
+            0.31687586805555557
+          ],
+          "mean": 0.2962152777777778,
+          "median_state_mean": 0.29166666666666663,
+          "states": 240
+        }
+      },
+      "k3": {
+        "component_coverage": {
+          "ci95": [
+            0.32160387439767457,
+            0.3649544380987063
+          ],
+          "mean": 0.343610206648858,
+          "median_state_mean": 0.34922542735042733,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            1.657265625,
+            2.8270833333333334
+          ],
+          "mean": 2.2427083333333333,
+          "median_state_mean": 2.125,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.17420138888888884,
+            0.20520833333333333
+          ],
+          "mean": 0.18975694444444444,
+          "median_state_mean": 0.18333333333333332,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "component_coverage": {
+          "ci95": [
+            0.30393045832329046,
+            0.33811929538266183
+          ],
+          "mean": 0.32069865820131876,
+          "median_state_mean": 0.30084033613445377,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            9.727083333333333,
+            10.609375
+          ],
+          "mean": 10.164583333333333,
+          "median_state_mean": 10.0,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.09635416666666667,
+            0.10305555555555555
+          ],
+          "mean": 0.09968749999999998,
+          "median_state_mean": 0.09999999999999999,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          7.240625,
+          8.076041666666667
+        ],
+        "mean": 7.653125,
+        "median_state_mean": 7.625,
+        "states": 240
+      }
+    },
+    "k8_r0.2": {
+      "k10": {
+        "component_coverage": {
+          "ci95": [
+            0.545630437565271,
+            0.5868959757525782
+          ],
+          "mean": 0.5663844338719775,
+          "median_state_mean": 0.5714285714285714,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.839609375,
+            0.109375
+          ],
+          "mean": -0.3697916666666667,
+          "median_state_mean": -0.5,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.40097222222222223,
+            0.44293446180555546
+          ],
+          "mean": 0.42203124999999997,
+          "median_state_mean": 0.44166666666666665,
+          "states": 240
+        }
+      },
+      "k3": {
+        "component_coverage": {
+          "ci95": [
+            0.5481698947479563,
+            0.5862632451823024
+          ],
+          "mean": 0.5672191554584405,
+          "median_state_mean": 0.5839285714285715,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            1.1833072916666667,
+            2.204192708333331
+          ],
+          "mean": 1.6875,
+          "median_state_mean": 1.75,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.2870655381944444,
+            0.32446180555555554
+          ],
+          "mean": 0.30576388888888884,
+          "median_state_mean": 0.3208333333333333,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "component_coverage": {
+          "ci95": [
+            0.4511354240976163,
+            0.47747555662760705
+          ],
+          "mean": 0.46420342187732866,
+          "median_state_mean": 0.4497377622377622,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            11.179166666666667,
+            11.9375
+          ],
+          "mean": 11.563541666666667,
+          "median_state_mean": 12.0,
+          "states": 240
+        },
+        "elite_recall": {
+          "ci95": [
+            0.19744791666666667,
+            0.20385416666666664
+          ],
+          "mean": 0.2006423611111111,
+          "median_state_mean": 0.19999999999999998,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          6.541666666666667,
+          7.208359374999997
+        ],
+        "mean": 6.871875,
+        "median_state_mean": 6.5,
+        "states": 240
+      }
+    }
+  },
+  "elite_for_basis": 30,
+  "folds": 4,
+  "max_k3_recompute_mismatch": 36.40235900878906,
+  "neighbors": [
+    8,
+    12,
+    20
+  ],
+  "num_rounds": 4,
+  "num_states": 240,
+  "persistence": {
+    "k12_p0.05": {
+      "k10": {
+        "count": {
+          "ci95": [
+            8.0,
+            8.490651041666665
+          ],
+          "mean": 8.24375,
+          "median_state_mean": 8.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.5020833333333333,
+            0.26145833333333335
+          ],
+          "mean": -0.12291666666666666,
+          "median_state_mean": -0.5,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.5157666424247391,
+        "persistence_l1": {
+          "ci95": [
+            0.0020814218847291046,
+            0.002330221592879274
+          ],
+          "mean": 0.0022032867827727503,
+          "median_state_mean": 0.0019518797328888942,
+          "states": 240
+        }
+      },
+      "k3": {
+        "count": {
+          "ci95": [
+            8.913541666666667,
+            9.385416666666666
+          ],
+          "mean": 9.15,
+          "median_state_mean": 9.0,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            0.3854166666666667,
+            1.1791666666666667
+          ],
+          "mean": 0.7833333333333333,
+          "median_state_mean": 0.75,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.488724942894896,
+        "persistence_l1": {
+          "ci95": [
+            0.0022148903419238414,
+            0.0024416690669008183
+          ],
+          "mean": 0.0023263279120666063,
+          "median_state_mean": 0.002094495587297681,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "count": {
+          "ci95": [
+            14.517708333333333,
+            14.772916666666667
+          ],
+          "mean": 14.64375,
+          "median_state_mean": 14.75,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            5.972916666666666,
+            6.577083333333333
+          ],
+          "mean": 6.277083333333334,
+          "median_state_mean": 6.5,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.0,
+        "persistence_l1": {
+          "ci95": [
+            0.0044152304294694696,
+            0.004686228516739186
+          ],
+          "mean": 0.004550051639989113,
+          "median_state_mean": 0.004587476650149327,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          8.10625,
+          8.627083333333333
+        ],
+        "mean": 8.366666666666667,
+        "median_state_mean": 8.5,
+        "states": 240
+      }
+    },
+    "k12_p0.1": {
+      "k10": {
+        "count": {
+          "ci95": [
+            4.444791666666666,
+            4.853125
+          ],
+          "mean": 4.644791666666666,
+          "median_state_mean": 4.5,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.403125,
+            0.265625
+          ],
+          "mean": -0.071875,
+          "median_state_mean": -0.25,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.5157666424247391,
+        "persistence_l1": {
+          "ci95": [
+            0.0020807900755211535,
+            0.002330184890269684
+          ],
+          "mean": 0.0022032867827727503,
+          "median_state_mean": 0.0019518797328888942,
+          "states": 240
+        }
+      },
+      "k3": {
+        "count": {
+          "ci95": [
+            5.010416666666667,
+            5.427083333333333
+          ],
+          "mean": 5.217708333333333,
+          "median_state_mean": 5.125,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            0.15104166666666666,
+            0.853125
+          ],
+          "mean": 0.5010416666666667,
+          "median_state_mean": 0.5,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.488724942894896,
+        "persistence_l1": {
+          "ci95": [
+            0.002214308634690887,
+            0.002442867436233003
+          ],
+          "mean": 0.0023263279120666063,
+          "median_state_mean": 0.002094495587297681,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "count": {
+          "ci95": [
+            10.742708333333333,
+            10.998958333333333
+          ],
+          "mean": 10.871875,
+          "median_state_mean": 11.0,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            5.889557291666667,
+            6.416666666666667
+          ],
+          "mean": 6.155208333333333,
+          "median_state_mean": 6.25,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.0,
+        "persistence_l1": {
+          "ci95": [
+            0.004416010214277992,
+            0.004683405911287346
+          ],
+          "mean": 0.004550051639989113,
+          "median_state_mean": 0.004587476650149327,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          4.490625,
+          4.946875
+        ],
+        "mean": 4.716666666666667,
+        "median_state_mean": 4.75,
+        "states": 240
+      }
+    },
+    "k12_p0.2": {
+      "k10": {
+        "count": {
+          "ci95": [
+            1.2635416666666666,
+            1.4927343749999977
+          ],
+          "mean": 1.378125,
+          "median_state_mean": 1.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.25,
+            0.10104166666666667
+          ],
+          "mean": -0.07395833333333333,
+          "median_state_mean": 0.0,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.5157666424247391,
+        "persistence_l1": {
+          "ci95": [
+            0.002082701815415935,
+            0.0023311764433097313
+          ],
+          "mean": 0.0022032867827727503,
+          "median_state_mean": 0.0019518797328888942,
+          "states": 240
+        }
+      },
+      "k3": {
+        "count": {
+          "ci95": [
+            1.3645833333333333,
+            1.578125
+          ],
+          "mean": 1.4708333333333334,
+          "median_state_mean": 1.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.15625,
+            0.18854166666666666
+          ],
+          "mean": 0.01875,
+          "median_state_mean": 0.0,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.488724942894896,
+        "persistence_l1": {
+          "ci95": [
+            0.002213154832813205,
+            0.0024438825838077874
+          ],
+          "mean": 0.0023263279120666063,
+          "median_state_mean": 0.002094495587297681,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "count": {
+          "ci95": [
+            4.492708333333334,
+            4.703125
+          ],
+          "mean": 4.595833333333333,
+          "median_state_mean": 4.5,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            2.9854166666666666,
+            3.298958333333333
+          ],
+          "mean": 3.14375,
+          "median_state_mean": 3.25,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.0,
+        "persistence_l1": {
+          "ci95": [
+            0.004415145663918748,
+            0.004682449313113575
+          ],
+          "mean": 0.004550051639989113,
+          "median_state_mean": 0.004587476650149327,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          1.3395833333333333,
+          1.571875
+        ],
+        "mean": 1.4520833333333334,
+        "median_state_mean": 1.25,
+        "states": 240
+      }
+    },
+    "k20_p0.05": {
+      "k10": {
+        "count": {
+          "ci95": [
+            2.86875,
+            3.1687760416666646
+          ],
+          "mean": 3.01875,
+          "median_state_mean": 2.75,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.32395833333333335,
+            0.115625
+          ],
+          "mean": -0.10729166666666666,
+          "median_state_mean": -0.25,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.4807059109410121,
+        "persistence_l1": {
+          "ci95": [
+            0.0009440601545284727,
+            0.0010503599419096727
+          ],
+          "mean": 0.0009959923080651596,
+          "median_state_mean": 0.0008696770729633897,
+          "states": 240
+        }
+      },
+      "k3": {
+        "count": {
+          "ci95": [
+            3.119765625,
+            3.408333333333333
+          ],
+          "mean": 3.263541666666667,
+          "median_state_mean": 3.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.09895833333333333,
+            0.37294270833333104
+          ],
+          "mean": 0.1375,
+          "median_state_mean": 0.25,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.4750561934268879,
+        "persistence_l1": {
+          "ci95": [
+            0.0009577513930679374,
+            0.001058084384775711
+          ],
+          "mean": 0.0010068283166109254,
+          "median_state_mean": 0.0008920481873804544,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "count": {
+          "ci95": [
+            7.227083333333334,
+            7.434375
+          ],
+          "mean": 7.33125,
+          "median_state_mean": 7.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            4.016666666666667,
+            4.392708333333333
+          ],
+          "mean": 4.205208333333333,
+          "median_state_mean": 4.25,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.0,
+        "persistence_l1": {
+          "ci95": [
+            0.0018616379197846408,
+            0.001974880326189491
+          ],
+          "mean": 0.0019179735126005303,
+          "median_state_mean": 0.0018763772217313007,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          2.9739583333333335,
+          3.28125
+        ],
+        "mean": 3.1260416666666666,
+        "median_state_mean": 3.0,
+        "states": 240
+      }
+    },
+    "k20_p0.1": {
+      "k10": {
+        "count": {
+          "ci95": [
+            1.2270833333333333,
+            1.4177083333333333
+          ],
+          "mean": 1.3197916666666667,
+          "median_state_mean": 1.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.13645833333333332,
+            0.140625
+          ],
+          "mean": 0.003125,
+          "median_state_mean": 0.0,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.4807059109410121,
+        "persistence_l1": {
+          "ci95": [
+            0.0009436412787142575,
+            0.0010509192197700992
+          ],
+          "mean": 0.0009959923080651596,
+          "median_state_mean": 0.0008696770729633897,
+          "states": 240
+        }
+      },
+      "k3": {
+        "count": {
+          "ci95": [
+            1.125,
+            1.3041666666666667
+          ],
+          "mean": 1.2135416666666667,
+          "median_state_mean": 1.0,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.24375,
+            0.0375
+          ],
+          "mean": -0.103125,
+          "median_state_mean": 0.0,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.4750561934268879,
+        "persistence_l1": {
+          "ci95": [
+            0.0009572157097422475,
+            0.0010576293889330095
+          ],
+          "mean": 0.0010068283166109254,
+          "median_state_mean": 0.0008920481873804544,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "count": {
+          "ci95": [
+            3.91875,
+            4.091666666666667
+          ],
+          "mean": 4.005208333333333,
+          "median_state_mean": 4.0,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            2.5530989583333334,
+            2.821875
+          ],
+          "mean": 2.6885416666666666,
+          "median_state_mean": 2.75,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.0,
+        "persistence_l1": {
+          "ci95": [
+            0.0018612761369186774,
+            0.0019762555088869253
+          ],
+          "mean": 0.0019179735126005303,
+          "median_state_mean": 0.0018763772217313007,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          1.2166666666666666,
+          1.41875
+        ],
+        "mean": 1.3166666666666667,
+        "median_state_mean": 1.25,
+        "states": 240
+      }
+    },
+    "k20_p0.2": {
+      "k10": {
+        "count": {
+          "ci95": [
+            0.23854166666666668,
+            0.31875
+          ],
+          "mean": 0.278125,
+          "median_state_mean": 0.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.06458333333333334,
+            0.04583333333333333
+          ],
+          "mean": -0.009375,
+          "median_state_mean": 0.0,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.4807059109410121,
+        "persistence_l1": {
+          "ci95": [
+            0.0009427907103015253,
+            0.0010495559799853095
+          ],
+          "mean": 0.0009959923080651596,
+          "median_state_mean": 0.0008696770729633897,
+          "states": 240
+        }
+      },
+      "k3": {
+        "count": {
+          "ci95": [
+            0.15833333333333333,
+            0.21770833333333334
+          ],
+          "mean": 0.1875,
+          "median_state_mean": 0.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.146875,
+            -0.052083333333333336
+          ],
+          "mean": -0.1,
+          "median_state_mean": 0.0,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.4750561934268879,
+        "persistence_l1": {
+          "ci95": [
+            0.0009572614423589595,
+            0.00105851636866478
+          ],
+          "mean": 0.0010068283166109254,
+          "median_state_mean": 0.0008920481873804544,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "count": {
+          "ci95": [
+            0.31875,
+            0.4
+          ],
+          "mean": 0.359375,
+          "median_state_mean": 0.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            0.016666666666666666,
+            0.12604166666666666
+          ],
+          "mean": 0.071875,
+          "median_state_mean": 0.0,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.0,
+        "persistence_l1": {
+          "ci95": [
+            0.001861671709488708,
+            0.0019750213108168063
+          ],
+          "mean": 0.0019179735126005303,
+          "median_state_mean": 0.0018763772217313007,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          0.25104166666666666,
+          0.3260416666666667
+        ],
+        "mean": 0.2875,
+        "median_state_mean": 0.25,
+        "states": 240
+      }
+    },
+    "k8_p0.05": {
+      "k10": {
+        "count": {
+          "ci95": [
+            15.432291666666666,
+            16.067708333333332
+          ],
+          "mean": 15.748958333333333,
+          "median_state_mean": 15.75,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.246875,
+            0.715625
+          ],
+          "mean": 0.23229166666666667,
+          "median_state_mean": 0.25,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.558188324829467,
+        "persistence_l1": {
+          "ci95": [
+            0.003726538002464551,
+            0.004191554822746204
+          ],
+          "mean": 0.003952940962629053,
+          "median_state_mean": 0.0034884956544110244,
+          "states": 240
+        }
+      },
+      "k3": {
+        "count": {
+          "ci95": [
+            16.834375,
+            17.408333333333335
+          ],
+          "mean": 17.11875,
+          "median_state_mean": 17.0,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            1.1020833333333333,
+            2.107317708333331
+          ],
+          "mean": 1.6020833333333333,
+          "median_state_mean": 1.5,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.515503603399463,
+        "persistence_l1": {
+          "ci95": [
+            0.004109209896514953,
+            0.004567914741818697
+          ],
+          "mean": 0.004334846179945787,
+          "median_state_mean": 0.0038338497332244606,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "count": {
+          "ci95": [
+            23.153125,
+            23.495833333333334
+          ],
+          "mean": 23.326041666666665,
+          "median_state_mean": 23.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            7.421875,
+            8.204192708333332
+          ],
+          "mean": 7.809375,
+          "median_state_mean": 7.75,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.0,
+        "persistence_l1": {
+          "ci95": [
+            0.008673711004351183,
+            0.009221770391736855
+          ],
+          "mean": 0.00894711748190736,
+          "median_state_mean": 0.008927472847059876,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          15.174973958333334,
+          15.860416666666667
+        ],
+        "mean": 15.516666666666667,
+        "median_state_mean": 15.5,
+        "states": 240
+      }
+    },
+    "k8_p0.1": {
+      "k10": {
+        "count": {
+          "ci95": [
+            9.980182291666667,
+            10.616666666666667
+          ],
+          "mean": 10.3,
+          "median_state_mean": 10.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.42083333333333334,
+            0.565625
+          ],
+          "mean": 0.07291666666666667,
+          "median_state_mean": -0.25,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.558188324829467,
+        "persistence_l1": {
+          "ci95": [
+            0.003728413622330846,
+            0.004191521033042136
+          ],
+          "mean": 0.003952940962629053,
+          "median_state_mean": 0.0034884956544110244,
+          "states": 240
+        }
+      },
+      "k3": {
+        "count": {
+          "ci95": [
+            11.646875,
+            12.247916666666667
+          ],
+          "mean": 11.94375,
+          "median_state_mean": 11.75,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            1.201015625,
+            2.2521093749999976
+          ],
+          "mean": 1.7166666666666666,
+          "median_state_mean": 1.25,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.515503603399463,
+        "persistence_l1": {
+          "ci95": [
+            0.004111441764726718,
+            0.004566830849673568
+          ],
+          "mean": 0.004334846179945787,
+          "median_state_mean": 0.0038338497332244606,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "count": {
+          "ci95": [
+            19.152083333333334,
+            19.483333333333334
+          ],
+          "mean": 19.317708333333332,
+          "median_state_mean": 19.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            8.695833333333333,
+            9.479166666666666
+          ],
+          "mean": 9.090625,
+          "median_state_mean": 9.5,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.0,
+        "persistence_l1": {
+          "ci95": [
+            0.008675493993821844,
+            0.00922387321823395
+          ],
+          "mean": 0.00894711748190736,
+          "median_state_mean": 0.008927472847059876,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          9.870833333333334,
+          10.591666666666667
+        ],
+        "mean": 10.227083333333333,
+        "median_state_mean": 10.25,
+        "states": 240
+      }
+    },
+    "k8_p0.2": {
+      "k10": {
+        "count": {
+          "ci95": [
+            3.7552083333333335,
+            4.207291666666666
+          ],
+          "mean": 3.9791666666666665,
+          "median_state_mean": 3.75,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            -0.5989583333333334,
+            0.16145833333333334
+          ],
+          "mean": -0.21979166666666666,
+          "median_state_mean": -0.25,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.558188324829467,
+        "persistence_l1": {
+          "ci95": [
+            0.003726110387933766,
+            0.004189927673721024
+          ],
+          "mean": 0.003952940962629053,
+          "median_state_mean": 0.0034884956544110244,
+          "states": 240
+        }
+      },
+      "k3": {
+        "count": {
+          "ci95": [
+            4.857265625,
+            5.323958333333334
+          ],
+          "mean": 5.086458333333334,
+          "median_state_mean": 4.75,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            0.49270833333333336,
+            1.2864583333333333
+          ],
+          "mean": 0.8875,
+          "median_state_mean": 0.75,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.515503603399463,
+        "persistence_l1": {
+          "ci95": [
+            0.0041075445884274225,
+            0.004571131463387806
+          ],
+          "mean": 0.004334846179945787,
+          "median_state_mean": 0.0038338497332244606,
+          "states": 240
+        }
+      },
+      "shuffle": {
+        "count": {
+          "ci95": [
+            11.916666666666666,
+            12.202083333333333
+          ],
+          "mean": 12.059375,
+          "median_state_mean": 12.25,
+          "states": 240
+        },
+        "count_delta_vs_true": {
+          "ci95": [
+            7.564583333333333,
+            8.148958333333333
+          ],
+          "mean": 7.860416666666667,
+          "median_state_mean": 7.75,
+          "states": 240
+        },
+        "fidelity_vs_shuffle": 0.0,
+        "persistence_l1": {
+          "ci95": [
+            0.008673465737706141,
+            0.009222389384160506
+          ],
+          "mean": 0.00894711748190736,
+          "median_state_mean": 0.008927472847059876,
+          "states": 240
+        }
+      },
+      "true_count": {
+        "ci95": [
+          3.9427083333333335,
+          4.461458333333334
+        ],
+        "mean": 4.198958333333334,
+        "median_state_mean": 4.0,
+        "states": 240
+      }
+    }
+  },
+  "persistence_thresholds": [
+    0.05,
+    0.1,
+    0.2
+  ],
+  "population_size": 300,
+  "projection_dims": 2,
+  "rates": [
+    0.05,
+    0.1,
+    0.2
+  ],
+  "source": "/225010117/logs/operator_query_bank_a100_20260720/h5_off40_k3_n240_merged_v1.npz",
+  "version": 1
+}

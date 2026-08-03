@@ -1,0 +1,140 @@
+{
+  "dataset": "/mnt/data/wge/data/pusht_eval_state_only.h5",
+  "elapsed_seconds": 24.821385860443115,
+  "encoder_embedding_dim": 192,
+  "gate": {
+    "min_elite_overlap": 0.5,
+    "min_recovery_fraction": 0.5,
+    "min_update_cosine": 0.7,
+    "passed": false
+  },
+  "generator": "pd_d192_k3_eval",
+  "goal_offset": 60,
+  "horizon": 8,
+  "integrity": {
+    "max_goal_state_mismatch": 0.0,
+    "max_initial_state_mismatch": 0.0,
+    "max_physical_cost_mismatch": 0.0,
+    "max_terminal_render_state_mismatch": 5.684341886080802e-14,
+    "success_disagreements": 0
+  },
+  "num_candidates": 300,
+  "num_states": 12,
+  "output": "/mnt/data/wge/learn_wm/outputs/week1/oe_oracle_semantics_5090_20260720/h8_off60_visual_semantics_v2.npz",
+  "per_step": [
+    {
+      "learned_elite_overlap": 0.25833333333333336,
+      "learned_update_cosine": 0.27290916385901537,
+      "step": 4,
+      "visual_elite_overlap": 0.4361111111111111,
+      "visual_physical_spearman": 0.5234224542376286,
+      "visual_recovery_fraction": 0.3227669473591914,
+      "visual_true_cost_gain": 9.259319723530993,
+      "visual_update_cosine": 0.481311943085274
+    },
+    {
+      "learned_elite_overlap": 0.27499999999999997,
+      "learned_update_cosine": 0.17564434857796427,
+      "step": 9,
+      "visual_elite_overlap": 0.4972222222222222,
+      "visual_physical_spearman": 0.610487880061671,
+      "visual_recovery_fraction": 0.45619544951991786,
+      "visual_true_cost_gain": 13.83404154483857,
+      "visual_update_cosine": 0.5172146499148821
+    },
+    {
+      "learned_elite_overlap": 0.28611111111111104,
+      "learned_update_cosine": 0.3035230803393402,
+      "step": 19,
+      "visual_elite_overlap": 0.5805555555555555,
+      "visual_physical_spearman": 0.6468308308172128,
+      "visual_recovery_fraction": 0.46847146838233195,
+      "visual_true_cost_gain": 8.71386519947167,
+      "visual_update_cosine": 0.6495318379705212
+    },
+    {
+      "learned_elite_overlap": 0.21944444444444444,
+      "learned_update_cosine": 0.3105775053923885,
+      "step": 29,
+      "visual_elite_overlap": 0.4833333333333334,
+      "visual_physical_spearman": 0.6717099418765881,
+      "visual_recovery_fraction": 0.23259503127974443,
+      "visual_true_cost_gain": 2.9270764370731683,
+      "visual_update_cosine": 0.5171197923919414
+    }
+  ],
+  "policy": "pd_d192_k3_eval",
+  "scorer": "pd_d192_k3_eval",
+  "source": "/mnt/data/wge/learn_wm/outputs/week1/selection_round_5090/cem_round_h8_off60_n12_full_v2.npz",
+  "source_sha256": "7d0a3d04991047be1ddf217c20bb5418aaf858729e63188a059620cb89caff3a",
+  "steps": [
+    4,
+    9,
+    19,
+    29
+  ],
+  "summary": {
+    "ci95": {
+      "delta_update_cosine": [
+        0.12424880381586606,
+        0.43132747257540827
+      ],
+      "learned_elite_overlap": [
+        0.15763888888888888,
+        0.3659722222222222
+      ],
+      "learned_physical_elite_cost": [
+        49.50097688213731,
+        154.50107469428363
+      ],
+      "learned_update_cosine": [
+        0.15333868238795298,
+        0.376751924075303
+      ],
+      "physical_elite_cost": [
+        36.22696989875442,
+        121.42961737805514
+      ],
+      "visual_elite_overlap": [
+        0.37847222222222215,
+        0.607638888888889
+      ],
+      "visual_physical_elite_cost": [
+        44.18096782196524,
+        140.74620614586624
+      ],
+      "visual_physical_spearman": [
+        0.42283962944570547,
+        0.7748633060838378
+      ],
+      "visual_recovery_fraction": [
+        0.008538987944273433,
+        0.6449981608346161
+      ],
+      "visual_true_cost_gain": [
+        0.16145015500165416,
+        16.831372303515806
+      ],
+      "visual_update_cosine": [
+        0.38283385259184854,
+        0.6805919862707523
+      ]
+    },
+    "mean": {
+      "delta_update_cosine": 0.2756310312984776,
+      "learned_elite_overlap": 0.25972222222222224,
+      "learned_physical_elite_cost": 97.83338951158119,
+      "learned_update_cosine": 0.26566352454217707,
+      "physical_elite_cost": 75.2840895670735,
+      "visual_elite_overlap": 0.4993055555555555,
+      "visual_physical_elite_cost": 89.14981378535258,
+      "visual_physical_spearman": 0.6131127767482751,
+      "visual_recovery_fraction": 0.3850929185206771,
+      "visual_true_cost_gain": 8.68357572622861,
+      "visual_update_cosine": 0.5412945558406547
+    },
+    "num_states": 12
+  },
+  "topk": 30,
+  "version": 2
+}

@@ -33,6 +33,8 @@ Example:
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
+import json
 import os
 from pathlib import Path
 import time
@@ -71,6 +73,127 @@ def comma_list(value, *, name: str) -> list[str]:
     if not items:
         raise ValueError(f'{name} must contain at least one item')
     return items
+
+
+def optional_paths(value) -> list[Path]:
+    if value is None:
+        return []
+    return [
+        Path(item.strip())
+        for item in str(value).split(',')
+        if item.strip()
+    ]
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open('rb') as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_excluded_rows(paths: list[Path]) -> tuple[np.ndarray, dict]:
+    rows = []
+    sources = []
+    for path in paths:
+        if not path.is_file():
+            raise FileNotFoundError(
+                f'audit.exclude_sources entry does not exist: {path}'
+            )
+        with np.load(path, allow_pickle=False) as archive:
+            if 'rows' not in archive:
+                raise ValueError(
+                    f'audit.exclude_sources entry has no rows: {path}'
+                )
+            source_rows = np.asarray(
+                archive['rows'],
+                dtype=np.int64,
+            ).reshape(-1)
+        rows.append(source_rows)
+        sources.append(
+            {
+                'path': str(path.resolve()),
+                'sha256': sha256(path),
+                'num_rows': int(len(source_rows)),
+                'num_unique_rows': int(len(np.unique(source_rows))),
+            }
+        )
+    excluded = (
+        np.unique(np.concatenate(rows))
+        if rows
+        else np.empty(0, dtype=np.int64)
+    )
+    return excluded, {
+        'version': 1,
+        'sources': sources,
+        'num_source_rows': int(sum(len(row) for row in rows)),
+        'num_unique_excluded_rows': int(len(excluded)),
+    }
+
+
+def load_state_source(
+    path: Path,
+    *,
+    start: int,
+    count: int,
+    horizon: int,
+    goal_offset: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
+    """Load an exact row slice for paired multi-generator audits."""
+    if not path.is_file():
+        raise FileNotFoundError(f'audit.state_source does not exist: {path}')
+    with np.load(path, allow_pickle=False) as archive:
+        required = {'rows', 'episodes', 'starts'}
+        missing = sorted(required - set(archive.files))
+        if missing:
+            raise ValueError(
+                f'audit.state_source is missing fields {missing}: {path}'
+            )
+        source_rows = np.asarray(archive['rows'], dtype=np.int64).reshape(-1)
+        source_episodes = np.asarray(
+            archive['episodes'],
+            dtype=np.int64,
+        ).reshape(-1)
+        source_starts = np.asarray(
+            archive['starts'],
+            dtype=np.int64,
+        ).reshape(-1)
+        if not (
+            len(source_rows)
+            == len(source_episodes)
+            == len(source_starts)
+        ):
+            raise ValueError('audit.state_source row metadata length mismatch')
+        for field, expected in (
+            ('horizon', horizon),
+            ('goal_offset', goal_offset),
+        ):
+            if field in archive.files:
+                actual = int(np.asarray(archive[field]).item())
+                if actual != expected:
+                    raise ValueError(
+                        f'audit.state_source {field}={actual}, '
+                        f'current config requires {expected}'
+                    )
+    if start < 0 or count < 1 or start + count > len(source_rows):
+        raise ValueError(
+            f'audit.state_start/count slice [{start},{start + count}) '
+            f'is outside source size {len(source_rows)}'
+        )
+    selected = slice(start, start + count)
+    return (
+        source_rows[selected],
+        source_episodes[selected],
+        source_starts[selected],
+        {
+            'path': str(path.resolve()),
+            'sha256': sha256(path),
+            'source_states': int(len(source_rows)),
+            'slice_start': start,
+            'slice_count': count,
+        },
+    )
 
 
 def parse_steps(value, *, n_steps: int) -> list[int]:
@@ -200,6 +323,38 @@ def execute_population(
     }
 
 
+def skipped_population(
+    *,
+    num_candidates: int,
+    state_shape: tuple[int, ...],
+) -> dict[str, np.ndarray]:
+    """Return shape-compatible placeholders for a model-only trace."""
+    return {
+        'true': np.full(num_candidates, np.nan, dtype=np.float64),
+        'true_pos_l2': np.full(
+            num_candidates,
+            np.nan,
+            dtype=np.float64,
+        ),
+        'true_angle': np.full(
+            num_candidates,
+            np.nan,
+            dtype=np.float64,
+        ),
+        'success': np.zeros(num_candidates, dtype=bool),
+        'terminal_state': np.full(
+            (num_candidates, *state_shape),
+            np.nan,
+            dtype=np.float64,
+        ),
+        'roundtrip_error': np.full(
+            num_candidates,
+            np.nan,
+            dtype=np.float64,
+        ),
+    }
+
+
 def summarize(
     *,
     generators: list[str],
@@ -296,6 +451,11 @@ def run(cfg: DictConfig) -> None:
     all_policies = list(dict.fromkeys([*generators, *scorers]))
     num_states = int(audit.get('num_states', 8))
     max_candidates = int(audit.get('max_candidates', -1))
+    evaluate_simulator = bool(
+        audit.get('evaluate_simulator', True)
+    )
+    exclusion_paths = optional_paths(audit.get('exclude_sources'))
+    excluded_rows, exclusion_audit = load_excluded_rows(exclusion_paths)
     output_path = Path(
         str(audit.get('out', 'outputs/week1/cem_round_oracle.npz'))
     )
@@ -353,12 +513,32 @@ def run(cfg: DictConfig) -> None:
         )
 
     rng = np.random.default_rng(cfg.seed)
-    rows, episodes, starts = sample_starts(
-        dataset,
-        num_states,
-        int(cfg.eval.goal_offset_steps),
-        rng,
-    )
+    state_source_value = str(audit.get('state_source', '')).strip()
+    if state_source_value:
+        rows, episodes, starts, state_source_audit = load_state_source(
+            Path(state_source_value),
+            start=int(audit.get('state_start', 0)),
+            count=num_states,
+            horizon=int(cfg.plan_config.horizon),
+            goal_offset=int(cfg.eval.goal_offset_steps),
+        )
+    else:
+        rows, episodes, starts = sample_starts(
+            dataset,
+            num_states,
+            int(cfg.eval.goal_offset_steps),
+            rng,
+            excluded_rows=excluded_rows,
+        )
+        state_source_audit = None
+    overlap = np.intersect1d(rows, excluded_rows)
+    if len(overlap):
+        raise RuntimeError(
+            f'sampled rows overlap exclusion set: {overlap.tolist()}'
+        )
+    exclusion_audit['sampled_rows'] = int(len(rows))
+    exclusion_audit['sampled_exclusion_overlap'] = int(len(overlap))
+    exclusion_audit['state_source'] = state_source_audit
 
     callables = cfg.eval.get('callables')
     if callables is not None:
@@ -477,16 +657,6 @@ def run(cfg: DictConfig) -> None:
                             for scorer_name in scorers
                         ]
                     )
-                    execution = execute_population(
-                        world.envs.envs[0],
-                        candidates=candidates,
-                        initial_state=initial_state,
-                        goal_state=goal_state,
-                        action_scaler=process['action'],
-                        action_block=int(cfg.plan_config.action_block),
-                        seed=int(cfg.seed) + state_i,
-                        cache=state_cache,
-                    )
                     returned_candidate = (
                         record['mean'][0].float().numpy()[None]
                     )
@@ -500,16 +670,36 @@ def run(cfg: DictConfig) -> None:
                             for scorer_name in scorers
                         ]
                     )
-                    returned_execution = execute_population(
-                        world.envs.envs[0],
-                        candidates=returned_candidate,
-                        initial_state=initial_state,
-                        goal_state=goal_state,
-                        action_scaler=process['action'],
-                        action_block=int(cfg.plan_config.action_block),
-                        seed=int(cfg.seed) + state_i,
-                        cache=state_cache,
-                    )
+                    if evaluate_simulator:
+                        execution = execute_population(
+                            world.envs.envs[0],
+                            candidates=candidates,
+                            initial_state=initial_state,
+                            goal_state=goal_state,
+                            action_scaler=process['action'],
+                            action_block=int(cfg.plan_config.action_block),
+                            seed=int(cfg.seed) + state_i,
+                            cache=state_cache,
+                        )
+                        returned_execution = execute_population(
+                            world.envs.envs[0],
+                            candidates=returned_candidate,
+                            initial_state=initial_state,
+                            goal_state=goal_state,
+                            action_scaler=process['action'],
+                            action_block=int(cfg.plan_config.action_block),
+                            seed=int(cfg.seed) + state_i,
+                            cache=state_cache,
+                        )
+                    else:
+                        execution = skipped_population(
+                            num_candidates=len(candidates),
+                            state_shape=tuple(goal_state.shape),
+                        )
+                        returned_execution = skipped_population(
+                            num_candidates=1,
+                            state_shape=tuple(goal_state.shape),
+                        )
 
                     generator_candidates.append(
                         candidates.astype(np.float16, copy=False)
@@ -544,21 +734,27 @@ def run(cfg: DictConfig) -> None:
                     generator_returned_terminal.append(
                         returned_execution['terminal_state'][0]
                     )
-                    roundtrip_errors.extend(
-                        execution['roundtrip_error'].tolist()
-                    )
-                    roundtrip_errors.extend(
-                        returned_execution['roundtrip_error'].tolist()
-                    )
+                    if evaluate_simulator:
+                        roundtrip_errors.extend(
+                            execution['roundtrip_error'].tolist()
+                        )
+                        roundtrip_errors.extend(
+                            returned_execution['roundtrip_error'].tolist()
+                        )
                     elapsed = time.time() - started
+                    simulator_summary = (
+                        f'oracle={execution["true"].min():.2f} '
+                        f'successes={int(execution["success"].sum())} '
+                        f'returned={returned_execution["true"][0]:.2f}/'
+                        f'{int(returned_execution["success"][0])}'
+                        if evaluate_simulator
+                        else 'simulator=skipped'
+                    )
                     print(
                         f'[{state_i + 1}/{num_states}] '
                         f'generator={generator_i + 1}/{len(generators)} '
                         f'step={record["step"]} candidates={len(candidates)} '
-                        f'oracle={execution["true"].min():.2f} '
-                        f'successes={int(execution["success"].sum())} '
-                        f'returned={returned_execution["true"][0]:.2f}/'
-                        f'{int(returned_execution["success"][0])} '
+                        f'{simulator_summary} '
                         f'elapsed={elapsed / 60:.1f}m'
                     )
 
@@ -667,18 +863,23 @@ def run(cfg: DictConfig) -> None:
             max(roundtrip_errors, default=float('nan'))
         ),
         elapsed_seconds=np.asarray(time.time() - started),
+        exclusion_audit=np.asarray(
+            json.dumps(exclusion_audit, sort_keys=True)
+        ),
+        simulator_evaluated=np.asarray(evaluate_simulator),
     )
 
-    summarize(
-        generators=generators,
-        scorers=scorers,
-        steps=steps,
-        predicted=predicted,
-        true=true,
-        success=success,
-        returned_true=returned_true,
-        returned_success=returned_success,
-    )
+    if evaluate_simulator:
+        summarize(
+            generators=generators,
+            scorers=scorers,
+            steps=steps,
+            predicted=predicted,
+            true=true,
+            success=success,
+            returned_true=returned_true,
+            returned_success=returned_success,
+        )
     print(f'\nresults -> {output_path}')
     print(
         f'shape candidates={candidates.shape} pred={predicted.shape} '

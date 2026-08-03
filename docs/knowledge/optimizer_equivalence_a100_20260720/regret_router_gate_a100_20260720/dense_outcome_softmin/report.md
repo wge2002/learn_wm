@@ -1,0 +1,19 @@
+# Set-valued optimizer operator probe
+
+Top1 is a learned single route. Top2/all-mode rows use oracle selection only to measure retained branch coverage.
+
+- Cell: `h5_off40`
+- Features: `planner_dense_outcome`
+- Retained modes including no-op: `5`
+
+| output | metric | baseline | corrected | delta | paired 95% CI |
+|---|---|---:|---:|---:|---:|
+| top1 | update_cosine | 0.181 | 0.209 | +0.027 | [+0.009, +0.046] |
+| top1 | relative_update_error | 1.141 | 1.139 | -0.002 | [-0.016, +0.013] |
+| top2_coverage | update_cosine | 0.181 | 0.259 | +0.078 | [+0.060, +0.097] |
+| top2_coverage | relative_update_error | 1.141 | 1.092 | -0.049 | [-0.061, -0.037] |
+| all_mode_coverage | update_cosine | 0.181 | 0.333 | +0.152 | [+0.133, +0.171] |
+| all_mode_coverage | relative_update_error | 1.141 | 1.042 | -0.099 | [-0.111, -0.087] |
+
+- Top1 exact best-mode rate: `0.201`
+- Top2 contains best-mode rate: `0.414`

@@ -1,0 +1,141 @@
+/225010117/code/learn_wm/stable_worldmodel/envs/__init__.py:215: UserWarning: ale-py not found; ALE/* envs are unavailable. Install with: pip install 'stable-worldmodel[env]' or pip install ale-py.
+  from stable_worldmodel.envs import ale  # noqa: F401
+16:34:39 | INFO  | utils.py    | Loading checkpoint from folder /225010117/stablewm/checkpoints/pd_d192_k3_eval...
+/225010117/code/learn_wm/stable_worldmodel/wm/utils.py:81: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(checkpoint_path, map_location='cpu')
+16:34:43 | INFO  | atomic_chec~| [atomic_save] installed crash-safe checkpoint plugin (write to sibling .tmp + fsync + atomic rename)
+16:34:44 | INFO  | utils.py    | Created ViT-tiny from scratch with config: {'hidden_size': 192, 'num_hidden_layers': 12, 'num_attention_heads': 3, 'intermediate_size': 768, 'image_size': 224, 'patch_size': 14}
+16:34:44 | INFO  | utils.py    | Loading checkpoint from folder /225010117/stablewm/checkpoints/pd_d192_k10_eval...
+/225010117/code/learn_wm/stable_worldmodel/wm/utils.py:81: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(checkpoint_path, map_location='cpu')
+16:34:44 | INFO  | utils.py    | Created ViT-tiny from scratch with config: {'hidden_size': 192, 'num_hidden_layers': 12, 'num_attention_heads': 3, 'intermediate_size': 768, 'image_size': 224, 'patch_size': 14}
+[2026-07-20 16:34:44,753][root][INFO] - Cached 'action' from '/225010117/data/pusht_expert_train.h5'
+[2026-07-20 16:34:44,793][root][INFO] - Cached 'proprio' from '/225010117/data/pusht_expert_train.h5'
+[2026-07-20 16:34:44,853][root][INFO] - Cached 'state' from '/225010117/data/pusht_expert_train.h5'
+[source=9 local=1/3] k3_1x300 round=1/3 min=15.53 coverage=1 branches=1 elapsed=0.4m
+[source=9 local=1/3] k3_1x300 round=2/3 min=13.46 coverage=1 branches=1 elapsed=0.7m
+[source=9 local=1/3] k3_1x300 round=3/3 min=10.07 coverage=1 branches=1 elapsed=1.1m
+[source=9 local=1/3] k3_2x150 round=1/3 min=18.03 coverage=1 branches=2 elapsed=1.3m
+[source=9 local=1/3] k3_2x150 round=2/3 min=17.63 coverage=1 branches=2 elapsed=1.6m
+[source=9 local=1/3] k3_2x150 round=3/3 min=5.22 coverage=1 branches=2 elapsed=2.0m
+[source=9 local=1/3] bp_matched round=1/3 min=28.41 coverage=0 branches=2 elapsed=2.0m
+[source=9 local=1/3] bp_matched round=2/3 min=10.43 coverage=1 branches=2 elapsed=2.2m
+[source=9 local=1/3] bp_matched round=3/3 min=13.27 coverage=1 branches=2 elapsed=2.3m
+[source=9 local=1/3] bp_full round=1/3 min=15.53 coverage=1 branches=2 elapsed=2.3m
+[source=9 local=1/3] bp_full round=2/3 min=11.20 coverage=1 branches=2 elapsed=2.7m
+[source=9 local=1/3] bp_full round=3/3 min=10.20 coverage=1 branches=2 elapsed=3.0m
+[source=10 local=2/3] k3_1x300 round=1/3 min=65.06 coverage=0 branches=1 elapsed=3.4m
+[source=10 local=2/3] k3_1x300 round=2/3 min=67.79 coverage=0 branches=1 elapsed=3.8m
+[source=10 local=2/3] k3_1x300 round=3/3 min=68.65 coverage=0 branches=1 elapsed=4.1m
+[source=10 local=2/3] k3_2x150 round=1/3 min=46.55 coverage=0 branches=2 elapsed=4.3m
+[source=10 local=2/3] k3_2x150 round=2/3 min=60.80 coverage=0 branches=2 elapsed=4.6m
+[source=10 local=2/3] k3_2x150 round=3/3 min=42.57 coverage=0 branches=2 elapsed=5.0m
+[source=10 local=2/3] bp_matched round=1/3 min=94.28 coverage=0 branches=2 elapsed=5.0m
+[source=10 local=2/3] bp_matched round=2/3 min=28.57 coverage=0 branches=2 elapsed=5.2m
+[source=10 local=2/3] bp_matched round=3/3 min=82.30 coverage=0 branches=2 elapsed=5.4m
+[source=10 local=2/3] bp_full round=1/3 min=65.06 coverage=0 branches=2 elapsed=5.4m
+[source=10 local=2/3] bp_full round=2/3 min=61.55 coverage=0 branches=2 elapsed=5.7m
+[source=10 local=2/3] bp_full round=3/3 min=69.51 coverage=0 branches=2 elapsed=6.1m
+[source=11 local=3/3] k3_1x300 round=1/3 min=30.79 coverage=0 branches=1 elapsed=6.4m
+[source=11 local=3/3] k3_1x300 round=2/3 min=20.27 coverage=1 branches=1 elapsed=6.8m
+[source=11 local=3/3] k3_1x300 round=3/3 min=18.40 coverage=1 branches=1 elapsed=7.1m
+[source=11 local=3/3] k3_2x150 round=1/3 min=30.79 coverage=0 branches=2 elapsed=7.3m
+[source=11 local=3/3] k3_2x150 round=2/3 min=26.30 coverage=1 branches=2 elapsed=7.7m
+[source=11 local=3/3] k3_2x150 round=3/3 min=25.45 coverage=0 branches=2 elapsed=8.0m
+[source=11 local=3/3] bp_matched round=1/3 min=30.79 coverage=0 branches=2 elapsed=8.0m
+[source=11 local=3/3] bp_matched round=2/3 min=31.12 coverage=0 branches=2 elapsed=8.2m
+[source=11 local=3/3] bp_matched round=3/3 min=28.84 coverage=0 branches=2 elapsed=8.4m
+[source=11 local=3/3] bp_full round=1/3 min=30.79 coverage=0 branches=2 elapsed=8.4m
+[source=11 local=3/3] bp_full round=2/3 min=31.21 coverage=0 branches=2 elapsed=8.8m
+[source=11 local=3/3] bp_full round=3/3 min=23.64 coverage=1 branches=2 elapsed=9.1m
+{
+  "bp_full": {
+    "consensus": {
+      "mean_true": 69.36141257992526,
+      "success": 0.0
+    },
+    "k10": {
+      "mean_true": 69.36141257992526,
+      "success": 0.0
+    },
+    "k3": {
+      "mean_true": 69.36141257992526,
+      "success": 0.0
+    },
+    "oracle_union": {
+      "mean_true": 69.24535664134018,
+      "success": 0.0
+    },
+    "primary": {
+      "mean_true": 71.35448026918061,
+      "success": 0.0
+    }
+  },
+  "bp_matched": {
+    "consensus": {
+      "mean_true": 75.03575396235411,
+      "success": 0.0
+    },
+    "k10": {
+      "mean_true": 75.09288220650832,
+      "success": 0.0
+    },
+    "k3": {
+      "mean_true": 75.03575396235411,
+      "success": 0.0
+    },
+    "oracle_union": {
+      "mean_true": 74.27854865146837,
+      "success": 0.0
+    },
+    "primary": {
+      "mean_true": 74.27854865146837,
+      "success": 0.0
+    }
+  },
+  "k3_1x300": {
+    "consensus": {
+      "mean_true": 63.3850464523752,
+      "success": 0.3333333333333333
+    },
+    "k10": {
+      "mean_true": 63.3850464523752,
+      "success": 0.3333333333333333
+    },
+    "k3": {
+      "mean_true": 63.3850464523752,
+      "success": 0.3333333333333333
+    },
+    "oracle_union": {
+      "mean_true": 63.3850464523752,
+      "success": 0.3333333333333333
+    },
+    "primary": {
+      "mean_true": 63.3850464523752,
+      "success": 0.3333333333333333
+    }
+  },
+  "k3_2x150": {
+    "consensus": {
+      "mean_true": 68.9093241253827,
+      "success": 0.3333333333333333
+    },
+    "k10": {
+      "mean_true": 68.9093241253827,
+      "success": 0.3333333333333333
+    },
+    "k3": {
+      "mean_true": 68.9093241253827,
+      "success": 0.3333333333333333
+    },
+    "oracle_union": {
+      "mean_true": 66.43462242267626,
+      "success": 0.3333333333333333
+    },
+    "primary": {
+      "mean_true": 68.9093241253827,
+      "success": 0.3333333333333333
+    }
+  }
+}
+branch-preserving result -> /225010117/logs/bp_oe_recursive_a100_20260720/formal_n12_r3_v2_crn/shard_9_12.npz

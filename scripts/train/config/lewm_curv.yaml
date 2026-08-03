@@ -12,6 +12,10 @@ wm:
   # Scale-matched on A100: beta=1 made the auxiliary ~19x larger than the
   # one-step prediction term and drove all weights to NaN within 20 batches.
   aux_beta: 0.05
+  # Curvature is undefined on exact duplicate-frame transitions. Ignore
+  # tangents below this latent-speed floor instead of differentiating through
+  # a near-zero normalization.
+  curvature_min_speed: 0.1
 
 data:
   dataset:

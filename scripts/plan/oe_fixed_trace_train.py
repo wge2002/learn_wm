@@ -11,6 +11,8 @@ The loss combines:
 * a balanced oracle-elite boundary classification loss;
 * soft elite mean and log-standard-deviation matching;
 * a weak normalized-score anchor to the base checkpoint.
+* optionally, the original one-step LeWM prediction loss on a frozen-latent
+  replay cache.
 
 Passing this gate is necessary but not sufficient.  A positive fixed-trace
 result must still survive recursive proposal re-sampling and full closed-loop
@@ -230,6 +232,219 @@ def score_cached(
     return model.get_cost(info, candidates.unsqueeze(0)).squeeze(0).float()
 
 
+def load_dynamics_replay(
+    path: Path,
+    *,
+    model,
+    base_policy: str,
+    history_size: int,
+    action_dim: int,
+    device: torch.device,
+    dtype: torch.dtype,
+) -> dict:
+    if not path.exists():
+        raise FileNotFoundError(f'oe.replay_path does not exist: {path}')
+    with np.load(path, allow_pickle=False) as archive:
+        required = {
+            'audit',
+            'embeddings',
+            'actions',
+            'train_indices',
+            'validation_indices',
+        }
+        missing = sorted(required - set(archive.files))
+        if missing:
+            raise ValueError(f'replay cache is missing fields {missing}')
+        audit = json.loads(str(np.asarray(archive['audit']).item()))
+        embeddings = np.asarray(archive['embeddings'])
+        actions = np.asarray(archive['actions'])
+        train_indices = np.asarray(
+            archive['train_indices'],
+            dtype=np.int64,
+        )
+        validation_indices = np.asarray(
+            archive['validation_indices'],
+            dtype=np.int64,
+        )
+
+    replay_policy = str(audit.get('base_policy', '')).strip()
+    if not replay_policy:
+        raise ValueError('replay cache audit has no base_policy')
+    if embeddings.ndim != 3 or embeddings.shape[1] != history_size + 1:
+        raise ValueError(
+            'replay embeddings must have shape '
+            f'(N,{history_size + 1},D), got {embeddings.shape}'
+        )
+    if (
+        actions.ndim != 3
+        or actions.shape[1] != history_size
+        or actions.shape[2] != action_dim
+    ):
+        raise ValueError(
+            f'replay actions must have shape (N,{history_size},{action_dim}), '
+            f'got {actions.shape}'
+        )
+    if len(embeddings) != len(actions):
+        raise ValueError('replay embeddings/actions length mismatch')
+    all_indices = np.concatenate([train_indices, validation_indices])
+    if (
+        len(train_indices) == 0
+        or len(validation_indices) == 0
+        or len(all_indices) != len(np.unique(all_indices))
+        or np.any(all_indices < 0)
+        or np.any(all_indices >= len(embeddings))
+    ):
+        raise ValueError('invalid replay train/validation split')
+
+    cache_root = get_cache_dir(sub_folder='checkpoints')
+    replay_checkpoint, _ = swm.wm.utils._resolve(
+        replay_policy,
+        cache_root,
+    )
+    replay_checkpoint_sha256 = sha256(replay_checkpoint)
+    audited_checkpoint_sha256 = audit.get('checkpoint_sha256')
+    if (
+        audited_checkpoint_sha256 is not None
+        and audited_checkpoint_sha256 != replay_checkpoint_sha256
+    ):
+        raise ValueError(
+            'replay cache source checkpoint changed since cache creation: '
+            f'{audited_checkpoint_sha256} != {replay_checkpoint_sha256}'
+        )
+    current_checkpoint, _ = swm.wm.utils._resolve(
+        base_policy,
+        cache_root,
+    )
+    current_checkpoint_sha256 = sha256(current_checkpoint)
+    if current_checkpoint_sha256 == replay_checkpoint_sha256:
+        compatibility = {
+            'kind': 'checkpoint_identity',
+            'current_policy': base_policy,
+            'current_checkpoint': str(current_checkpoint.resolve()),
+            'current_checkpoint_sha256': current_checkpoint_sha256,
+            'replay_policy': replay_policy,
+            'replay_checkpoint': str(replay_checkpoint.resolve()),
+            'replay_checkpoint_sha256': replay_checkpoint_sha256,
+            'compared_tensor_count': 0,
+        }
+    else:
+        reference_state = torch.load(
+            replay_checkpoint,
+            map_location='cpu',
+        )
+        current_state = model.state_dict()
+        frozen_prefixes = ('encoder.', 'projector.')
+        current_keys = sorted(
+            key
+            for key in current_state
+            if key.startswith(frozen_prefixes)
+        )
+        reference_keys = sorted(
+            key
+            for key in reference_state
+            if key.startswith(frozen_prefixes)
+        )
+        if not current_keys or current_keys != reference_keys:
+            raise ValueError(
+                'cannot prove replay compatibility: frozen encoder/projector '
+                'state keys differ between current and replay checkpoints'
+            )
+        mismatched = []
+        for key in current_keys:
+            current_tensor = current_state[key].detach().cpu()
+            reference_tensor = reference_state[key].detach().cpu()
+            if (
+                current_tensor.shape != reference_tensor.shape
+                or current_tensor.dtype != reference_tensor.dtype
+                or not torch.equal(current_tensor, reference_tensor)
+            ):
+                mismatched.append(key)
+        del reference_state
+        if mismatched:
+            raise ValueError(
+                'replay cache is incompatible with the current checkpoint: '
+                'frozen encoder/projector tensors differ for '
+                f'{mismatched[:8]}'
+            )
+        compatibility = {
+            'kind': 'exact_frozen_encoder_projector_match',
+            'current_policy': base_policy,
+            'current_checkpoint': str(current_checkpoint.resolve()),
+            'current_checkpoint_sha256': current_checkpoint_sha256,
+            'replay_policy': replay_policy,
+            'replay_checkpoint': str(replay_checkpoint.resolve()),
+            'replay_checkpoint_sha256': replay_checkpoint_sha256,
+            'compared_tensor_count': len(current_keys),
+        }
+
+    return {
+        'audit': audit,
+        'compatibility': compatibility,
+        'sha256': sha256(path),
+        'embeddings': torch.as_tensor(
+            embeddings.astype(np.float32),
+            device=device,
+            dtype=dtype,
+        ),
+        'actions': torch.as_tensor(
+            actions.astype(np.float32),
+            device=device,
+            dtype=dtype,
+        ),
+        'train_indices': train_indices,
+        'validation_indices': validation_indices,
+    }
+
+
+def replay_prediction_loss(
+    model,
+    replay: dict,
+    indices: np.ndarray,
+) -> torch.Tensor:
+    index = torch.as_tensor(
+        indices,
+        device=replay['embeddings'].device,
+        dtype=torch.long,
+    )
+    embeddings = replay['embeddings'][index]
+    actions = replay['actions'][index]
+    action_embeddings = model.action_encoder(actions)
+    predicted = model.predict(
+        embeddings[:, :-1],
+        action_embeddings,
+    )
+    return (predicted - embeddings[:, 1:]).square().mean()
+
+
+@torch.no_grad()
+def evaluate_dynamics_replay(
+    model,
+    replay: dict,
+    *,
+    batch_size: int,
+) -> float:
+    indices = replay['validation_indices']
+    squared_error = 0.0
+    elements = 0
+    for offset in range(0, len(indices), batch_size):
+        batch = indices[offset : offset + batch_size]
+        index = torch.as_tensor(
+            batch,
+            device=replay['embeddings'].device,
+            dtype=torch.long,
+        )
+        embeddings = replay['embeddings'][index]
+        actions = replay['actions'][index]
+        predicted = model.predict(
+            embeddings[:, :-1],
+            model.action_encoder(actions),
+        )
+        difference = predicted - embeddings[:, 1:]
+        squared_error += float(difference.square().sum())
+        elements += difference.numel()
+    return squared_error / max(elements, 1)
+
+
 def robust_normalize(cost: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     detached = cost.detach()
     center = detached.median()
@@ -239,6 +454,28 @@ def robust_normalize(cost: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     )
     scale = ((q75 - q25) / 1.349).clamp_min(1e-4)
     return (cost - center) / scale, scale
+
+
+def calibrated_elite_boundary(
+    normalized_cost: torch.Tensor,
+    *,
+    target_mass: int,
+    temperature: float,
+    iterations: int = 40,
+) -> torch.Tensor:
+    """Find a detached sigmoid threshold with exactly top-k total mass."""
+    detached = normalized_cost.detach()
+    margin = 20.0 * temperature
+    low = detached.min() - margin
+    high = detached.max() + margin
+    for _ in range(iterations):
+        midpoint = 0.5 * (low + high)
+        mass = torch.sigmoid((midpoint - detached) / temperature).sum()
+        if float(mass) < target_mass:
+            low = midpoint
+        else:
+            high = midpoint
+    return (0.5 * (low + high)).detach()
 
 
 def oracle_target(
@@ -264,6 +501,7 @@ def population_loss(
     base_cost: torch.Tensor,
     candidates: torch.Tensor,
     true_cost: torch.Tensor,
+    proposal_mean: torch.Tensor,
     proposal_std: torch.Tensor,
     *,
     topk: int,
@@ -272,7 +510,9 @@ def population_loss(
     mean_weight: float,
     logstd_weight: float,
     anchor_weight: float,
+    relative_update_weight: float,
     std_floor: float,
+    calibrate_elite_mass: bool,
 ) -> tuple[torch.Tensor, dict[str, float]]:
     target_mask, oracle_mean, oracle_std = oracle_target(
         candidates,
@@ -281,10 +521,17 @@ def population_loss(
     )
     normalized, _ = robust_normalize(predicted_cost)
     base_normalized, _ = robust_normalize(base_cost)
-    boundary = torch.kthvalue(
-        normalized.detach(),
-        min(topk, len(normalized)),
-    ).values
+    if calibrate_elite_mass:
+        boundary = calibrated_elite_boundary(
+            normalized,
+            target_mass=min(topk, len(normalized)),
+            temperature=temperature,
+        )
+    else:
+        boundary = torch.kthvalue(
+            normalized.detach(),
+            min(topk, len(normalized)),
+        ).values
     logits = (boundary - normalized) / temperature
 
     positive = F.softplus(-logits[target_mask]).mean()
@@ -307,6 +554,11 @@ def population_loss(
 
     update_scale = proposal_std.clamp_min(0.05)
     mean_loss = ((predicted_mean - oracle_mean) / update_scale).square().mean()
+    oracle_update = oracle_mean - proposal_mean
+    predicted_update = predicted_mean - proposal_mean
+    relative_update_loss = (
+        predicted_update - oracle_update
+    ).square().sum() / oracle_update.square().sum().clamp_min(1e-8)
     logstd_loss = (
         (
             torch.log(predicted_std.clamp_min(std_floor))
@@ -321,6 +573,7 @@ def population_loss(
         + mean_weight * mean_loss
         + logstd_weight * logstd_loss
         + anchor_weight * anchor_loss
+        + relative_update_weight * relative_update_loss
     )
     metrics = {
         'loss': float(total.detach()),
@@ -328,6 +581,7 @@ def population_loss(
         'mean_loss': float(mean_loss.detach()),
         'logstd_loss': float(logstd_loss.detach()),
         'anchor_loss': float(anchor_loss.detach()),
+        'relative_update_loss': float(relative_update_loss.detach()),
         'soft_elite_mass': float(membership.sum().detach()),
     }
     return total, metrics
@@ -372,6 +626,13 @@ def hard_update_metrics(
         'elite_overlap': float(overlap),
         'selected_elite_true_cost': float(np.mean(true_cost[learned_indices])),
     }
+
+
+def normalized_cost(values: np.ndarray) -> np.ndarray:
+    values = np.asarray(values, dtype=np.float64)
+    q25, q75 = np.quantile(values, [0.25, 0.75])
+    scale = max(float((q75 - q25) / 1.349), 1e-4)
+    return (values - np.median(values)) / scale
 
 
 @torch.no_grad()
@@ -427,6 +688,21 @@ def evaluate_split(
             metrics['base_score_mae'] = float(
                 np.mean(np.abs(predicted - base_predicted))
             )
+            metrics['base_score_normalized_mae'] = float(
+                np.mean(
+                    np.abs(
+                        normalized_cost(predicted)
+                        - normalized_cost(base_predicted)
+                    )
+                )
+            )
+            current_topk = set(
+                np.argsort(predicted, kind='stable')[:topk].tolist()
+            )
+            base_topk = set(
+                np.argsort(base_predicted, kind='stable')[:topk].tolist()
+            )
+            metrics['base_topk_overlap'] = len(current_topk & base_topk) / topk
             population_rows.append(metrics)
         state_metric: dict[str, float | int] = {'state_index': state_i}
         state_metric.update(mean_metrics(population_rows))
@@ -456,8 +732,17 @@ def run(cfg: DictConfig) -> None:
     source = Path(str(oe.get('source', '')))
     if not source.exists():
         raise FileNotFoundError(f'oe.source does not exist: {source}')
+    val_source_value = str(oe.get('val_source', '')).strip()
+    val_source = Path(val_source_value) if val_source_value else None
+    if val_source is not None and not val_source.exists():
+        raise FileNotFoundError(
+            f'oe.val_source does not exist: {val_source}'
+        )
     base_policy = str(oe.get('policy', 'pd_d192_k3_eval'))
     source_generator = str(oe.get('source_generator', base_policy))
+    val_source_generator = str(
+        oe.get('val_source_generator', source_generator)
+    )
     run_name = str(oe.get('run_name', 'oe_fixed_trace'))
     output_dir = Path(
         str(
@@ -478,8 +763,22 @@ def run(cfg: DictConfig) -> None:
     mean_weight = float(oe.get('mean_weight', 1.0))
     logstd_weight = float(oe.get('logstd_weight', 0.25))
     anchor_weight = float(oe.get('anchor_weight', 0.02))
+    relative_update_weight = float(oe.get('relative_update_weight', 0.0))
+    calibrate_elite_mass = bool(oe.get('calibrate_elite_mass', False))
+    replay_path_value = str(oe.get('replay_path', '')).strip()
+    replay_path = Path(replay_path_value) if replay_path_value else None
+    replay_weight = float(oe.get('replay_weight', 0.0))
+    replay_batch_size = int(oe.get('replay_batch_size', 64))
+    replay_eval_batch_size = int(oe.get('replay_eval_batch_size', 256))
+    updates_per_epoch = int(oe.get('updates_per_epoch', 0))
     std_floor = float(oe.get('std_floor', 1e-4))
     grad_clip = float(oe.get('grad_clip', 1.0))
+    base_normalized_tolerance = float(
+        oe.get('base_normalized_tolerance', 2e-2)
+    )
+    base_topk_overlap_tolerance = float(
+        oe.get('base_topk_overlap_tolerance', 0.95)
+    )
     requested_modules = [
         item.strip()
         for item in str(
@@ -494,8 +793,38 @@ def run(cfg: DictConfig) -> None:
         raise ValueError('oe.epochs and oe.save_every must be positive')
     if topk < 2:
         raise ValueError('oe.topk must be at least two')
-    if learning_rate <= 0 or temperature <= 0 or std_floor <= 0:
-        raise ValueError('lr, temperature, and std_floor must be positive')
+    if (
+        learning_rate <= 0
+        or temperature <= 0
+        or std_floor <= 0
+        or base_normalized_tolerance <= 0
+    ):
+        raise ValueError(
+            'lr, temperature, std_floor, and base_normalized_tolerance '
+            'must be positive'
+        )
+    if not 0 < base_topk_overlap_tolerance <= 1:
+        raise ValueError('base_topk_overlap_tolerance must be inside (0, 1]')
+    if replay_batch_size < 1 or replay_eval_batch_size < 1:
+        raise ValueError('replay batch sizes must be positive')
+    if updates_per_epoch < 0:
+        raise ValueError(
+            'oe.updates_per_epoch must be zero (full pass) or positive'
+        )
+    if replay_weight > 0 and replay_path is None:
+        raise ValueError(
+            'oe.replay_path is required when oe.replay_weight is positive'
+        )
+    loss_weights = (
+        boundary_weight,
+        mean_weight,
+        logstd_weight,
+        anchor_weight,
+        relative_update_weight,
+        replay_weight,
+    )
+    if any(weight < 0 for weight in loss_weights):
+        raise ValueError('loss weights must be non-negative')
 
     with np.load(source, allow_pickle=False) as archive:
         result = {key: np.asarray(archive[key]) for key in archive.files}
@@ -503,6 +832,18 @@ def run(cfg: DictConfig) -> None:
     for key in ('prev_mean', 'prev_var'):
         if key not in result:
             raise ValueError(f'source is missing {key!r}')
+    if val_source is None:
+        val_result = result
+    else:
+        with np.load(val_source, allow_pickle=False) as archive:
+            val_result = {
+                key: np.asarray(archive[key]) for key in archive.files
+            }
+        validate_source(val_result, cfg=cfg)
+        for key in ('prev_mean', 'prev_var'):
+            if key not in val_result:
+                raise ValueError(f'val_source is missing {key!r}')
+
     generators = result['generators'].astype(str).tolist()
     scorers = result['scorers'].astype(str).tolist()
     if source_generator not in generators:
@@ -517,14 +858,79 @@ def run(cfg: DictConfig) -> None:
     generator_i = generators.index(source_generator)
     base_scorer_i = scorers.index(base_policy)
 
+    val_generators = val_result['generators'].astype(str).tolist()
+    val_scorers = val_result['scorers'].astype(str).tolist()
+    if val_source_generator not in val_generators:
+        raise ValueError(
+            f'{val_source_generator!r} not in val generators '
+            f'{val_generators}'
+        )
+    if base_policy not in val_scorers:
+        raise ValueError(
+            'The fixed validation anchor requires the base policy to be one '
+            f'of the stored scorers, got {base_policy!r} vs {val_scorers}'
+        )
+    val_generator_i = val_generators.index(val_source_generator)
+    val_base_scorer_i = val_scorers.index(base_policy)
+
     num_states = result['candidates'].shape[0]
-    train_states, val_states = state_split(oe, num_states=num_states)
+    if val_source is None:
+        train_states, val_states = state_split(oe, num_states=num_states)
+    else:
+        requested_train = optional_ints(
+            oe.get('train_states'),
+            name='oe.train_states',
+        )
+        requested_val = optional_ints(
+            oe.get('val_states'),
+            name='oe.val_states',
+        )
+        train_states = validate_indices(
+            (
+                requested_train
+                if requested_train is not None
+                else list(range(num_states))
+            ),
+            size=num_states,
+            name='oe.train_states',
+        )
+        val_num_states = val_result['candidates'].shape[0]
+        val_states = validate_indices(
+            (
+                requested_val
+                if requested_val is not None
+                else list(range(val_num_states))
+            ),
+            size=val_num_states,
+            name='oe.val_states',
+        )
+        if not train_states or not val_states:
+            raise ValueError(
+                'external train and validation selections must be non-empty'
+            )
+        row_overlap = np.intersect1d(
+            result['rows'].astype(np.int64),
+            val_result['rows'].astype(np.int64),
+        )
+        if len(row_overlap):
+            raise ValueError(
+                'oe.source and oe.val_source overlap dataset rows: '
+                f'{row_overlap.tolist()}'
+            )
+
     source_steps = result['steps'].astype(int).tolist()
     selected_rounds = round_indices(oe, source_steps=source_steps)
+    val_source_steps = val_result['steps'].astype(int).tolist()
+    val_selected_rounds = round_indices(
+        oe,
+        source_steps=val_source_steps,
+    )
     num_candidates = result['candidates'].shape[3]
-    if topk >= num_candidates:
+    val_num_candidates = val_result['candidates'].shape[3]
+    if topk >= num_candidates or topk >= val_num_candidates:
         raise ValueError(
-            f'oe.topk={topk} must be smaller than N={num_candidates}'
+            f'oe.topk={topk} must be smaller than train N={num_candidates} '
+            f'and validation N={val_num_candidates}'
         )
 
     seed = int(oe.get('seed', cfg.seed))
@@ -566,46 +972,81 @@ def run(cfg: DictConfig) -> None:
         callables = OmegaConf.to_container(callables, resolve=True)
 
     action_shape = tuple(result['candidates'].shape[-2:])
-    caches = []
-    max_state_mismatch = 0.0
-    max_goal_mismatch = 0.0
-    try:
-        for state_i in range(num_states):
+    val_action_shape = tuple(val_result['candidates'].shape[-2:])
+    if val_action_shape != action_shape:
+        raise ValueError(
+            f'train action shape {action_shape} differs from validation '
+            f'{val_action_shape}'
+        )
+    dynamics_replay = None
+    if replay_path is not None:
+        dynamics_replay = load_dynamics_replay(
+            replay_path,
+            model=model,
+            base_policy=base_policy,
+            history_size=int(model.predictor.num_frames),
+            action_dim=int(action_shape[-1]),
+            device=device,
+            dtype=dtype,
+        )
+    def build_caches(trace: dict[str, np.ndarray]):
+        trace_caches = []
+        state_mismatch = 0.0
+        goal_mismatch = 0.0
+        for state_i in range(trace['candidates'].shape[0]):
             info, initial_state, goal_state = prepare_world_info(
                 world,
                 dataset,
-                episode=int(result['episodes'][state_i]),
-                start=int(result['starts'][state_i]),
-                goal_offset=int(result['goal_offset']),
+                episode=int(trace['episodes'][state_i]),
+                start=int(trace['starts'][state_i]),
+                goal_offset=int(trace['goal_offset']),
                 callables=callables,
                 history_len=int(cfg.plan_config.history_len),
                 action_block=int(cfg.plan_config.action_block),
             )
-            max_state_mismatch = max(
-                max_state_mismatch,
+            state_mismatch = max(
+                state_mismatch,
                 float(
                     np.max(
                         np.abs(
-                            initial_state - result['initial_state'][state_i]
+                            initial_state - trace['initial_state'][state_i]
                         )
                     )
                 ),
             )
-            max_goal_mismatch = max(
-                max_goal_mismatch,
+            goal_mismatch = max(
+                goal_mismatch,
                 float(
-                    np.max(np.abs(goal_state - result['goal_state'][state_i]))
+                    np.max(np.abs(goal_state - trace['goal_state'][state_i]))
                 ),
             )
-            caches.append(
+            trace_caches.append(
                 cache_state_embeddings(
                     model,
                     prepare_model_info(policy, info),
                     action_shape=action_shape,
                 )
             )
+        return trace_caches, state_mismatch, goal_mismatch
+
+    try:
+        caches, train_state_mismatch, train_goal_mismatch = build_caches(
+            result
+        )
+        if val_result is result:
+            val_caches = caches
+            val_state_mismatch = train_state_mismatch
+            val_goal_mismatch = train_goal_mismatch
+        else:
+            (
+                val_caches,
+                val_state_mismatch,
+                val_goal_mismatch,
+            ) = build_caches(val_result)
     finally:
         world.close()
+    max_state_mismatch = max(train_state_mismatch, val_state_mismatch)
+    max_goal_mismatch = max(train_goal_mismatch, val_goal_mismatch)
     if max_state_mismatch > 1e-5 or max_goal_mismatch > 1e-5:
         raise RuntimeError(
             f'trace reconstruction mismatch: state={max_state_mismatch:.3e}, '
@@ -658,13 +1099,24 @@ def run(cfg: DictConfig) -> None:
         'version': 1,
         'source': str(source.resolve()),
         'source_sha256': sha256(source),
+        'val_source': (
+            str(val_source.resolve()) if val_source is not None else None
+        ),
+        'val_source_sha256': (
+            sha256(val_source) if val_source is not None else None
+        ),
         'base_policy': base_policy,
         'source_generator': source_generator,
+        'val_source_generator': val_source_generator,
         'run_name': run_name,
         'train_states': train_states,
         'val_states': val_states,
         'source_steps': source_steps,
         'selected_steps': [source_steps[index] for index in selected_rounds],
+        'val_source_steps': val_source_steps,
+        'val_selected_steps': [
+            val_source_steps[index] for index in val_selected_rounds
+        ],
         'num_candidates': num_candidates,
         'topk': topk,
         'epochs': epochs,
@@ -678,8 +1130,41 @@ def run(cfg: DictConfig) -> None:
         'mean_weight': mean_weight,
         'logstd_weight': logstd_weight,
         'anchor_weight': anchor_weight,
+        'relative_update_weight': relative_update_weight,
+        'calibrate_elite_mass': calibrate_elite_mass,
+        'replay_path': (
+            str(replay_path.resolve()) if replay_path is not None else None
+        ),
+        'replay_sha256': (
+            dynamics_replay['sha256']
+            if dynamics_replay is not None
+            else None
+        ),
+        'replay_cache_audit': (
+            dynamics_replay['audit']
+            if dynamics_replay is not None
+            else None
+        ),
+        'replay_compatibility': (
+            dynamics_replay['compatibility']
+            if dynamics_replay is not None
+            else None
+        ),
+        'replay_weight': replay_weight,
+        'replay_batch_size': replay_batch_size,
+        'replay_eval_batch_size': replay_eval_batch_size,
+        'updates_per_epoch': (
+            updates_per_epoch
+            if updates_per_epoch > 0
+            else len(train_states) * len(selected_rounds)
+        ),
+        'available_population_records': (
+            len(train_states) * len(selected_rounds)
+        ),
         'std_floor': std_floor,
         'grad_clip': grad_clip,
+        'base_normalized_tolerance': base_normalized_tolerance,
+        'base_topk_overlap_tolerance': base_topk_overlap_tolerance,
         'trainable_modules': sorted(trainable_modules),
         'trainable_parameters': sum(
             parameter.numel() for parameter in parameters
@@ -698,6 +1183,8 @@ def run(cfg: DictConfig) -> None:
     ]
     history = []
     started = time.time()
+    replay_rng = np.random.default_rng(seed + 1_000_003)
+    record_rng = np.random.default_rng(seed + 2_000_003)
 
     def evaluate(epoch: int, train_loss: dict[str, float] | None) -> dict:
         train_metrics, train_state_metrics = evaluate_split(
@@ -714,15 +1201,24 @@ def run(cfg: DictConfig) -> None:
         )
         val_metrics, val_state_metrics = evaluate_split(
             model,
-            caches,
-            result,
-            generator_i=generator_i,
-            base_scorer_i=base_scorer_i,
+            val_caches,
+            val_result,
+            generator_i=val_generator_i,
+            base_scorer_i=val_base_scorer_i,
             state_indices=val_states,
-            selected_rounds=selected_rounds,
+            selected_rounds=val_selected_rounds,
             topk=topk,
             device=device,
             dtype=dtype,
+        )
+        replay_validation_mse = (
+            evaluate_dynamics_replay(
+                model,
+                dynamics_replay,
+                batch_size=replay_eval_batch_size,
+            )
+            if dynamics_replay is not None
+            else None
         )
         row = {
             'epoch': epoch,
@@ -730,11 +1226,17 @@ def run(cfg: DictConfig) -> None:
             'train_loss': train_loss,
             'train': train_metrics,
             'val': val_metrics,
+            'replay_validation_mse': replay_validation_mse,
             'train_state_metrics': train_state_metrics,
             'val_state_metrics': val_state_metrics,
         }
         history.append(row)
         write_json(output_dir / 'metrics.json', {'history': history})
+        replay_text = (
+            f'replay_mse={replay_validation_mse:.5f} '
+            if replay_validation_mse is not None
+            else ''
+        )
         print(
             f'epoch={epoch:03d} '
             f'train_cos={train_metrics["update_cosine"]:.3f} '
@@ -742,24 +1244,44 @@ def run(cfg: DictConfig) -> None:
             f'val_cos={val_metrics["update_cosine"]:.3f} '
             f'val_rel={val_metrics["relative_update_error"]:.3f} '
             f'val_overlap={val_metrics["elite_overlap"]:.3f} '
+            f'{replay_text}'
             f'elapsed={(time.time() - started) / 60:.1f}m'
         )
         return row
 
     baseline_row = evaluate(0, None)
-    baseline_score_mae = max(
-        baseline_row['train']['base_score_mae'],
-        baseline_row['val']['base_score_mae'],
+    baseline_normalized_mae = max(
+        baseline_row['train']['base_score_normalized_mae'],
+        baseline_row['val']['base_score_normalized_mae'],
     )
-    if baseline_score_mae > 1e-3:
+    baseline_topk_overlap = min(
+        baseline_row['train']['base_topk_overlap'],
+        baseline_row['val']['base_topk_overlap'],
+    )
+    if (
+        baseline_normalized_mae > base_normalized_tolerance
+        or baseline_topk_overlap < base_topk_overlap_tolerance
+    ):
         raise RuntimeError(
             'cached scorer does not reproduce the source trace: '
-            f'MAE={baseline_score_mae:.3e}'
+            f'normalized_MAE={baseline_normalized_mae:.3e} '
+            f'(limit={base_normalized_tolerance:.3e}), '
+            f'topk_overlap={baseline_topk_overlap:.3f} '
+            f'(limit={base_topk_overlap_tolerance:.3f})'
         )
     for epoch in range(1, epochs + 1):
-        random.shuffle(records)
+        if updates_per_epoch:
+            chosen = record_rng.choice(
+                len(records),
+                size=updates_per_epoch,
+                replace=updates_per_epoch > len(records),
+            )
+            epoch_records = [records[int(index)] for index in chosen]
+        else:
+            epoch_records = records.copy()
+            random.shuffle(epoch_records)
         epoch_rows = []
-        for state_i, round_i in records:
+        for state_i, round_i in epoch_records:
             candidates = torch.as_tensor(
                 result['candidates'][
                     state_i,
@@ -793,6 +1315,15 @@ def run(cfg: DictConfig) -> None:
                 device=device,
                 dtype=dtype,
             )
+            proposal_mean = torch.as_tensor(
+                result['prev_mean'][
+                    state_i,
+                    generator_i,
+                    round_i,
+                ].astype(np.float32),
+                device=device,
+                dtype=dtype,
+            )
             optimizer.zero_grad(set_to_none=True)
             predicted = score_cached(model, caches[state_i], candidates)
             loss, loss_metrics = population_loss(
@@ -800,6 +1331,7 @@ def run(cfg: DictConfig) -> None:
                 base_cost,
                 candidates,
                 true_cost,
+                proposal_mean,
                 proposal_std,
                 topk=topk,
                 temperature=temperature,
@@ -807,8 +1339,32 @@ def run(cfg: DictConfig) -> None:
                 mean_weight=mean_weight,
                 logstd_weight=logstd_weight,
                 anchor_weight=anchor_weight,
+                relative_update_weight=relative_update_weight,
                 std_floor=std_floor,
+                calibrate_elite_mass=calibrate_elite_mass,
             )
+            oe_loss = loss
+            replay_loss = None
+            if dynamics_replay is not None and replay_weight > 0:
+                replay_train_indices = dynamics_replay['train_indices']
+                replay_indices = replay_rng.choice(
+                    replay_train_indices,
+                    size=replay_batch_size,
+                    replace=replay_batch_size > len(replay_train_indices),
+                )
+                replay_loss = replay_prediction_loss(
+                    model,
+                    dynamics_replay,
+                    replay_indices,
+                )
+                loss = oe_loss + replay_weight * replay_loss
+            loss_metrics['oe_loss'] = float(oe_loss.detach())
+            loss_metrics['replay_prediction_loss'] = (
+                float(replay_loss.detach())
+                if replay_loss is not None
+                else 0.0
+            )
+            loss_metrics['loss'] = float(loss.detach())
             if not torch.isfinite(loss):
                 raise FloatingPointError(
                     f'non-finite loss at state={state_i}, round={round_i}'

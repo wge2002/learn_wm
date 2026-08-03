@@ -1,0 +1,5 @@
+nohup: ignoring input
+h5_off40 K=4 planner: cos 0.181->0.175 (-0.006), rel 1.141->1.154 (+0.014); oracle cos=0.384
+h5_off40 K=4 planner_latent: cos 0.181->0.198 (+0.017), rel 1.141->1.144 (+0.003); oracle cos=0.384
+h5_off40 K=4 planner_state_oracle: cos 0.181->0.197 (+0.016), rel 1.141->1.170 (+0.029); oracle cos=0.385
+results -> /225010117/logs/update_mode_router_a100_20260720

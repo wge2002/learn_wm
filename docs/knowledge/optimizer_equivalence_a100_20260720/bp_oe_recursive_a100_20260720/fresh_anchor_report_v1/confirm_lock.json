@@ -1,0 +1,28 @@
+{
+  "locked_at_utc": "2026-07-20T18:01:14Z",
+  "confirm_evaluation_opened": false,
+  "development_evaluation": "fresh_eval_n60_r3_v1",
+  "confirmation_evaluation": "fresh_eval_n60_r3_v2_confirm",
+  "branch_selector": {
+    "alpha": 0.1,
+    "family": "action",
+    "target": "clipped_delta"
+  },
+  "anchor_rule": "adopt the learned BP branch iff its final K10 cost is strictly lower than the ordinary K3 anchor final K10 cost",
+  "anchor_threshold_fitted": false,
+  "iso_compute_comparison": "K3 1x600; proposed system runs K3 anchor 1x300 plus sparse BP 300 calls",
+  "development_result": {
+    "actual_success_baseline": 0.35,
+    "actual_success_gate": 0.36666666666666664,
+    "adoption_rate": 0.45,
+    "mean_true_cost_delta": -3.996895304976488,
+    "paired_bootstrap_ci95": [
+      -7.218214709122154,
+      -0.6658604448272346
+    ]
+  },
+  "sha256": {
+    "branch_selector_script": "2a2ae81ff40a2f06bdbb20ccbc56bd564c562a28fa738fce8805b63537463120",
+    "anchor_gate_script": "c79083fbfb1b865445c903a6b12742e1f72f75ff3afefc8848605a3239706e4d"
+  }
+}

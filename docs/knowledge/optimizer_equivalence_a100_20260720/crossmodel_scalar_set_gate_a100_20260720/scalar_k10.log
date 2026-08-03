@@ -1,0 +1,20 @@
+# Set-valued optimizer operator probe
+
+Top1 is a learned single route. Top2/all-mode rows use oracle selection only to measure retained branch coverage.
+
+- Cell: `h5_off40`
+- Features: `planner_outcome`
+- Retained modes including no-op: `5`
+
+| output | metric | baseline | corrected | delta | paired 95% CI |
+|---|---|---:|---:|---:|---:|
+| top1 | update_cosine | 0.181 | 0.172 | -0.009 | [-0.021, +0.003] |
+| top1 | relative_update_error | 1.141 | 1.131 | -0.009 | [-0.018, -0.001] |
+| top2_coverage | update_cosine | 0.181 | 0.236 | +0.054 | [+0.044, +0.065] |
+| top2_coverage | relative_update_error | 1.141 | 1.086 | -0.055 | [-0.062, -0.047] |
+| all_mode_coverage | update_cosine | 0.181 | 0.294 | +0.112 | [+0.102, +0.123] |
+| all_mode_coverage | relative_update_error | 1.141 | 1.046 | -0.095 | [-0.101, -0.088] |
+
+- Top1 exact best-mode rate: `0.241`
+- Top2 contains best-mode rate: `0.442`
+results -> /225010117/logs/crossmodel_scalar_set_gate_a100_20260720/scalar_k10
