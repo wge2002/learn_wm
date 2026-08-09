@@ -1,0 +1,175 @@
+|      validate/aux_loss       | 0.0004942235536873341 |
+|    validate/auxratio_loss    |  0.009999999776482582 |
+|        validate/loss         |   5.043638706207275   |
+|      validate/pred_loss      |  0.07488861680030823  |
+|     validate/sigreg_loss     |         55.25         |
+|      validate/aux_loss       |  14.203824043273926  |
+|    validate/auxratio_loss    | 0.010000152513384819 |
+|        validate/loss         |  1.8823392391204834  |
+|      validate/pred_loss      | 0.23104245960712433  |
+|     validate/sigreg_loss     |  18.348426818847656  |
+|      validate/aux_loss       |  21.493549346923828  |
+|    validate/auxratio_loss    | 0.010000152513384819 |
+|        validate/loss         |  1.962369441986084   |
+|      validate/pred_loss      |  0.2409961074590683  |
+|     validate/sigreg_loss     |   19.125244140625    |
+|      validate/aux_loss       |  12.563257217407227  |
+|    validate/auxratio_loss    | 0.010000152513384819 |
+|        validate/loss         |  0.5627635717391968  |
+|      validate/pred_loss      | 0.10518771409988403  |
+|     validate/sigreg_loss     |  5.084287643432617   |
+|      validate/aux_loss       |   13.725213050842285  |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   0.8768019080162048  |
+|      validate/pred_loss      |  0.11435113102197647  |
+|     validate/sigreg_loss     |    8.47169303894043   |
+|      validate/aux_loss       |   27.28983497619629   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   0.6748907566070557  |
+|      validate/pred_loss      |  0.11120713502168655  |
+|     validate/sigreg_loss     |   6.263334274291992   |
+|      validate/aux_loss       |   16.507152557373047   |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   0.8719842433929443   |
+|      validate/pred_loss      |  0.12313753366470337   |
+|     validate/sigreg_loss     |    8.3206787109375     |
+|      validate/aux_loss       |   32.955718994140625   |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   1.5552232265472412   |
+|      validate/pred_loss      |  0.21272695064544678   |
+|     validate/sigreg_loss     |   14.915884017944336   |
+|      validate/aux_loss       |   36.79763412475586    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   2.145749568939209    |
+|      validate/pred_loss      |   0.3743323087692261   |
+|     validate/sigreg_loss     |   19.681720733642578   |
+|      validate/aux_loss       |   7.832403182983398    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |  0.33395129442214966   |
+|      validate/pred_loss      |  0.06884465366601944   |
+|     validate/sigreg_loss     |   2.945683479309082    |
+|      validate/aux_loss       |   14.303349494934082   |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   0.7418760657310486   |
+|      validate/pred_loss      |  0.15553635358810425   |
+|     validate/sigreg_loss     |   6.514613628387451    |
+|      validate/aux_loss       |   21.041946411132812  |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   0.8884987235069275  |
+|      validate/pred_loss      |  0.14056000113487244  |
+|     validate/sigreg_loss     |   8.309365272521973   |
+|      validate/aux_loss       |   9.184149742126465   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |  0.31225594878196716  |
+|      validate/pred_loss      |  0.06786958128213882  |
+|     validate/sigreg_loss     |   2.715427875518799   |
+|      validate/aux_loss       |   6.657249927520752   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   0.2593764662742615  |
+|      validate/pred_loss      |   0.0638761892914772  |
+|     validate/sigreg_loss     |   2.172063112258911   |
+|      validate/aux_loss       |   6.3140950202941895  |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |  0.19843721389770508  |
+|      validate/pred_loss      |  0.032370708882808685 |
+|     validate/sigreg_loss     |   1.8450469970703125  |
+[grad-guard] skipped non-finite gradient at epoch 14 step 163260 (1 total)
+[grad-guard] skipped non-finite gradient at epoch 14 step 163282 (2 total)
+|      validate/aux_loss       |   6.961264610290527    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   0.2176743894815445   |
+|      validate/pred_loss      |  0.033691927790641785  |
+|     validate/sigreg_loss     |   2.0440890789031982   |
+[grad-guard] epoch 14: 2/11306 steps skipped (0.018%)
+|      validate/aux_loss       |    9.09103775024414    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |  0.23928408324718475   |
+|      validate/pred_loss      |  0.03712085634469986   |
+|     validate/sigreg_loss     |   2.2460646629333496   |
+|      validate/aux_loss       |   6.348483085632324    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |  0.18352410197257996   |
+|      validate/pred_loss      |  0.02690896950662136   |
+|     validate/sigreg_loss     |   1.7402480840682983   |
+|      validate/aux_loss       |   2.504594087600708    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   0.3158439099788666   |
+|      validate/pred_loss      |  0.05634128302335739   |
+|     validate/sigreg_loss     |   2.883366584777832    |
+|      validate/aux_loss       |   5.596839904785156    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   0.1833089143037796   |
+|      validate/pred_loss      |  0.024155018851161003  |
+|     validate/sigreg_loss     |   1.7682783603668213   |
+[grad-guard] skipped non-finite gradient at epoch 19 step 223483 (3 total)
+[grad-guard] skipped non-finite gradient at epoch 19 step 223532 (4 total)
+|      validate/aux_loss       |   7.301511287689209   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |  0.22553399205207825  |
+|      validate/pred_loss      |  0.041170936077833176 |
+|     validate/sigreg_loss     |   2.048201084136963   |
+[grad-guard] epoch 19: 2/11306 steps skipped (0.018%)
+[grad-guard] skipped non-finite gradient at epoch 20 step 231000 (5 total)
+|      validate/aux_loss       |   6.149065017700195    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |  0.16262921690940857   |
+|      validate/pred_loss      |  0.021013295277953148  |
+|     validate/sigreg_loss     |   1.5735785961151123   |
+[grad-guard] epoch 20: 1/11306 steps skipped (0.009%)
+[grad-guard] skipped non-finite gradient at epoch 21 step 244948 (6 total)
+|      validate/aux_loss       |   5.693136215209961   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   0.1593005210161209  |
+|      validate/pred_loss      |  0.02584836818277836  |
+|     validate/sigreg_loss     |   1.4826414585113525  |
+[grad-guard] epoch 21: 1/11306 steps skipped (0.009%)
+|      validate/aux_loss       |   6.836609840393066   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |  0.18414850533008575  |
+|      validate/pred_loss      |  0.041732240468263626 |
+|     validate/sigreg_loss     |   1.5825622081756592  |
+[grad-guard] skipped non-finite gradient at epoch 23 step 270815 (7 total)
+|      validate/aux_loss       |   5.428301811218262   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   0.1741902083158493  |
+|      validate/pred_loss      |  0.040758658200502396 |
+|     validate/sigreg_loss     |   1.4824955463409424  |
+[grad-guard] epoch 23: 1/11306 steps skipped (0.009%)
+[grad-guard] skipped non-finite gradient at epoch 24 step 272760 (8 total)
+[grad-guard] skipped non-finite gradient at epoch 24 step 280372 (9 total)
+[grad-guard] skipped non-finite gradient at epoch 24 step 280861 (10 total)
+|      validate/aux_loss       |   5.711874961853027    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   0.1742163449525833   |
+|      validate/pred_loss      |  0.04376736655831337   |
+|     validate/sigreg_loss     |   1.4493757486343384   |
+[grad-guard] epoch 24: 3/11306 steps skipped (0.027%)
+[grad-guard] skipped non-finite gradient at epoch 25 step 291916 (11 total)
+|      validate/aux_loss       |   5.306814670562744    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |  0.14525651931762695   |
+|      validate/pred_loss      |  0.017797574400901794  |
+|     validate/sigreg_loss     |   1.4164159297943115   |
+[grad-guard] epoch 25: 1/11306 steps skipped (0.009%)
+[grad-guard] skipped non-finite gradient at epoch 26 step 302301 (12 total)
+|      validate/aux_loss       |   5.268772125244141   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |  0.14219486713409424  |
+|      validate/pred_loss      |   0.0168615635484457  |
+|     validate/sigreg_loss     |   1.3925840854644775  |
+[grad-guard] epoch 26: 1/11306 steps skipped (0.009%)
+|      validate/aux_loss       |    5.39979362487793   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |  0.13956540822982788  |
+|      validate/pred_loss      |  0.01428478304296732  |
+|     validate/sigreg_loss     |   1.3921140432357788  |
+|      validate/aux_loss       |   5.188037395477295    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |  0.13977159559726715   |
+|      validate/pred_loss      |  0.014449878595769405  |
+|     validate/sigreg_loss     |   1.3925278186798096   |
+|      validate/aux_loss       |  5.215970039367676   |
+|    validate/auxratio_loss    | 0.010000152513384819 |
+|        validate/loss         |  0.1395680159330368  |
+|      validate/pred_loss      | 0.014101516455411911 |
+|     validate/sigreg_loss     |  1.394247055053711   |

@@ -1,0 +1,147 @@
+|      validate/aux_loss       | 0.000286236172541976 |
+|    validate/auxratio_loss    | 0.009999999776482582 |
+|        validate/loss         |  5.052836894989014   |
+|      validate/pred_loss      | 0.08408691734075546  |
+|     validate/sigreg_loss     |        55.25         |
+|      validate/aux_loss       |  19.875995635986328  |
+|    validate/auxratio_loss    | 0.010000152513384819 |
+|        validate/loss         |  2.8480918407440186  |
+|      validate/pred_loss      |  0.3051656484603882  |
+|     validate/sigreg_loss     |  28.254350662231445  |
+|      validate/aux_loss       |  44.270118713378906  |
+|    validate/auxratio_loss    | 0.010000152513384819 |
+|        validate/loss         |  2.7557058334350586  |
+|      validate/pred_loss      | 0.36251020431518555  |
+|     validate/sigreg_loss     |  26.590456008911133  |
+|      validate/aux_loss       |   23.72742462158203   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   1.651291012763977   |
+|      validate/pred_loss      |  0.23404721915721893  |
+|     validate/sigreg_loss     |   15.74603271484375   |
+[grad-guard] skipped non-finite gradient at epoch 3 step 43943 (1 total)
+|      validate/aux_loss       |   59.59030532836914   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   5.807285785675049   |
+|      validate/pred_loss      |   0.4722621440887451  |
+|     validate/sigreg_loss     |   59.27619552612305   |
+[grad-guard] epoch 3: 1/11306 steps skipped (0.009%)
+|      validate/aux_loss       |   38.39822769165039   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   1.2898203134536743  |
+|      validate/pred_loss      |  0.25630778074264526  |
+|     validate/sigreg_loss     |   11.484135627746582  |
+|      validate/aux_loss       |   38.944087982177734   |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   2.1005027294158936   |
+|      validate/pred_loss      |  0.35755911469459534   |
+|     validate/sigreg_loss     |   19.36520004272461    |
+|      validate/aux_loss       |   86.38062286376953    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   5.055620193481445    |
+|      validate/pred_loss      |   0.5494338870048523   |
+|     validate/sigreg_loss     |   50.068660736083984   |
+|      validate/aux_loss       |   46.50475311279297    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   2.0979583263397217   |
+|      validate/pred_loss      |   0.3034581243991852   |
+|     validate/sigreg_loss     |   19.936717987060547   |
+|      validate/aux_loss       |   47.11562728881836    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   2.5084500312805176   |
+|      validate/pred_loss      |   0.3605664074420929   |
+|     validate/sigreg_loss     |   23.865549087524414   |
+[grad-guard] skipped non-finite gradient at epoch 9 step 111619 (2 total)
+[grad-guard] skipped non-finite gradient at epoch 9 step 111623 (3 total)
+|      validate/aux_loss       |   372.6634216308594    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   29.07724380493164    |
+|      validate/pred_loss      |   10.980854988098145   |
+|     validate/sigreg_loss     |   201.08291625976562   |
+[grad-guard] epoch 9: 2/11306 steps skipped (0.018%)
+[grad-guard] skipped non-finite gradient at epoch 10 step 121509 (4 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 121560 (5 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123064 (6 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123163 (7 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123164 (8 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123273 (9 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123274 (10 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123275 (11 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123276 (12 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123277 (13 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123365 (14 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123367 (15 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123369 (16 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123374 (17 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123376 (18 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123377 (19 total)
+[grad-guard] skipped non-finite gradient at epoch 10 step 123378 (20 total)
+|      validate/aux_loss       |   131.74563598632812  |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   12.23903751373291   |
+|      validate/pred_loss      |   1.711111307144165   |
+|     validate/sigreg_loss     |   116.97518920898438  |
+[grad-guard] epoch 10: 27/11306 steps skipped (0.239%)
+|      validate/aux_loss       |     42.35107421875    |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   2.5038833618164062  |
+|      validate/pred_loss      |   0.3544890284538269  |
+|     validate/sigreg_loss     |   23.882404327392578  |
+[grad-guard] epoch 11: 4/11306 steps skipped (0.035%)
+|      validate/aux_loss       |   34.25523376464844   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   1.1279191970825195  |
+|      validate/pred_loss      |  0.28704047203063965  |
+|     validate/sigreg_loss     |   9.342925071716309   |
+[grad-guard] epoch 12: 2/11306 steps skipped (0.018%)
+|      validate/aux_loss       |   16.32938575744629   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   0.6123013496398926  |
+|      validate/pred_loss      |  0.17222493886947632  |
+|     validate/sigreg_loss     |    4.88984489440918   |
+[grad-guard] epoch 13: 4/11306 steps skipped (0.035%)
+|      validate/aux_loss       |   106.03784942626953   |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   3.4327945709228516   |
+|      validate/pred_loss      |   0.863178014755249    |
+|     validate/sigreg_loss     |   28.552175521850586   |
+[grad-guard] epoch 14: 6/11306 steps skipped (0.053%)
+|      validate/aux_loss       |   37.28513717651367    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   2.5364041328430176   |
+|      validate/pred_loss      |   0.527380645275116    |
+|     validate/sigreg_loss     |   22.32278823852539    |
+[grad-guard] epoch 15: 13/11306 steps skipped (0.115%)
+|      validate/aux_loss       |   108.57332611083984   |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   6.3891987800598145   |
+|      validate/pred_loss      |   0.9172146916389465   |
+|     validate/sigreg_loss     |   60.796138763427734   |
+[grad-guard] epoch 16: 24/11306 steps skipped (0.212%)
+[grad-guard] skipped non-finite gradient at epoch 17 step 200542 (100 total)
+|      validate/aux_loss       |   45.53357696533203    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |   1.8111073970794678   |
+|      validate/pred_loss      |   0.4743326008319855   |
+|     validate/sigreg_loss     |   14.85187816619873    |
+[grad-guard] epoch 17: 22/11306 steps skipped (0.195%)
+|      validate/aux_loss       |   78.09843444824219    |
+|    validate/auxratio_loss    |  0.010000152513384819  |
+|        validate/loss         |    4.61537504196167    |
+|      validate/pred_loss      |   0.7910742163658142   |
+|     validate/sigreg_loss     |   42.493247985839844   |
+[grad-guard] epoch 18: 76/11306 steps skipped (0.672%)
+[grad-guard] skipped non-finite gradient at epoch 19 step 215678 (200 total)
+[grad-guard] skipped non-finite gradient at epoch 19 step 220118 (300 total)
+|      validate/aux_loss       |   55.95932388305664   |
+|    validate/auxratio_loss    |  0.010000152513384819 |
+|        validate/loss         |   2.837031126022339   |
+|      validate/pred_loss      |   0.559664249420166   |
+|     validate/sigreg_loss     |   25.305133819580078  |
+[grad-guard] epoch 19: 139/11306 steps skipped (1.229%)
+!!! TRAINER FIT FAILED — RuntimeError: [grad-guard] 1.23% of steps in epoch 19 had non-finite gradients (139/11306, > 1.00%); the recipe is unstable, not just unlucky -- aborting
+RuntimeError: [grad-guard] 1.23% of steps in epoch 19 had non-finite gradients (139/11306, > 1.00%); the recipe is unstable, not just unlucky -- aborting
+!!! TRAINER FIT FAILED — RuntimeError: [grad-guard] 1.23% of steps in epoch 19 had non-finite gradients (139/11306, > 1.00%); the recipe is unstable, not just unlucky -- aborting
+RuntimeError: [grad-guard] 1.23% of steps in epoch 19 had non-finite gradients (139/11306, > 1.00%); the recipe is unstable, not just unlucky -- aborting
+RuntimeError: [grad-guard] 1.23% of steps in epoch 19 had non-finite gradients (139/11306, > 1.00%); the recipe is unstable, not just unlucky -- aborting
+│    └ RuntimeError('[grad-guard] 1.23% of steps in epoch 19 had non-finite gradients (139/11306, > 1.00%); the recipe is unstable, ...
+RuntimeError: [grad-guard] 1.23% of steps in epoch 19 had non-finite gradients (139/11306, > 1.00%); the recipe is unstable, not just unlucky -- aborting

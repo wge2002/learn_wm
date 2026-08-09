@@ -124,6 +124,216 @@ class SaveCkptCallback(Callback):
         )
 
 
+class NaNGuardCallback(Callback):
+    """Abort the run as soon as the loss becomes non-finite.
+
+    A diverged run is unrecoverable: every later epoch trains on NaN weights and
+    ``SaveCkptCallback`` happily writes them out, so the run looks successful and
+    only fails much later at eval. ``curv_d192`` went NaN at step 247 of epoch 0
+    and still burned all 30 epochs before anyone noticed. Failing loudly here
+    turns a 24-hour waste into a 70-second one.
+    """
+
+    def __init__(self, patience: int = 3):
+        super().__init__()
+        self.patience = patience
+        self.strikes = 0
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        loss = outputs.get('loss') if isinstance(outputs, dict) else outputs
+        if loss is None or torch.isfinite(torch.as_tensor(loss)).all():
+            self.strikes = 0
+            return
+
+        self.strikes += 1
+        step = trainer.global_step
+        print(
+            f'[nan-guard] non-finite loss at epoch {trainer.current_epoch} '
+            f'step {step} ({self.strikes}/{self.patience})',
+            flush=True,
+        )
+        if self.strikes >= self.patience:
+            raise RuntimeError(
+                f'[nan-guard] loss non-finite for {self.patience} consecutive '
+                f'batches (epoch {trainer.current_epoch}, step {step}); '
+                f'aborting instead of writing NaN checkpoints'
+            )
+
+
+class NonFiniteGradGuardCallback(Callback):
+    """Neutralize a non-finite gradient step instead of letting it kill the run.
+
+    This restores, for the bf16 path, the one protection ``precision: fp16``
+    would have given for free. Root cause of the h2hfix wave's NaN collapse
+    (7 of 8 runs, at epochs 5-14 with no gradual divergence beforehand):
+
+    1. one rare batch produces ``inf`` in a SINGLE gradient element;
+    2. ``gradient_clip_val`` computes ``total_norm = inf``, hence
+       ``clip_coef = 1.0 / inf = 0``, and multiplies every gradient by it.
+       Healthy gradients become a harmless ``0`` -- but ``inf * 0 = NaN``;
+    3. AdamW writes that NaN into the parameter AND into its ``exp_avg`` /
+       ``exp_avg_sq``, so the poisoning is permanent;
+    4. next step the forward emits a NaN loss, so ALL gradients are NaN,
+       ``total_norm`` is NaN, ``clip_coef`` is NaN, and now *every* parameter
+       is NaN. The model is already dead two steps before ``NaNGuardCallback``
+       (patience 3) reports anything.
+
+    ``fp16`` never reaches step 2: ``GradScaler`` inspects the gradients, skips
+    the optimizer step, and training continues. ``bf16`` has no ``GradScaler``
+    (it does not need loss scaling), so nothing intercepts the ``inf`` -- one
+    unlucky batch in ~100k steps is fatal. This is independent of ``aux_reg``,
+    ``aux_space`` and ``aux_beta_mode``, which is why static- and adaptive-beta
+    runs of both ``curvature`` and ``bisim`` all died the same way.
+
+    Zeroing the gradients makes the step momentum-only (finite and tiny) and
+    keeps clipping numerically quiet, so the run survives the bad batch. The
+    count is reported at the end of each epoch: a handful of skips is normal
+    numerical noise, a persistently rising count means the recipe itself is
+    unstable and the aux term still needs work.
+    """
+
+    def __init__(
+        self, max_skip_frac: float = 0.01, min_steps_for_frac: int = 1000
+    ):
+        super().__init__()
+        self.max_skip_frac = max_skip_frac
+        self.min_steps_for_frac = min_steps_for_frac
+        self.skipped = 0
+        self.epoch_skipped = 0
+        self.epoch_steps = 0
+
+    def on_before_optimizer_step(self, trainer, pl_module, optimizer):
+        # Runs after backward and BEFORE gradient_clip_val, which is the only
+        # window where an inf can still be caught before it becomes a NaN.
+        self.epoch_steps += 1
+        grads = [p.grad for p in pl_module.parameters() if p.grad is not None]
+        if not grads:
+            return
+        # Regression hook: SWM_INJECT_INF_AT_STEP=<n> plants a single inf in one
+        # gradient element at that step, which is exactly the h2hfix trigger.
+        # Without the guard below the run is dead one step later; with it the
+        # loss stays finite. Test-only, off unless the variable is set.
+        inject = os.environ.get('SWM_INJECT_INF_AT_STEP')
+        if inject and trainer.global_step == int(inject):
+            grads[0].view(-1)[0] = float('inf')
+            print(
+                f'[inject] planted one inf gradient element at step '
+                f'{trainer.global_step}',
+                flush=True,
+            )
+        # One fused reduction, then ONE host sync. Testing each tensor with
+        # `not torch.isfinite(g).all()` would sync once per tensor (~150 for
+        # ViT-tiny) every step, which is a large throughput tax to pay for a
+        # branch that almost never fires.
+        finite = torch.stack(
+            [torch.isfinite(g).all() for g in grads]
+        ).all()
+        if bool(finite):
+            return
+
+        self.skipped += 1
+        self.epoch_skipped += 1
+        for g in grads:
+            g.zero_()
+        if self.skipped <= 20 or self.skipped % 100 == 0:
+            print(
+                f'[grad-guard] skipped non-finite gradient at epoch '
+                f'{trainer.current_epoch} step {trainer.global_step} '
+                f'({self.skipped} total)',
+                flush=True,
+            )
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        if self.epoch_skipped:
+            frac = self.epoch_skipped / max(self.epoch_steps, 1)
+            print(
+                f'[grad-guard] epoch {trainer.current_epoch}: '
+                f'{self.epoch_skipped}/{self.epoch_steps} steps skipped '
+                f'({frac:.3%})',
+                flush=True,
+            )
+            # The fraction is only meaningful over a real epoch. A short probe
+            # or smoke run (14 steps) puts a single unlucky step at 7%, which
+            # would abort a perfectly healthy configuration.
+            if (
+                frac > self.max_skip_frac
+                and self.epoch_steps >= self.min_steps_for_frac
+            ):
+                raise RuntimeError(
+                    f'[grad-guard] {frac:.2%} of steps in epoch '
+                    f'{trainer.current_epoch} had non-finite gradients '
+                    f'({self.epoch_skipped}/{self.epoch_steps}, '
+                    f'> {self.max_skip_frac:.2%}); the recipe is unstable, '
+                    f'not just unlucky -- aborting'
+                )
+        self.epoch_skipped = 0
+        self.epoch_steps = 0
+
+
+class DivergenceTraceCallback(Callback):
+    """Ring-buffer trace of the steps leading up to divergence (opt-in).
+
+    Enabled with ``SWM_TRACE_DIVERGENCE=1``. Answers the one question a NaN loss
+    alone cannot: did the FORWARD blow up (some intermediate overflowed) or did
+    the PARAMETERS already contain NaN from a previous step's backward? The
+    per-step gradient norm before clipping distinguishes a genuine gradient
+    explosion from a silent numerical hole.
+    """
+
+    def __init__(self, window: int = 12):
+        super().__init__()
+        self.window = window
+        self.rows = []
+        self.dumped = False
+        self.last_grad = None
+
+    def on_before_optimizer_step(self, trainer, pl_module, optimizer):
+        # Runs after backward, BEFORE gradient_clip_val is applied, so this is
+        # the raw gradient norm.
+        total, nonfinite = 0.0, 0
+        for p in pl_module.parameters():
+            if p.grad is None:
+                continue
+            g = p.grad.detach().float()
+            if not torch.isfinite(g).all():
+                nonfinite += 1
+            total += g.pow(2).nansum().item()
+        self.last_grad = (total ** 0.5, nonfinite)
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        bad_params = sum(
+            1 for p in pl_module.parameters() if not torch.isfinite(p).all()
+        )
+        gnorm, gbad = self.last_grad if self.last_grad else (float('nan'), -1)
+        vals = {}
+        if isinstance(outputs, dict):
+            for k, v in outputs.items():
+                if 'loss' in k and torch.is_tensor(v):
+                    vals[k] = v.detach().float().item()
+        self.rows.append(
+            f'step={trainer.global_step:5d} '
+            + ' '.join(f'{k}={v:.4g}' for k, v in sorted(vals.items()))
+            + f' |grad|={gnorm:.4g} grad_nonfinite_tensors={gbad}'
+            f' param_nonfinite_tensors={bad_params}'
+        )
+        if len(self.rows) > self.window:
+            self.rows.pop(0)
+
+        loss = outputs.get('loss') if isinstance(outputs, dict) else outputs
+        diverged = loss is not None and not torch.isfinite(
+            torch.as_tensor(loss)
+        ).all()
+        if (diverged or bad_params) and not self.dumped:
+            self.dumped = True
+            print(
+                f'\n[trace] divergence detected at step {trainer.global_step}; '
+                f'last {len(self.rows)} steps:',
+                flush=True,
+            )
+            for r in self.rows:
+                print(f'[trace]   {r}', flush=True)
+
+
 class CritWMStateCallback(Callback):
     """Persist CritWM's non-parameter controller state in Lightning ckpts."""
 
@@ -254,6 +464,27 @@ def lejepa_forward(self, batch, stage, cfg):
         pred_emb = self.model.predict(emb[:, :hs], act_emb[:, :hs])
         tgt_emb = emb[:, 1:hs + 1]
         base = (pred_emb - tgt_emb).pow(2).mean()
+        # `aux_space` picks the representation the AUXILIARY is measured in;
+        # `base` always stays in the raw latent space. 'unit' projects onto the
+        # sphere, which closes the curvature term's degenerate escape route: a
+        # large common drift makes every raw velocity near-parallel, so raw
+        # `1-cos` falls to 0.007 at drift=20 while |emb| grows to ~970 and the
+        # raw-space `base` (an MSE, so quadratic in scale) explodes with it.
+        # Measured on the sphere the same drift only moves it 1.497 -> 1.375.
+        # Curvature is a pure direction quantity, so 'unit' is also the more
+        # faithful reading of Temporal Straightening.
+        # 'unit' is WRONG for bisim: pairwise differences already cancel a
+        # common drift (raw stays 5.148 for any drift), and normalizing opens a
+        # fresh hole instead (0.0002 at drift=20). Leave bisim in 'raw'.
+        aux_space = str(cfg.wm.get('aux_space', 'raw'))
+
+        def to_aux_space(z):
+            if aux_space == 'raw':
+                return z
+            if aux_space == 'unit':
+                return z / z.norm(dim=-1, keepdim=True).clamp_min(1e-6)
+            raise ValueError(f'unknown aux_space {aux_space!r}')
+
         if reg == 'curvature':
             # Temporal tangent direction is undefined when two consecutive
             # observations have identical embeddings. PushT contains exact
@@ -261,7 +492,17 @@ def lejepa_forward(self, batch, stage, cfg):
             # injected a 1/eps gradient and eventually destabilized otherwise
             # finite multi-epoch runs. Compute the angle in fp32 and exclude
             # tangent pairs for which either velocity is too small.
-            v = (emb[:, 1:] - emb[:, :-1]).float()              # (B,T-1,D)
+            #
+            # NB the duplicate-frame hypothesis was tested directly and is NOT
+            # what killed the multi-epoch runs: `x.norm(dim=-1).clamp_min(eps)`
+            # backward at an exact zero vector returns a finite 0 gradient on
+            # torch 2.4.1, and the full curvature expression on two identical
+            # frames produced 0/160 NaN. The real cause was bf16 + gradient
+            # clipping (see NonFiniteGradGuardCallback). This masking is kept
+            # anyway: it is the faithful reading of a direction-only quantity,
+            # and fp32 + clamped cos is strictly more robust regardless.
+            e = to_aux_space(emb)
+            v = (e[:, 1:] - e[:, :-1]).float()                  # (B,T-1,D)
             min_speed = float(cfg.wm.get('curvature_min_speed', 0.1))
             if min_speed <= 0:
                 raise ValueError(
@@ -277,16 +518,49 @@ def lejepa_forward(self, batch, stage, cfg):
             aux = aux / valid_pair_f.sum().clamp_min(1.0)
         elif reg == 'bisim':
             gamma = float(cfg.wm.get('bisim_gamma', 0.9))
-            z0 = emb[:, hs - 1]                                # (B,D) current
-            znext = pred_emb[:, -1]                            # (B,D) predicted next
+            z0 = to_aux_space(emb[:, hs - 1])                  # (B,D) current
+            znext = to_aux_space(pred_emb[:, -1])              # (B,D) predicted next
             idx = torch.randperm(z0.shape[0], device=z0.device)
             dz = (z0 - z0[idx]).norm(dim=-1)
             dn = (znext - znext[idx]).norm(dim=-1).detach()
             aux = (dz - gamma * dn).pow(2).mean()
         else:
             raise ValueError(f'unknown aux_reg {reg!r}')
+        # A STATIC beta cannot hold the auxiliary in its place. `base` shrinks
+        # as the model learns (0.087 -> 0.049 over 30 epochs) while neither
+        # auxiliary converges, so the measured beta*aux/base ratio climbs on its
+        # own: bisim went 0.00 -> 1.73 and curv was already 0.94 in epoch 1
+        # before going NaN. Both configs claim the auxiliary stays "below" the
+        # prediction term; neither did.
+        #
+        # In adaptive mode beta is a TARGET RATIO instead of a raw weight: the
+        # rescaling factor is detached, so the gradient direction of `aux` is
+        # untouched and only its magnitude is pinned to beta*base. Whatever the
+        # auxiliary's natural scale is, it can no longer outvote prediction.
+        #
+        # The 1e-8 floor bounds beta_eff's VALUE but not the gradient it
+        # delivers: d(beta_eff*aux)/d(aux) carries the whole 1/aux factor, so as
+        # aux -> 0 the gradient reaching the encoder grows without bound
+        # (measured: aux 1e-1 -> 5e-3, 1e-3 -> 5e-1, 1e-9 -> 5e+4). That is a
+        # confirmed route to an `inf` gradient, which
+        # ``NonFiniteGradGuardCallback`` then has to absorb. Cap the multiplier
+        # at aux_beta_max so a near-zero auxiliary cannot amplify at all; the
+        # cap only binds when the auxiliary has already essentially converged,
+        # where its gradient direction no longer carries information.
+        if str(cfg.wm.get('aux_beta_mode', 'static')) == 'adaptive':
+            beta_max = float(cfg.wm.get('aux_beta_max', 10.0))
+            beta_eff = (
+                beta * base.detach() / aux.detach().abs().clamp_min(1e-8)
+            ).clamp_max(beta_max)
+        else:
+            beta_eff = torch.as_tensor(beta, device=aux.device, dtype=aux.dtype)
         output['aux_loss'] = aux
-        output['pred_loss'] = base + beta * aux
+        # Diagnostic only: the fraction of `pred_loss` the auxiliary accounts
+        # for. Should sit at `beta` in adaptive mode and drift in static mode.
+        output['auxratio_loss'] = (
+            beta_eff * aux.detach() / base.detach().abs().clamp_min(1e-8)
+        )
+        output['pred_loss'] = base + beta_eff * aux
         output['sigreg_loss'] = self.sigreg(emb.transpose(0, 1))
         output['loss'] = output['pred_loss'] + lambd * output['sigreg_loss']
         components = {
@@ -582,11 +856,21 @@ def run(cfg):
     )
     critwm_state_callback = CritWMStateCallback()
 
+    extra_callbacks = []
+    if os.environ.get('SWM_TRACE_DIVERGENCE'):
+        extra_callbacks.append(DivergenceTraceCallback())
+
     trainer_kwargs = OmegaConf.to_container(cfg.trainer, resolve=True)
     trainer_kwargs.setdefault('default_root_dir', str(run_dir))
     trainer = pl.Trainer(
         **trainer_kwargs,
-        callbacks=[object_dump_callback, critwm_state_callback],
+        callbacks=[
+            object_dump_callback,
+            critwm_state_callback,
+            *extra_callbacks,
+            NonFiniteGradGuardCallback(),
+            NaNGuardCallback(),
+        ],
         num_sanity_val_steps=1,
         logger=logger,
         enable_checkpointing=True,

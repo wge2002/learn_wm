@@ -11,11 +11,22 @@ wm:
   aux_reg: curvature
   # Scale-matched on A100: beta=1 made the auxiliary ~19x larger than the
   # one-step prediction term and drove all weights to NaN within 20 batches.
+  # beta=0.05 was NOT enough either: with aux_space=raw this still diverges at
+  # step 247 (validate ratio was already 0.84 at the sanity check). The real
+  # defect is the escape route, not the weight -- see aux_space.
   aux_beta: 0.05
   # Curvature is undefined on exact duplicate-frame transitions. Ignore
   # tangents below this latent-speed floor instead of differentiating through
   # a near-zero normalization.
   curvature_min_speed: 0.1
+  # 'raw' reproduces the original (divergent) baseline; 'unit' measures the
+  # curvature on the unit sphere and closes the common-drift escape route.
+  # 1200-step probe: raw+static -> NaN@247; unit+static -> pred 156->0.84,
+  # no NaN, aux flat at ~1.13 (it can no longer be cheaply lowered).
+  aux_space: raw
+  # 'static' | 'adaptive'. In adaptive mode aux_beta is a TARGET RATIO of
+  # beta*aux/base rather than a raw weight.
+  aux_beta_mode: static
 
 data:
   dataset:

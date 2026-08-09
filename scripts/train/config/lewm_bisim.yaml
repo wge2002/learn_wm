@@ -8,10 +8,18 @@ output_model_name: lewm_bisim
 
 wm:
   aux_reg: bisim
-  # Scale-matched on A100: per-batch bisim values can be O(10), so 0.01 keeps
-  # the weighted auxiliary comparable to, but below, the K=1 prediction term.
+  # The "comparable to, but below, the prediction term" claim was measured and
+  # is false: with a STATIC 0.01 the beta*aux/base ratio climbs on its own
+  # (0.00 -> 0.73 in 1200 steps, 1.73 by epoch 31) because `base` shrinks as the
+  # model learns while bisim never converges. Use aux_beta_mode=adaptive to read
+  # this as a target ratio instead.
   aux_beta: 0.01
   bisim_gamma: 0.9
+  # Keep bisim in 'raw'. Its pairwise differences already cancel a common drift
+  # (raw aux is flat at 5.148 for any drift), so it does not have curvature's
+  # escape route; projecting to the sphere would OPEN one (0.0002 at drift=20).
+  aux_space: raw
+  aux_beta_mode: static
 
 data:
   dataset:
