@@ -509,13 +509,42 @@ def lejepa_forward(self, batch, stage, cfg):
                     f'curvature_min_speed must be positive, got {min_speed}'
                 )
             speed = v.norm(p=2, dim=-1)
-            valid_speed = speed >= min_speed
-            vn = v / speed.clamp_min(min_speed).unsqueeze(-1)
+            # The floor has to be RELATIVE to the scale of the space it is
+            # applied in. An absolute 0.1 was calibrated for raw latents, where
+            # |emb| reaches 142-970 and speeds are O(1)-O(200); on the unit
+            # sphere every embedding has norm 1 and the speeds of genuinely
+            # adjacent frames fall far below 0.1, so an absolute floor masks
+            # EVERY pair and the auxiliary silently becomes exactly 0.0 with no
+            # gradient (measured: aux 0.76-1.46 -> 0.0 for aux_space=unit).
+            # Scaling by the batch's own median speed keeps the intent -- drop
+            # the near-duplicate tail -- in either space.
+            speed_ref = speed.detach().median().clamp_min(1e-12)
+            valid_speed = speed >= min_speed * speed_ref
+            vn = v / speed.clamp_min(min_speed * speed_ref).unsqueeze(-1)
             cos = (vn[:, 1:] * vn[:, :-1]).sum(-1).clamp(-1, 1)
             valid_pair = valid_speed[:, 1:] & valid_speed[:, :-1]
             valid_pair_f = valid_pair.to(cos.dtype)
+            n_valid = valid_pair_f.sum()
             aux = ((1.0 - cos) * valid_pair_f).sum()
-            aux = aux / valid_pair_f.sum().clamp_min(1.0)
+            aux = aux / n_valid.clamp_min(1.0)
+            # A fully-masked batch makes aux exactly 0.0 with no gradient, i.e.
+            # the regularizer is silently off. That is the failure mode the
+            # relative floor above fixes, so say so out loud instead of
+            # training for 30 epochs on an inert term. Checked only on the
+            # first few calls; each check costs one host sync.
+            _n = getattr(lejepa_forward, '_mask_checks', 0)
+            if _n < 20:
+                lejepa_forward._mask_checks = _n + 1
+                if float(n_valid) == 0.0:
+                    print(
+                        f'[curvature] WARNING: all {valid_pair_f.numel()} '
+                        f'direction pairs fell below curvature_min_speed='
+                        f'{min_speed} (relative to median speed '
+                        f'{float(speed_ref):.3e} in aux_space='
+                        f'{cfg.wm.get("aux_space", "raw")}); aux_loss is '
+                        f'identically 0 and contributes no gradient',
+                        flush=True,
+                    )
         elif reg == 'bisim':
             gamma = float(cfg.wm.get('bisim_gamma', 0.9))
             z0 = to_aux_space(emb[:, hs - 1])                  # (B,D) current
