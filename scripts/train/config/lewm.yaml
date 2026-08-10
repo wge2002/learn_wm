@@ -14,7 +14,17 @@ resume_weights_only: false
 # Optional exported model state_dict used when a full Lightning checkpoint is
 # unavailable. epoch_offset keeps newly exported filenames monotonic.
 init_weights_path: null
+# Create a deterministic initialization artifact before training. With
+# init_only=true the process exits after exporting/validating this state_dict.
+export_init_weights_path: null
+init_only: false
 epoch_offset: 0
+
+# Paired protocols can hash the first N non-pixel training batches in each arm.
+pairing_trace_batches: 0
+# Historical runs skip bad bf16 updates exactly. Formal paired protocols use
+# "error" so the arms cannot silently finish with different update counts.
+nonfinite_grad_policy: skip
 
 num_workers: 6
 train_split: 0.9

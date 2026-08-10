@@ -1,0 +1,26 @@
+defaults:
+  - lewm
+  - _self_
+
+# Open-loop K=5 intervention paired with lewm_paired_k1. Keep every setting
+# outside the predictor loss identical to that control.
+output_model_name: lewm_paired_k5
+
+wm:
+  unroll: 5
+
+model:
+  predictor:
+    # Match K1 and remove the otherwise unequal number of dropout draws.
+    dropout: 0.0
+
+data:
+  dataset:
+    num_steps: 8
+
+pairing_trace_batches: 3
+nonfinite_grad_policy: error
+
+trainer:
+  deterministic: true
+  benchmark: false

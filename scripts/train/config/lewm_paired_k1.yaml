@@ -1,0 +1,29 @@
+defaults:
+  - lewm
+  - _self_
+
+# Matched K=1 control for the controlled-metric experiment. K1 and K5 read
+# identical eight-frame clips and therefore have the same split, batch order,
+# batches per epoch, optimizer-update budget, encoder work, and SIGReg input.
+# The only intended intervention is the predictor objective below.
+output_model_name: lewm_paired_k1
+
+wm:
+  matched_one_step: true
+
+model:
+  predictor:
+    # K5 calls the predictor five times per batch. Disable stochastic dropout
+    # in both arms so call count cannot masquerade as a horizon effect.
+    dropout: 0.0
+
+data:
+  dataset:
+    num_steps: 8
+
+pairing_trace_batches: 3
+nonfinite_grad_policy: error
+
+trainer:
+  deterministic: true
+  benchmark: false

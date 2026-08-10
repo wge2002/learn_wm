@@ -4,6 +4,12 @@
 状态：执行计划（取代三份文档里各自的 gate 列表作为**执行顺序**的依据；
 理论内容仍以原文档为准）
 
+> **2026-08-10 协议修正：**Phase 1/2 的训练配对、seed 数、checkpoint 时间点和
+> 判决阈值已由
+> [正式成对训练协议](controlled_metric_paired_protocol_20260810.md) 取代。
+> 旧 K1/K5 的模型初始化、window 长度和 update budget 不匹配，只能作为探索性
+> 证据；正式最小集现为 `K1/K5 × 3 seeds = 6 runs`。
+
 前置文档：
 
 - [Gaussian Measure, Controlled Metric](horizon_induced_gaussian_gauge_20260724.md)（G0–G4）
@@ -37,7 +43,7 @@ L20Z 的 bf16 吞吐明显低于 A100，所以"能训多少 checkpoint"是这一
   P0a estimator 在 toy 上校准 ──┐
   P0b 输入侧 local ID 审计 ─────┤
                                ↓
-[最小 checkpoint 集: K1,K5 × 2 seed = 4 runs]
+[最小 checkpoint 集: K1,K5 × 3 seed = 6 runs]
                                ↓
   G0b latent 侧刚性审计 → 若"确实是精确满维刚性区" ⇒ premise 死
                                ↓
@@ -54,8 +60,9 @@ L20Z 的 bf16 吞吐明显低于 A100，所以"能训多少 checkpoint"是这一
   G4 (head-to-head) / K×persistence          predictor-relative 坐标整形
 ```
 
-关键性质：**G2 是最便宜的决定性实验**（只要 K1 vs K5 × 2 seed），而 G3/G4/Gate B
-全都贵得多。所以路径必须是「先花 4 次训练拿到 G2 判决，再决定要不要继续投」。
+关键性质：**G2 是最便宜的决定性实验**（正式设计只要 K1 vs K5 × 3 seed），而
+G3/G4/Gate B 全都贵得多。所以路径必须是「先花 6 次训练拿到 G2 判决，再决定
+要不要继续投」。
 
 ---
 
@@ -90,14 +97,16 @@ premise kill test，应该在训练启动前就跑掉。**
 
 ---
 
-## 4. Phase 1 — 最小 checkpoint 集
+## 4. Phase 1 — 最小 checkpoint 集（细节由 2026-08-10 协议取代）
 
 ```text
-K=1, seed × 2
-K=5, seed × 2        （full one-step anchor + dose-weighted recursive）
+K=1, seed × 3
+K=5, seed × 3        （matched one-step 对照 vs open-loop K5）
 ```
 
-4 次训练。这是 G0b/Gate A/G1/G2 的全部输入，不多训一个。
+6 次训练。这是 G0b/Gate A/G1/G2 的正式最小输入，不多训一个。每个 seed 的
+两臂必须加载同一份初始化，并使用相同 8-frame window、split、batch order 和
+update budget；具体自动验配规则见 2026-08-10 协议。
 
 `K=3/K=10` **暂缓**——它们只在"趋势单调性"上加信息，而 G2 的判决只需要 K1 vs K5
 的对比。等 G2 过了再补，用来验证 §5 的单调性预测。

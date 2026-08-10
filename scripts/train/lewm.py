@@ -1,4 +1,6 @@
+import hashlib
 import os
+from functools import partial
 from pathlib import Path
 
 import hydra
@@ -8,15 +10,67 @@ from stable_pretraining import data as dt
 import stable_worldmodel as swm
 import torch
 import torch.nn.functional as F
+from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.loggers import WandbLogger
 from omegaconf import OmegaConf, open_dict
 from torchvision.transforms import v2
 
-from functools import partial
 from stable_worldmodel.data import column_normalizer as get_column_normalizer
 from stable_worldmodel.wm.loss import SIGReg
-from lightning.pytorch.callbacks import Callback
 from stable_worldmodel.wm.utils import save_pretrained
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open('rb') as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def state_dict_sha256(state: dict[str, torch.Tensor]) -> str:
+    """Hash tensor content independently of torch.save container metadata."""
+
+    digest = hashlib.sha256()
+    for key, value in state.items():
+        tensor = value.detach().cpu().contiguous()
+        digest.update(key.encode())
+        digest.update(b'\0')
+        digest.update(str(tensor.dtype).encode())
+        digest.update(b'\0')
+        digest.update(str(tuple(tensor.shape)).encode())
+        digest.update(b'\0')
+        digest.update(
+            tensor.reshape(-1).view(torch.uint8).numpy().tobytes()
+        )
+    return digest.hexdigest()
+
+
+def export_initial_weights(model, path: Path) -> tuple[str, bool]:
+    """Atomically export, or bitwise-validate, a shared initialization."""
+
+    path = path.expanduser().resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    state = model.state_dict()
+    if path.exists():
+        existing = torch.load(path, map_location='cpu', weights_only=True)
+        if existing.keys() != state.keys() or any(
+            not torch.equal(existing[key], value.detach().cpu())
+            for key, value in state.items()
+        ):
+            raise FileExistsError(
+                f'initialization artifact exists but does not match the '
+                f'deterministic model for this config/seed: {path}'
+            )
+        return state_dict_sha256(state), True
+
+    temporary = path.with_name(f'.{path.name}.tmp-{os.getpid()}')
+    try:
+        torch.save(state, temporary)
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return state_dict_sha256(state), False
 
 
 class ResizeField:
@@ -185,19 +239,28 @@ class NonFiniteGradGuardCallback(Callback):
     ``aux_space`` and ``aux_beta_mode``, which is why static- and adaptive-beta
     runs of both ``curvature`` and ``bisim`` all died the same way.
 
-    Zeroing the gradients makes the step momentum-only (finite and tiny) and
-    keeps clipping numerically quiet, so the run survives the bad batch. The
+    Setting every gradient to ``None`` makes AdamW skip every parameter: no
+    momentum, weight-decay, or optimizer-state update occurs. This is the
+    closest bf16 analogue of GradScaler declining ``optimizer.step``. The
     count is reported at the end of each epoch: a handful of skips is normal
     numerical noise, a persistently rising count means the recipe itself is
     unstable and the aux term still needs work.
     """
 
     def __init__(
-        self, max_skip_frac: float = 0.01, min_steps_for_frac: int = 1000
+        self,
+        max_skip_frac: float = 0.01,
+        min_steps_for_frac: int = 1000,
+        policy: str = 'skip',
     ):
         super().__init__()
+        if policy not in {'skip', 'error'}:
+            raise ValueError(
+                f'non-finite gradient policy must be skip or error, got {policy!r}'
+            )
         self.max_skip_frac = max_skip_frac
         self.min_steps_for_frac = min_steps_for_frac
+        self.policy = policy
         self.skipped = 0
         self.epoch_skipped = 0
         self.epoch_steps = 0
@@ -206,9 +269,12 @@ class NonFiniteGradGuardCallback(Callback):
         # Runs after backward and BEFORE gradient_clip_val, which is the only
         # window where an inf can still be caught before it becomes a NaN.
         self.epoch_steps += 1
-        grads = [p.grad for p in pl_module.parameters() if p.grad is not None]
-        if not grads:
+        parameters = [
+            p for p in pl_module.parameters() if p.grad is not None
+        ]
+        if not parameters:
             return
+        grads = [p.grad for p in parameters]
         # Regression hook: SWM_INJECT_INF_AT_STEP=<n> plants a single inf in one
         # gradient element at that step, which is exactly the h2hfix trigger.
         # Without the guard below the run is dead one step later; with it the
@@ -233,8 +299,17 @@ class NonFiniteGradGuardCallback(Callback):
 
         self.skipped += 1
         self.epoch_skipped += 1
-        for g in grads:
-            g.zero_()
+        # ``zero_`` is not a true skip for AdamW: it still applies decoupled
+        # weight decay and advances momentum. ``grad=None`` makes the optimizer
+        # omit the parameter entirely, leaving both weights and moments exact.
+        for parameter in parameters:
+            parameter.grad = None
+        if self.policy == 'error':
+            raise FloatingPointError(
+                f'non-finite gradient at epoch {trainer.current_epoch} '
+                f'global_step {trainer.global_step}; formal paired runs '
+                'require every optimizer update to be valid'
+            )
         if self.skipped <= 20 or self.skipped % 100 == 0:
             print(
                 f'[grad-guard] skipped non-finite gradient at epoch '
@@ -357,6 +432,54 @@ class CritWMStateCallback(Callback):
         pl_module._critwm_ctr = int(state['counter'])
 
 
+class PairingTraceCallback(Callback):
+    """Hash the first training batches so paired arms can prove data identity."""
+
+    def __init__(self, num_batches: int):
+        super().__init__()
+        self.num_batches = num_batches
+
+    def on_train_batch_start(
+        self, trainer, pl_module, batch, batch_idx
+    ):
+        if trainer.current_epoch != 0 or batch_idx >= self.num_batches:
+            return
+        digest = hashlib.sha256()
+        keys = []
+        for key in ('action', 'state', 'proprio', 'observation'):
+            value = batch.get(key)
+            if not torch.is_tensor(value):
+                continue
+            tensor = value.detach().cpu().contiguous()
+            keys.append(key)
+            digest.update(key.encode())
+            digest.update(str(tuple(tensor.shape)).encode())
+            digest.update(str(tensor.dtype).encode())
+            digest.update(tensor.view(torch.uint8).numpy().tobytes())
+        if not keys:
+            raise ValueError('pairing trace found no non-pixel tensor fields')
+        print(
+            f'[pairing] epoch=0 batch={batch_idx} '
+            f'keys={",".join(keys)} sha256={digest.hexdigest()}',
+            flush=True,
+        )
+
+
+def matched_one_step_prediction(model, emb, act_emb, history_size: int):
+    """Use a long common clip while retaining the historical K=1 loss."""
+
+    if emb.size(1) < history_size + 1:
+        raise ValueError(
+            f'matched K=1 needs at least {history_size + 1} frames, '
+            f'got {emb.size(1)}'
+        )
+    prediction = model.predict(
+        emb[:, :history_size], act_emb[:, :history_size]
+    )
+    target = emb[:, 1 : history_size + 1]
+    return prediction, target
+
+
 def lejepa_forward(self, batch, stage, cfg):
     """encode observations, predict next states, compute losses."""
 
@@ -377,6 +500,15 @@ def lejepa_forward(self, batch, stage, cfg):
 
     unroll = int(cfg.wm.get('unroll', 0) or 0)
     unroll_sg = int(cfg.wm.get('unroll_sg', 0) or 0)
+    matched_one_step = bool(cfg.wm.get('matched_one_step', False))
+    if matched_one_step and (
+        unroll > 1
+        or unroll_sg > 1
+        or int(cfg.wm.get('unroll_tf', 0) or 0) > 1
+    ):
+        raise ValueError(
+            'matched_one_step cannot be combined with a multi-step objective'
+        )
     if unroll_sg > 1:
         # L_new (theory_sufficiency_loss.md §5): encoder shaped ONLY by single-step
         # + SIGReg (keeps it planning-good); an anti-drift multi-step term trains the
@@ -731,6 +863,13 @@ def lejepa_forward(self, batch, stage, cfg):
         }
         self.log_dict(losses_dict, on_step=True, sync_dist=True)
         return output
+    elif matched_one_step:
+        pred_emb, tgt_emb = matched_one_step_prediction(
+            self.model,
+            emb,
+            act_emb,
+            ctx_len,
+        )
     else:
         ctx_emb = emb[:, :ctx_len]
         ctx_act = act_emb[:, :ctx_len]
@@ -753,6 +892,13 @@ def lejepa_forward(self, batch, stage, cfg):
 
 @hydra.main(version_base=None, config_path='./config', config_name='lewm')
 def run(cfg):
+    seed = int(cfg.seed)
+    pl.seed_everything(seed, workers=True)
+    print(
+        f'[protocol] global_seed={seed} workers_seeded=true',
+        flush=True,
+    )
+
     #########################
     ##       dataset       ##
     #########################
@@ -796,6 +942,14 @@ def run(cfg):
         generator=rnd_gen,
     )
 
+    split_digest = hashlib.sha256()
+    for subset in (train_set, val_set):
+        indices = torch.as_tensor(subset.indices, dtype=torch.int64)
+        split_digest.update(indices.view(torch.uint8).numpy().tobytes())
+    generator_digest = hashlib.sha256(
+        rnd_gen.get_state().numpy().tobytes()
+    ).hexdigest()
+
     train = torch.utils.data.DataLoader(
         train_set,
         **cfg.loader,
@@ -805,6 +959,14 @@ def run(cfg):
     val_cfg['shuffle'] = False
     val_cfg['drop_last'] = False
     val = torch.utils.data.DataLoader(val_set, **val_cfg)
+    print(
+        f'[protocol] dataset_num_steps={dataset.num_steps} '
+        f'dataset_samples={len(dataset)} train_samples={len(train_set)} '
+        f'val_samples={len(val_set)} train_batches={len(train)} '
+        f'split_sha256={split_digest.hexdigest()} '
+        f'loader_state_sha256={generator_digest}',
+        flush=True,
+    )
 
     ##############################
     ##       model / optim      ##
@@ -824,7 +986,29 @@ def run(cfg):
             weights_only=True,
         )
         world_model.load_state_dict(state_dict, strict=True)
-        print(f'Loaded model initialization from {init_path}')
+        print(
+            f'[protocol] loaded_initialization={init_path} '
+            f'state_sha256={state_dict_sha256(world_model.state_dict())} '
+            f'file_sha256={file_sha256(init_path)}',
+            flush=True,
+        )
+
+    export_init_weights_path = cfg.get('export_init_weights_path')
+    if export_init_weights_path:
+        export_path = Path(export_init_weights_path)
+        fingerprint, reused = export_initial_weights(world_model, export_path)
+        print(
+            f'[protocol] {"reused" if reused else "exported"}_initialization='
+            f'{export_path.expanduser().resolve()} state_sha256={fingerprint} '
+            f'file_sha256={file_sha256(export_path.expanduser().resolve())}',
+            flush=True,
+        )
+
+    if bool(cfg.get('init_only', False)):
+        if not export_init_weights_path:
+            raise ValueError('init_only=true requires export_init_weights_path')
+        print('[protocol] init_only complete', flush=True)
+        return
 
     devices = cfg.trainer.get('devices', 1)
     if devices == 'auto':
@@ -886,6 +1070,11 @@ def run(cfg):
     critwm_state_callback = CritWMStateCallback()
 
     extra_callbacks = []
+    trace_batches = int(cfg.get('pairing_trace_batches', 0) or 0)
+    if trace_batches < 0:
+        raise ValueError('pairing_trace_batches must be non-negative')
+    if trace_batches:
+        extra_callbacks.append(PairingTraceCallback(trace_batches))
     if os.environ.get('SWM_TRACE_DIVERGENCE'):
         extra_callbacks.append(DivergenceTraceCallback())
 
@@ -897,7 +1086,9 @@ def run(cfg):
             object_dump_callback,
             critwm_state_callback,
             *extra_callbacks,
-            NonFiniteGradGuardCallback(),
+            NonFiniteGradGuardCallback(
+                policy=str(cfg.get('nonfinite_grad_policy', 'skip'))
+            ),
             NaNGuardCallback(),
         ],
         num_sanity_val_steps=1,
@@ -920,6 +1111,7 @@ def run(cfg):
         trainer=trainer,
         module=world_model,
         data=data_module,
+        seed=seed,
         ckpt_path=ckpt_path,
         weights_only=weights_only,
     )
