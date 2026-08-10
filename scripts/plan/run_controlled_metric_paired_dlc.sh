@@ -2,6 +2,28 @@
 # DLC worker entry point for the preregistered K1/K5 paired training wave.
 set -Eeuo pipefail
 
+TARGET_UID=10011
+TARGET_GID=10011
+TARGET_HOME=/mnt/home/gewang
+
+# DLC's default container identity is root, whereas the shared CPFS checkout is
+# owned by the DSW user. Drop privileges before touching project files so code,
+# logs, and checkpoints are all produced by the same numeric user on both DSW
+# and DLC. If the platform later supplies SecurityContext directly, this block
+# simply verifies the already-correct identity.
+if [ "$(id -u)" -eq 0 ]; then
+  exec /usr/bin/setpriv \
+    --reuid="$TARGET_UID" --regid="$TARGET_GID" --clear-groups \
+    /usr/bin/env HOME="$TARGET_HOME" bash "$0" "$@"
+fi
+if [ "$(id -u)" -ne "$TARGET_UID" ] || [ "$(id -g)" -ne "$TARGET_GID" ]; then
+  echo "expected runtime identity $TARGET_UID:$TARGET_GID, found $(id -u):$(id -g)" >&2
+  exit 2
+fi
+export HOME="$TARGET_HOME"
+umask 002
+echo "DLC runtime identity: $(id)"
+
 REPO=/mnt/home/gewang/code/learn_wm
 export PY=/mnt/home/gewang/venv-clean/bin/python
 export DS=/mnt/home/gewang/data/learn_wm/pusht_expert_train.h5
@@ -73,13 +95,6 @@ echo "=== GPU utilization ==="
 awk -F', ' '{u[$1]+=$2; m[$1]=($3>m[$1]?$3:m[$1]); n[$1]++}
   END{for(i in u) printf "  gpu%s util_mean=%d%% mem_max=%.1fGiB\n", i, u[i]/n[i], m[i]/1024}' \
   "$OUT/gpu.csv" 2>/dev/null | sort
-
-chown -R 10011:10011 \
-  "$OUT" \
-  "$STABLEWM_HOME/checkpoints/paired_initializations/$RUN_TAG" \
-  "$STABLEWM_HOME/checkpoints"/cm_k1_s*"_$RUN_TAG" \
-  "$STABLEWM_HOME/checkpoints"/cm_k5_s*"_$RUN_TAG" \
-  2>/dev/null || true
 
 test "$return_code" -eq 0
 echo "CONTROLLED-METRIC DLC TRAINING PASSED"
