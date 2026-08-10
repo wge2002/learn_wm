@@ -26,19 +26,23 @@ test -x "$PY"
 test "$NGPU" -eq 8
 test "$GPU_IDS" = 0,1,2,3,4,5,6,7
 
-current_commit=$(git rev-parse HEAD)
+# DLC workers run as root while the shared CPFS checkout is owned by the DSW
+# user. Scope Git's ownership exception to this invocation instead of mutating
+# the worker's global Git configuration.
+git_safe=(git -c "safe.directory=$REPO")
+current_commit=$("${git_safe[@]}" rev-parse HEAD)
 if [ -n "${EXPECTED_COMMIT:-}" ] && [ "$current_commit" != "$EXPECTED_COMMIT" ]; then
   echo "expected commit $EXPECTED_COMMIT, found $current_commit" >&2
   exit 2
 fi
-if ! git diff --quiet || ! git diff --cached --quiet; then
+if ! "${git_safe[@]}" diff --quiet || ! "${git_safe[@]}" diff --cached --quiet; then
   echo "tracked repository changes detected; refusing formal training" >&2
   exit 2
 fi
 
 mkdir -p "$OUT"
 printf '%s\n' "$current_commit" > "$OUT/source_commit.txt"
-git status --porcelain > "$OUT/source_status.txt"
+"${git_safe[@]}" status --porcelain > "$OUT/source_status.txt"
 nvidia-smi -L
 "$PY" -c 'import stable_worldmodel, torch; print("swm ok |", torch.__version__)'
 
