@@ -18,11 +18,18 @@ RUN_TAG=${RUN_TAG:-nonfinite_rootcause_v2k1_20260813_r1}
 OUT=${OUT:-$REPO/outputs/$RUN_TAG}
 EPOCHS=${EPOCHS:-13}
 PREFLIGHT_MODE=${RBS_ROOTCAUSE_PREFLIGHT:-0}
-SPECS="13:0 42:1"
+ROOTCAUSE_GPU_IDS=${ROOTCAUSE_GPU_IDS:-"0 1"}
+read -r GPU_SEED13 GPU_SEED42 extra_gpu <<< "$ROOTCAUSE_GPU_IDS"
+if [ -z "${GPU_SEED13:-}" ] || [ -z "${GPU_SEED42:-}" ] \
+  || [ -n "${extra_gpu:-}" ] || [ "$GPU_SEED13" = "$GPU_SEED42" ]; then
+  echo "ROOTCAUSE_GPU_IDS must contain two distinct GPU indices" >&2
+  exit 2
+fi
+SPECS="13:$GPU_SEED13 42:$GPU_SEED42"
 train_limit_args=()
 if [ "$PREFLIGHT_MODE" = 1 ]; then
   EPOCHS=1
-  SPECS="13:0"
+  SPECS="13:$GPU_SEED13"
   train_limit_args=(
     +trainer.limit_train_batches=2
     +trainer.limit_val_batches=1
@@ -40,7 +47,13 @@ test -f "$DS"
 if [ "$PREFLIGHT_MODE" != 1 ]; then
   test "$EPOCHS" -ge 13
 fi
-test "$(nvidia-smi -L | wc -l)" -ge 2
+visible_gpus=$(nvidia-smi -L | wc -l)
+test "$visible_gpus" -ge 2
+test "$GPU_SEED13" -ge 0
+test "$GPU_SEED13" -lt "$visible_gpus"
+test "$GPU_SEED42" -ge 0
+test "$GPU_SEED42" -lt "$visible_gpus"
+echo "root-cause GPU mapping: seed13=gpu$GPU_SEED13 seed42=gpu$GPU_SEED42"
 
 git_safe=(git -c "safe.directory=$REPO")
 current_commit=$("${git_safe[@]}" rev-parse HEAD)
