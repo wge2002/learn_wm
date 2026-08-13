@@ -1,28 +1,10 @@
 #!/usr/bin/env bash
 # DLC worker entry point for the preregistered K1/K5 paired training wave.
-set -Eeuo pipefail
+set -Eeo pipefail
 
-TARGET_UID=10011
-TARGET_GID=10011
-TARGET_HOME=/mnt/home/gewang
-
-# DLC's default container identity is root, whereas the shared CPFS checkout is
-# owned by the DSW user. Drop privileges before touching project files so code,
-# logs, and checkpoints are all produced by the same numeric user on both DSW
-# and DLC. If the platform later supplies SecurityContext directly, this block
-# simply verifies the already-correct identity.
-if [ "$(id -u)" -eq 0 ]; then
-  exec /usr/bin/setpriv \
-    --reuid="$TARGET_UID" --regid="$TARGET_GID" --clear-groups \
-    /usr/bin/env HOME="$TARGET_HOME" bash "$0" "$@"
-fi
-if [ "$(id -u)" -ne "$TARGET_UID" ] || [ "$(id -g)" -ne "$TARGET_GID" ]; then
-  echo "expected runtime identity $TARGET_UID:$TARGET_GID, found $(id -u):$(id -g)" >&2
-  exit 2
-fi
-export HOME="$TARGET_HOME"
-umask 002
-echo "DLC runtime identity: $(id)"
+RBS_DLC_WORKDIR=/mnt/home/gewang/code/learn_wm
+. /mnt/home/gewang/.config/rbs-dlc/dlc_entry_prelude.sh
+set -u
 
 REPO=/mnt/home/gewang/code/learn_wm
 export PY=/mnt/home/gewang/venv-clean/bin/python

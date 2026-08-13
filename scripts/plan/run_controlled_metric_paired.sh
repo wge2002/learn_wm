@@ -129,7 +129,10 @@ enqueue() { # JOB_NAME ARTIFACT COMMAND...
   shift 2
   local gpu=${GPUS[$((JOB_INDEX % NGPU))]}
   echo "START $job gpu=$gpu $(date --iso-8601=seconds)"
-  CUDA_VISIBLE_DEVICES="$gpu" "$@" > "$OUT/$job.log" 2>&1 &
+  env -u RANK -u LOCAL_RANK -u WORLD_SIZE -u LOCAL_WORLD_SIZE \
+      -u MASTER_ADDR -u MASTER_PORT -u GROUP_RANK -u ROLE_RANK \
+      -u TORCHELASTIC_RUN_ID \
+      CUDA_VISIBLE_DEVICES="$gpu" "$@" > "$OUT/$job.log" 2>&1 &
   PIDS+=("$!")
   JOBS+=("$job")
   ARTIFACTS+=("$artifact")
@@ -147,7 +150,10 @@ fi
 if has_phase init; then
   for seed in $SEEDS; do
     artifact=$(init_path "$seed")
-    PYTHONHASHSEED="$seed" "$PY" scripts/train/lewm.py \
+    env -u RANK -u LOCAL_RANK -u WORLD_SIZE -u LOCAL_WORLD_SIZE \
+      -u MASTER_ADDR -u MASTER_PORT -u GROUP_RANK -u ROLE_RANK \
+      -u TORCHELASTIC_RUN_ID \
+      PYTHONHASHSEED="$seed" "$PY" scripts/train/lewm.py \
       --config-name lewm_paired_k1 \
       seed="$seed" init_only=true \
       export_init_weights_path="$artifact" \

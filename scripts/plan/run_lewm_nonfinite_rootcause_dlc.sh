@@ -2,23 +2,11 @@
 # Two-GPU expected-failure reproduction of the v2 K1 first-Inf events.
 # The DLC task succeeds only if both training processes fail through the strict
 # guard and each writes a replay evidence bundle.
-set -Eeuo pipefail
+set -Eeo pipefail
 
-TARGET_UID=10011
-TARGET_GID=10011
-TARGET_HOME=/mnt/home/gewang
-
-if [ "$(id -u)" -eq 0 ]; then
-  exec /usr/bin/setpriv \
-    --reuid="$TARGET_UID" --regid="$TARGET_GID" --clear-groups \
-    /usr/bin/env HOME="$TARGET_HOME" bash "$0" "$@"
-fi
-if [ "$(id -u)" -ne "$TARGET_UID" ] || [ "$(id -g)" -ne "$TARGET_GID" ]; then
-  echo "expected runtime identity $TARGET_UID:$TARGET_GID, found $(id -u):$(id -g)" >&2
-  exit 2
-fi
-export HOME="$TARGET_HOME"
-umask 002
+RBS_DLC_WORKDIR=/mnt/home/gewang/code/learn_wm
+. /mnt/home/gewang/.config/rbs-dlc/dlc_entry_prelude.sh
+set -u
 
 REPO=/mnt/home/gewang/code/learn_wm
 PY=/mnt/home/gewang/venv-clean/bin/python
@@ -29,6 +17,17 @@ INIT_ROOT=$CKPT_ROOT/paired_initializations/controlled_metric_paired_20260810
 RUN_TAG=${RUN_TAG:-nonfinite_rootcause_v2k1_20260813_r1}
 OUT=${OUT:-$REPO/outputs/$RUN_TAG}
 EPOCHS=${EPOCHS:-13}
+PREFLIGHT_MODE=${RBS_ROOTCAUSE_PREFLIGHT:-0}
+SPECS="13:0 42:1"
+train_limit_args=()
+if [ "$PREFLIGHT_MODE" = 1 ]; then
+  EPOCHS=1
+  SPECS="13:0"
+  train_limit_args=(
+    +trainer.limit_train_batches=2
+    +trainer.limit_val_batches=1
+  )
+fi
 export STABLEWM_HOME="$STABLEWM_ROOT"
 export LOCAL_DATASET_DIR=${DS%/*}
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
@@ -38,7 +37,9 @@ export HYDRA_FULL_ERROR=1
 cd "$REPO"
 test -x "$PY"
 test -f "$DS"
-test "$EPOCHS" -ge 13
+if [ "$PREFLIGHT_MODE" != 1 ]; then
+  test "$EPOCHS" -ge 13
+fi
 test "$(nvidia-smi -L | wc -l)" -eq 2
 
 git_safe=(git -c "safe.directory=$REPO")
@@ -58,7 +59,7 @@ printf '%s\n' "$current_commit" > "$OUT/source_commit.txt"
 
 declare -a pids=()
 declare -a names=()
-for spec in 13:0 42:1; do
+for spec in $SPECS; do
   seed=${spec%%:*}
   gpu=${spec##*:}
   seed_tag=$(printf '%04d' "$seed")
@@ -72,10 +73,13 @@ for spec in 13:0 42:1; do
   fi
   mkdir -p "$evidence"
   echo "START $name gpu=$gpu $(date --iso-8601=seconds)"
-  CUDA_VISIBLE_DEVICES="$gpu" \
-  PYTHONHASHSEED="$seed" \
-  SWM_NONFINITE_EVIDENCE_DIR="$evidence" \
-  SWM_CAPTURE_NONFINITE_REPLAY=1 \
+  env -u RANK -u LOCAL_RANK -u WORLD_SIZE -u LOCAL_WORLD_SIZE \
+      -u MASTER_ADDR -u MASTER_PORT -u GROUP_RANK -u ROLE_RANK \
+      -u TORCHELASTIC_RUN_ID \
+      CUDA_VISIBLE_DEVICES="$gpu" \
+      PYTHONHASHSEED="$seed" \
+      SWM_NONFINITE_EVIDENCE_DIR="$evidence" \
+      SWM_CAPTURE_NONFINITE_REPLAY=1 \
     "$PY" scripts/train/lewm.py \
       --config-name lewm_nonfinite_v2_k1_repro \
       output_model_name="$name" subdir="$name" seed="$seed" \
@@ -83,6 +87,7 @@ for spec in 13:0 42:1; do
       trainer.devices=1 data.dataset.name="$DS" \
       loader.num_workers=6 loader.prefetch_factor=2 \
       gpu_image_preprocess=true \
+      "${train_limit_args[@]}" \
       > "$OUT/train_${name}.log" 2>&1 &
   pids+=("$!")
   names+=("$name")
@@ -102,7 +107,15 @@ for index in "${!names[@]}"; do
   rc=${rcs[$index]}
   evidence_dir="$OUT/evidence/$name"
   mapfile -t bundles < <(find "$evidence_dir" -maxdepth 1 -type f -name 'nonfinite_e*_s*.pt' | sort)
-  if [ "$rc" -eq 0 ]; then
+  if [ "$PREFLIGHT_MODE" = 1 ]; then
+    checkpoint="$CKPT_ROOT/$name/weights_epoch_${EPOCHS}.pt"
+    if [ "$rc" -ne 0 ] || [ ! -f "$checkpoint" ]; then
+      echo "PREFLIGHT FAILED $name rc=$rc checkpoint=$checkpoint" >&2
+      failed=1
+    else
+      echo "PREFLIGHT PASSED $name checkpoint=$checkpoint"
+    fi
+  elif [ "$rc" -eq 0 ]; then
     echo "UNEXPECTED $name completed without reproducing first Inf" >&2
     failed=1
   elif [ "${#bundles[@]}" -ne 1 ]; then
@@ -119,4 +132,8 @@ for index in "${!names[@]}"; do
 done
 
 test "$failed" -eq 0
-echo "NONFINITE ROOT-CAUSE REPRODUCTION EVIDENCE COMPLETE"
+if [ "$PREFLIGHT_MODE" = 1 ]; then
+  echo "NONFINITE ROOT-CAUSE ENTRYPOINT PREFLIGHT COMPLETE"
+else
+  echo "NONFINITE ROOT-CAUSE REPRODUCTION EVIDENCE COMPLETE"
+fi
