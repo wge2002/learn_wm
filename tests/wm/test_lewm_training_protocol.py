@@ -99,6 +99,23 @@ def test_formal_nonfinite_policy_fails_the_run():
     assert all(parameter.grad is None for parameter in model.parameters())
 
 
+def test_nonfinite_skip_budget_aborts_after_preregistered_limit():
+    model = torch.nn.Linear(2, 1)
+    optimizer = torch.optim.AdamW(model.parameters())
+    callback = NonFiniteGradGuardCallback(max_total_skips=1)
+    trainer = SimpleNamespace(current_epoch=2, global_step=17)
+
+    for parameter in model.parameters():
+        parameter.grad = torch.full_like(parameter, float('inf'))
+    callback.on_before_optimizer_step(trainer, model, optimizer)
+
+    for parameter in model.parameters():
+        parameter.grad = torch.full_like(parameter, float('inf'))
+    trainer.global_step += 1
+    with pytest.raises(RuntimeError, match='preregistered limit'):
+        callback.on_before_optimizer_step(trainer, model, optimizer)
+
+
 def test_initialization_export_is_immutable_and_bitwise_checked(tmp_path):
     torch.manual_seed(7)
     model = torch.nn.Linear(4, 3)

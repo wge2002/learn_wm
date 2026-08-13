@@ -28,13 +28,13 @@ REPO=/mnt/home/gewang/code/learn_wm
 export PY=/mnt/home/gewang/venv-clean/bin/python
 export DS=/mnt/home/gewang/data/learn_wm/pusht_expert_train.h5
 export STABLEWM_HOME=/mnt/home/gewang/swmhome/learn_wm
-export RUN_TAG=${RUN_TAG:-controlled_metric_paired_20260810}
+export RUN_TAG=${RUN_TAG:-controlled_metric_paired_v3_20260813}
 export OUT=${OUT:-$REPO/outputs/$RUN_TAG}
 export PHASES=${PHASES:-init,train}
 export SEEDS=${SEEDS:-"7 13 42"}
 export EPOCHS=${EPOCHS:-30}
-export NGPU=${NGPU:-8}
-export GPU_IDS=${GPU_IDS:-0,1,2,3,4,5,6,7}
+export NGPU=${NGPU:-6}
+export GPU_IDS=${GPU_IDS:-0,1,2,3,4,5}
 export WORKERS=${WORKERS:-6}
 export PREFETCH=${PREFETCH:-2}
 export USE_PIXEL_SIDECAR=false
@@ -45,8 +45,8 @@ export HYDRA_FULL_ERROR=1
 cd "$REPO"
 test -f "$DS"
 test -x "$PY"
-test "$NGPU" -eq 8
-test "$GPU_IDS" = 0,1,2,3,4,5,6,7
+test "$NGPU" -eq 6
+test "$GPU_IDS" = 0,1,2,3,4,5
 
 # DLC workers run as root while the shared CPFS checkout is owned by the DSW
 # user. Scope Git's ownership exception to this invocation instead of mutating

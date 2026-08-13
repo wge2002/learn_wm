@@ -1,7 +1,8 @@
 # K1/K5 受控度量：正式成对训练协议
 
 日期：2026-08-10
-状态：**预注册并已实现；等待新 checkpoint**
+状态：**已被 2026-08-13 v3 协议取代；保留为失败波次审计记录**
+取代者：[v3 正式成对协议](controlled_metric_paired_protocol_v3_20260813.md)。
 取代：
 [旧执行计划](controlled_metric_execution_plan_20260803.md) 中 Phase 1/2 的训练比较细节。
 旧文的理论依赖和下游 kill rule 仍然有效。

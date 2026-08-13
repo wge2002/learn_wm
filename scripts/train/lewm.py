@@ -251,6 +251,7 @@ class NonFiniteGradGuardCallback(Callback):
         self,
         max_skip_frac: float = 0.01,
         min_steps_for_frac: int = 1000,
+        max_total_skips: int | None = None,
         policy: str = 'skip',
     ):
         super().__init__()
@@ -260,6 +261,9 @@ class NonFiniteGradGuardCallback(Callback):
             )
         self.max_skip_frac = max_skip_frac
         self.min_steps_for_frac = min_steps_for_frac
+        if max_total_skips is not None and max_total_skips < 0:
+            raise ValueError('max_total_skips must be non-negative or None')
+        self.max_total_skips = max_total_skips
         self.policy = policy
         self.skipped = 0
         self.epoch_skipped = 0
@@ -297,6 +301,87 @@ class NonFiniteGradGuardCallback(Callback):
         if bool(finite):
             return
 
+        # This branch is intentionally expensive: it only runs after a bad
+        # gradient has already been detected.  Preserve enough evidence to
+        # distinguish a rare bf16 overflow from gradual model divergence.
+        parameter_names = {
+            id(parameter): name
+            for name, parameter in pl_module.named_parameters()
+        }
+        bad_gradients = []
+        for parameter, grad in zip(parameters, grads, strict=True):
+            finite_mask = torch.isfinite(grad)
+            if bool(finite_mask.all()):
+                continue
+            grad32 = grad.detach().float()
+            finite_values = grad32[torch.isfinite(grad32)]
+            finite_max = (
+                float(finite_values.abs().max())
+                if finite_values.numel()
+                else float('nan')
+            )
+            bad_gradients.append(
+                f'{parameter_names.get(id(parameter), "<unnamed>")}'
+                f' shape={tuple(grad.shape)} dtype={grad.dtype}'
+                f' nan={int(torch.isnan(grad).sum())}'
+                f' +inf={int(torch.isposinf(grad).sum())}'
+                f' -inf={int(torch.isneginf(grad).sum())}'
+                f' finite_max_abs={finite_max:.6g}'
+            )
+        losses = getattr(pl_module, '_swm_last_loss_components', {})
+        loss_summary = ' '.join(
+            f'{name}={float(value):.9g}' for name, value in losses.items()
+        )
+        batch_fields = getattr(pl_module, '_swm_last_batch_nonpixel', {})
+        batch_digest = hashlib.sha256()
+        for name in sorted(batch_fields):
+            value = batch_fields[name].detach().cpu().contiguous()
+            batch_digest.update(name.encode())
+            batch_digest.update(str(tuple(value.shape)).encode())
+            batch_digest.update(str(value.dtype).encode())
+            batch_digest.update(value.view(torch.uint8).numpy().tobytes())
+        print(
+            f'[grad-guard] evidence epoch={trainer.current_epoch} '
+            f'step={trainer.global_step} losses=({loss_summary}) '
+            f'batch_sha256={batch_digest.hexdigest() if batch_fields else "n/a"}',
+            flush=True,
+        )
+        for detail in bad_gradients:
+            print(f'[grad-guard] offending {detail}', flush=True)
+
+        evidence_dir = os.environ.get('SWM_NONFINITE_EVIDENCE_DIR')
+        if evidence_dir:
+            evidence_root = Path(evidence_dir).expanduser().resolve()
+            evidence_root.mkdir(parents=True, exist_ok=True)
+            evidence_path = evidence_root / (
+                f'nonfinite_e{trainer.current_epoch}_s{trainer.global_step}.pt'
+            )
+            torch.save(
+                {
+                    'epoch': int(trainer.current_epoch),
+                    'global_step': int(trainer.global_step),
+                    'losses': {
+                        name: value.detach().cpu()
+                        for name, value in losses.items()
+                    },
+                    'batch_nonpixel': {
+                        name: value.detach().cpu()
+                        for name, value in batch_fields.items()
+                    },
+                    'offending': bad_gradients,
+                    'model_state_dict': {
+                        name: value.detach().cpu()
+                        for name, value in pl_module.state_dict().items()
+                    },
+                    'optimizer_state_dict': optimizer.state_dict(),
+                },
+                evidence_path,
+            )
+            print(
+                f'[grad-guard] wrote evidence bundle {evidence_path}',
+                flush=True,
+            )
+
         self.skipped += 1
         self.epoch_skipped += 1
         # ``zero_`` is not a true skip for AdamW: it still applies decoupled
@@ -309,6 +394,14 @@ class NonFiniteGradGuardCallback(Callback):
                 f'non-finite gradient at epoch {trainer.current_epoch} '
                 f'global_step {trainer.global_step}; formal paired runs '
                 'require every optimizer update to be valid'
+            )
+        if (
+            self.max_total_skips is not None
+            and self.skipped > self.max_total_skips
+        ):
+            raise RuntimeError(
+                f'[grad-guard] total non-finite skips {self.skipped} exceed '
+                f'the preregistered limit {self.max_total_skips}'
             )
         if self.skipped <= 20 or self.skipped % 100 == 0:
             print(
@@ -492,6 +585,13 @@ def lejepa_forward(self, batch, stage, cfg):
 
     # Replace NaN values with 0 (occurs at sequence boundaries)
     batch['action'] = torch.nan_to_num(batch['action'], 0.0)
+
+    if stage == 'fit':
+        self._swm_last_batch_nonpixel = {
+            name: value.detach()
+            for name, value in batch.items()
+            if name != 'pixels' and torch.is_tensor(value)
+        }
 
     output = self.model.encode(batch)
 
@@ -883,6 +983,12 @@ def lejepa_forward(self, batch, stage, cfg):
     output['sigreg_loss'] = self.sigreg(emb.transpose(0, 1))
     output['loss'] = output['pred_loss'] + lambd * output['sigreg_loss']
 
+    if stage == 'fit':
+        self._swm_last_loss_components = {
+            name: output[name].detach()
+            for name in ('pred_loss', 'sigreg_loss', 'loss')
+        }
+
     losses_dict = {
         f'{stage}/{k}': v.detach() for k, v in output.items() if 'loss' in k
     }
@@ -1087,7 +1193,15 @@ def run(cfg):
             critwm_state_callback,
             *extra_callbacks,
             NonFiniteGradGuardCallback(
-                policy=str(cfg.get('nonfinite_grad_policy', 'skip'))
+                policy=str(cfg.get('nonfinite_grad_policy', 'skip')),
+                max_skip_frac=float(
+                    cfg.get('nonfinite_max_skip_frac', 0.01)
+                ),
+                max_total_skips=(
+                    int(cfg.nonfinite_max_total_skips)
+                    if cfg.get('nonfinite_max_total_skips') is not None
+                    else None
+                ),
             ),
             NaNGuardCallback(),
         ],

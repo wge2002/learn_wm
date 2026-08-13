@@ -23,7 +23,7 @@ if [ -f "$HOME/data/learn_wm/pusht_expert_train.h5" ]; then
 fi
 DS=${DS:-$DEFAULT_DS}
 PIXELS=${PIXELS:-${DS%.h5}_pixels.npy}
-RUN_TAG=${RUN_TAG:-controlled_metric_paired_20260810}
+RUN_TAG=${RUN_TAG:-controlled_metric_paired_v3_20260813}
 OUT=${OUT:-outputs/$RUN_TAG}
 SEEDS=${SEEDS:-"7 13 42"}
 EPOCHS=${EPOCHS:-30}
@@ -178,7 +178,9 @@ if has_phase train; then
       fi
       config="lewm_paired_$arm"
       enqueue "train_$name" "$checkpoint" \
-        env PYTHONHASHSEED="$seed" "$PY" scripts/train/lewm.py \
+        env PYTHONHASHSEED="$seed" \
+        SWM_NONFINITE_EVIDENCE_DIR="$OUT/nonfinite_evidence/$name" \
+        "$PY" scripts/train/lewm.py \
         --config-name "$config" \
         output_model_name="$name" subdir="$name" seed="$seed" \
         init_weights_path="$artifact" trainer.max_epochs="$EPOCHS" \

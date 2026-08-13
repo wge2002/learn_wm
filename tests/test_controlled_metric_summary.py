@@ -183,7 +183,9 @@ def test_pairing_verifier_accepts_only_the_declared_objective_delta(
     )
     common = {
         'seed': 7,
-        'nonfinite_grad_policy': 'error',
+        'nonfinite_grad_policy': 'skip',
+        'nonfinite_max_skip_frac': 0.0001,
+        'nonfinite_max_total_skips': 3,
         'init_weights_path': '/init.pt',
         'output_model_name': None,
         'subdir': None,
@@ -200,9 +202,7 @@ def test_pairing_verifier_accepts_only_the_declared_objective_delta(
         config = deepcopy(common)
         config['output_model_name'] = name
         config['subdir'] = name
-        config['wm'][
-            'matched_one_step' if arm == 'k1' else 'unroll'
-        ] = True if arm == 'k1' else 5
+        config['wm']['unroll_tf' if arm == 'k1' else 'unroll'] = 5
         (run_dir / 'config.yaml').write_text(json.dumps(config))
         (log_dir / f'train_{name}.log').write_text(log)
 

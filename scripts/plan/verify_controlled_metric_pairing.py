@@ -64,14 +64,20 @@ def load_log(path: Path) -> dict[str, object]:
         )
     if not traces:
         raise ValueError(f'{path}: no pairing batch fingerprints found')
-    if '[grad-guard] skipped non-finite gradient' in text:
-        raise ValueError(f'{path}: contains a skipped non-finite update')
+    nonfinite_skips = len(
+        re.findall(
+            r'^\[grad-guard\] skipped non-finite gradient',
+            text,
+            flags=re.MULTILINE,
+        )
+    )
     return {
         'global_seed': int(seeds[0]),
         'initialization_state_sha256': initializations[0][0],
         'initialization_file_sha256': initializations[0][1],
         'dataset': dataset,
         'batch_traces': traces,
+        'nonfinite_skips': nonfinite_skips,
         'log_sha256': hashlib.sha256(text.encode()).hexdigest(),
     }
 
@@ -100,6 +106,7 @@ def common_config(config: dict[str, object]) -> dict[str, object]:
     if isinstance(wm, dict):
         wm.pop('matched_one_step', None)
         wm.pop('unroll', None)
+        wm.pop('unroll_tf', None)
     return result
 
 
@@ -162,16 +169,26 @@ def main() -> None:
             errors.append(
                 'resolved configs differ outside the objective intervention'
             )
-        if configs['k1'].get('wm', {}).get('matched_one_step') is not True:
-            errors.append('K1 does not enable matched_one_step')
+        if configs['k1'].get('wm', {}).get('unroll_tf') != 5:
+            errors.append('K1 does not use five matched teacher-forced steps')
         if configs['k5'].get('wm', {}).get('unroll') != 5:
             errors.append('K5 does not use open-loop unroll=5')
         for arm in ('k1', 'k5'):
             config = configs[arm]
             if config.get('seed') != seed:
                 errors.append(f'{arm} config seed mismatch')
-            if config.get('nonfinite_grad_policy') != 'error':
-                errors.append(f'{arm} is not using strict non-finite handling')
+            if config.get('nonfinite_grad_policy') != 'skip':
+                errors.append(f'{arm} is not using exact-skip bf16 handling')
+            max_total_skips = config.get('nonfinite_max_total_skips')
+            if max_total_skips != 3:
+                errors.append(f'{arm} non-finite total-skip limit is not 3')
+            if arms[arm]['nonfinite_skips'] > max_total_skips:
+                errors.append(
+                    f'{arm} exceeded non-finite skip limit: '
+                    f'{arms[arm]["nonfinite_skips"]}>{max_total_skips}'
+                )
+            if config.get('nonfinite_max_skip_frac') != 0.0001:
+                errors.append(f'{arm} non-finite per-epoch limit is not 1e-4')
             if config.get('trainer', {}).get('max_epochs') != args.epochs:
                 errors.append(f'{arm} max_epochs mismatch')
             forbidden_trainer_keys = {

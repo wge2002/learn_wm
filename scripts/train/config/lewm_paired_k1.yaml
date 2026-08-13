@@ -2,14 +2,16 @@ defaults:
   - lewm
   - _self_
 
-# Matched K=1 control for the controlled-metric experiment. K1 and K5 read
-# identical eight-frame clips and therefore have the same split, batch order,
-# batches per epoch, optimizer-update budget, encoder work, and SIGReg input.
-# The only intended intervention is the predictor objective below.
+# Matched teacher-forced K=1 control for the controlled-metric experiment.
+# Apply the ordinary one-step LeWM transition at each of the five future
+# positions. K1 and K5 therefore use the same eight-frame clips, target frames,
+# predictor-call count, encoder/SIGReg work, and optimizer-update budget. The
+# only intended intervention is true context versus recursively predicted
+# context after the first transition.
 output_model_name: lewm_paired_k1
 
 wm:
-  matched_one_step: true
+  unroll_tf: 5
 
 model:
   predictor:
@@ -22,7 +24,12 @@ data:
     num_steps: 8
 
 pairing_trace_batches: 3
-nonfinite_grad_policy: error
+# A single bad bf16 backward is a numerical skip, not scientific divergence.
+# grad=None gives an exact AdamW parameter/state skip. Abort if it ceases to be
+# rare, and preserve an evidence bundle when SWM_NONFINITE_EVIDENCE_DIR is set.
+nonfinite_grad_policy: skip
+nonfinite_max_skip_frac: 0.0001
+nonfinite_max_total_skips: 3
 
 trainer:
   deterministic: true
