@@ -40,7 +40,7 @@ test -f "$DS"
 if [ "$PREFLIGHT_MODE" != 1 ]; then
   test "$EPOCHS" -ge 13
 fi
-test "$(nvidia-smi -L | wc -l)" -eq 2
+test "$(nvidia-smi -L | wc -l)" -ge 2
 
 git_safe=(git -c "safe.directory=$REPO")
 current_commit=$("${git_safe[@]}" rev-parse HEAD)
