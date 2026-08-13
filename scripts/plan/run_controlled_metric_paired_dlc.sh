@@ -42,15 +42,20 @@ export GPU_IMAGE_PREPROCESS=true
 export SWM_TORCH_THREADS=${SWM_TORCH_THREADS:-2}
 export HYDRA_FULL_ERROR=1
 
+if [ "${LEWM_FIRST_INF_ROOTCAUSE_RESOLVED:-0}" != 1 ]; then
+  echo "formal launch blocked: first-Inf root-cause gate is not resolved" >&2
+  echo "see docs/knowledge/controlled_metric_k1_failure_diagnosis_20260813.md" >&2
+  exit 2
+fi
+
 cd "$REPO"
 test -f "$DS"
 test -x "$PY"
 test "$NGPU" -eq 6
 test "$GPU_IDS" = 0,1,2,3,4,5
 
-# DLC workers run as root while the shared CPFS checkout is owned by the DSW
-# user. Scope Git's ownership exception to this invocation instead of mutating
-# the worker's global Git configuration.
+# Keep any Git ownership exception scoped to this invocation; do not mutate the
+# shared user's global Git configuration.
 git_safe=(git -c "safe.directory=$REPO")
 current_commit=$("${git_safe[@]}" rev-parse HEAD)
 if [ -n "${EXPECTED_COMMIT:-}" ] && [ "$current_commit" != "$EXPECTED_COMMIT" ]; then

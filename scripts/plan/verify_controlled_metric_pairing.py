@@ -177,18 +177,18 @@ def main() -> None:
             config = configs[arm]
             if config.get('seed') != seed:
                 errors.append(f'{arm} config seed mismatch')
-            if config.get('nonfinite_grad_policy') != 'skip':
-                errors.append(f'{arm} is not using exact-skip bf16 handling')
+            if config.get('nonfinite_grad_policy') != 'error':
+                errors.append(f'{arm} is not using strict non-finite handling')
             max_total_skips = config.get('nonfinite_max_total_skips')
-            if max_total_skips != 3:
-                errors.append(f'{arm} non-finite total-skip limit is not 3')
+            if max_total_skips != 0:
+                errors.append(f'{arm} non-finite total-skip limit is not zero')
             if arms[arm]['nonfinite_skips'] > max_total_skips:
                 errors.append(
                     f'{arm} exceeded non-finite skip limit: '
                     f'{arms[arm]["nonfinite_skips"]}>{max_total_skips}'
                 )
-            if config.get('nonfinite_max_skip_frac') != 0.0001:
-                errors.append(f'{arm} non-finite per-epoch limit is not 1e-4')
+            if config.get('nonfinite_max_skip_frac') != 0.0:
+                errors.append(f'{arm} non-finite per-epoch limit is not zero')
             if config.get('trainer', {}).get('max_epochs') != args.epochs:
                 errors.append(f'{arm} max_epochs mismatch')
             forbidden_trainer_keys = {

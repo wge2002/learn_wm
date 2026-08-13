@@ -22,9 +22,13 @@ epoch_offset: 0
 
 # Paired protocols can hash the first N non-pixel training batches in each arm.
 pairing_trace_batches: 0
-# Historical runs skip bad bf16 updates exactly. Formal paired protocols use
-# "error" so the arms cannot silently finish with different update counts.
-nonfinite_grad_policy: skip
+# This guard was added after the original LeWM implementation. It catches a
+# bad backward before gradient clipping can turn Inf into NaN and contaminate
+# AdamW state. An organic non-finite event is a failure until its generating
+# operator is understood; skip is reserved for explicit diagnostics.
+nonfinite_grad_policy: error
+nonfinite_max_skip_frac: 0.0
+nonfinite_max_total_skips: 0
 
 num_workers: 6
 train_split: 0.9

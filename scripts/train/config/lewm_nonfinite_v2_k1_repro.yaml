@@ -1,0 +1,21 @@
+defaults:
+  - lewm_paired_k1
+  - _self_
+
+# Diagnostic reproduction of the superseded v2 prefix-only K1 construction.
+# This is intentionally not called standard LeWM and must never be used as a
+# formal control. Seeds 13 and 42 previously emitted their first Inf backward
+# at epochs 12 and 10 respectively.
+output_model_name: lewm_nonfinite_v2_k1_repro
+
+wm:
+  unroll_tf: null
+  matched_one_step: true
+
+nonfinite_grad_policy: error
+nonfinite_max_skip_frac: 0.0
+nonfinite_max_total_skips: 0
+
+trainer:
+  deterministic: true
+  benchmark: false

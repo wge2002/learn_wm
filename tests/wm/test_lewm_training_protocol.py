@@ -10,6 +10,7 @@ pytest.importorskip('stable_pretraining')
 
 from scripts.train.lewm import (  # noqa: E402
     NonFiniteGradGuardCallback,
+    capture_nonfinite_replay_state,
     export_initial_weights,
     file_sha256,
     matched_one_step_prediction,
@@ -68,7 +69,7 @@ def test_nonfinite_guard_is_an_exact_adamw_parameter_skip():
         if index == 0:
             parameter.grad.view(-1)[0] = float('inf')
 
-    callback = NonFiniteGradGuardCallback()
+    callback = NonFiniteGradGuardCallback(policy='skip')
     trainer = SimpleNamespace(current_epoch=0, global_step=1)
     callback.on_before_optimizer_step(trainer, model, optimizer)
     assert all(parameter.grad is None for parameter in model.parameters())
@@ -91,10 +92,10 @@ def test_formal_nonfinite_policy_fails_the_run():
     optimizer = torch.optim.AdamW(model.parameters())
     for parameter in model.parameters():
         parameter.grad = torch.full_like(parameter, float('inf'))
-    callback = NonFiniteGradGuardCallback(policy='error')
+    callback = NonFiniteGradGuardCallback()
     trainer = SimpleNamespace(current_epoch=2, global_step=17)
 
-    with pytest.raises(FloatingPointError, match='formal paired runs'):
+    with pytest.raises(FloatingPointError, match='strict runs'):
         callback.on_before_optimizer_step(trainer, model, optimizer)
     assert all(parameter.grad is None for parameter in model.parameters())
 
@@ -102,7 +103,9 @@ def test_formal_nonfinite_policy_fails_the_run():
 def test_nonfinite_skip_budget_aborts_after_preregistered_limit():
     model = torch.nn.Linear(2, 1)
     optimizer = torch.optim.AdamW(model.parameters())
-    callback = NonFiniteGradGuardCallback(max_total_skips=1)
+    callback = NonFiniteGradGuardCallback(
+        max_total_skips=1, policy='skip'
+    )
     trainer = SimpleNamespace(current_epoch=2, global_step=17)
 
     for parameter in model.parameters():
@@ -114,6 +117,37 @@ def test_nonfinite_skip_budget_aborts_after_preregistered_limit():
     trainer.global_step += 1
     with pytest.raises(RuntimeError, match='preregistered limit'):
         callback.on_before_optimizer_step(trainer, model, optimizer)
+
+
+def test_rootcause_evidence_keeps_pre_forward_rng_and_bn_buffers(
+    tmp_path, monkeypatch
+):
+    model = torch.nn.Sequential(torch.nn.BatchNorm1d(2), torch.nn.Linear(2, 1))
+    optimizer = torch.optim.AdamW(model.parameters())
+    callback = NonFiniteGradGuardCallback()
+    trainer = SimpleNamespace(current_epoch=3, global_step=23)
+    monkeypatch.setenv('SWM_CAPTURE_NONFINITE_REPLAY', '1')
+    monkeypatch.setenv('SWM_NONFINITE_EVIDENCE_DIR', str(tmp_path))
+
+    capture_nonfinite_replay_state(model)
+    expected_running_mean = model[0].running_mean.detach().clone()
+    model[0].running_mean.add_(4.0)
+    for parameter in model.parameters():
+        parameter.grad = torch.full_like(parameter, float('inf'))
+
+    with pytest.raises(FloatingPointError):
+        callback.on_before_optimizer_step(trainer, model, optimizer)
+
+    bundle = torch.load(
+        tmp_path / 'nonfinite_e3_s23.pt',
+        map_location='cpu',
+        weights_only=False,
+    )
+    assert set(bundle['pre_forward_rng']) == {'cpu', 'cuda'}
+    assert torch.equal(
+        bundle['pre_forward_buffers']['0.running_mean'],
+        expected_running_mean,
+    )
 
 
 def test_initialization_export_is_immutable_and_bitwise_checked(tmp_path):

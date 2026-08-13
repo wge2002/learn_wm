@@ -214,12 +214,31 @@ class NaNGuardCallback(Callback):
             )
 
 
+def capture_nonfinite_replay_state(pl_module):
+    """Snapshot the state immediately before a diagnostic train forward."""
+
+    if os.environ.get('SWM_CAPTURE_NONFINITE_REPLAY', '0') != '1':
+        return
+    pl_module._swm_pre_forward_rng = {
+        'cpu': torch.get_rng_state().clone(),
+        'cuda': [state.clone() for state in torch.cuda.get_rng_state_all()],
+    }
+    # Weights do not change during forward/backward, but BatchNorm buffers do.
+    # Cloning only mutable running statistics keeps the per-step cost small.
+    pl_module._swm_pre_forward_buffers = {
+        name: value.detach().clone()
+        for name, value in pl_module.named_buffers()
+        if name.endswith(
+            ('running_mean', 'running_var', 'num_batches_tracked')
+        )
+    }
+
+
 class NonFiniteGradGuardCallback(Callback):
-    """Neutralize a non-finite gradient step instead of letting it kill the run.
+    """Detect a non-finite backward before clipping can poison the optimizer.
 
     This restores, for the bf16 path, the one protection ``precision: fp16``
-    would have given for free. Root cause of the h2hfix wave's NaN collapse
-    (7 of 8 runs, at epochs 5-14 with no gradual divergence beforehand):
+    would have given for free. The observed h2hfix NaN propagation chain was:
 
     1. one rare batch produces ``inf`` in a SINGLE gradient element;
     2. ``gradient_clip_val`` computes ``total_norm = inf``, hence
@@ -232,19 +251,17 @@ class NonFiniteGradGuardCallback(Callback):
        is NaN. The model is already dead two steps before ``NaNGuardCallback``
        (patience 3) reports anything.
 
-    ``fp16`` never reaches step 2: ``GradScaler`` inspects the gradients, skips
-    the optimizer step, and training continues. ``bf16`` has no ``GradScaler``
-    (it does not need loss scaling), so nothing intercepts the ``inf`` -- one
-    unlucky batch in ~100k steps is fatal. This is independent of ``aux_reg``,
-    ``aux_space`` and ``aux_beta_mode``, which is why static- and adaptive-beta
-    runs of both ``curvature`` and ``bisim`` all died the same way.
+    The chain above explains how one Inf becomes a permanently corrupt run; it
+    does *not* explain which forward/backward operator emitted the first Inf.
+    In particular, an organic non-finite gradient is never classified as
+    harmless numerical noise.  ``policy='error'`` is therefore the formal and
+    default setting.  ``policy='skip'`` exists only for explicitly diagnostic
+    or operational runs whose skipped updates are reported as such.
 
     Setting every gradient to ``None`` makes AdamW skip every parameter: no
     momentum, weight-decay, or optimizer-state update occurs. This is the
-    closest bf16 analogue of GradScaler declining ``optimizer.step``. The
-    count is reported at the end of each epoch: a handful of skips is normal
-    numerical noise, a persistently rising count means the recipe itself is
-    unstable and the aux term still needs work.
+    closest bf16 analogue of GradScaler declining ``optimizer.step``. It is a
+    containment mechanism, not evidence that the generating failure is benign.
     """
 
     def __init__(
@@ -252,7 +269,7 @@ class NonFiniteGradGuardCallback(Callback):
         max_skip_frac: float = 0.01,
         min_steps_for_frac: int = 1000,
         max_total_skips: int | None = None,
-        policy: str = 'skip',
+        policy: str = 'error',
     ):
         super().__init__()
         if policy not in {'skip', 'error'}:
@@ -374,6 +391,19 @@ class NonFiniteGradGuardCallback(Callback):
                         for name, value in pl_module.state_dict().items()
                     },
                     'optimizer_state_dict': optimizer.state_dict(),
+                    'pre_forward_rng': getattr(
+                        pl_module, '_swm_pre_forward_rng', None
+                    ),
+                    'pre_forward_buffers': {
+                        name: value.detach().cpu()
+                        for name, value in (
+                            getattr(
+                                pl_module,
+                                '_swm_pre_forward_buffers',
+                                {},
+                            )
+                        ).items()
+                    },
                 },
                 evidence_path,
             )
@@ -392,7 +422,7 @@ class NonFiniteGradGuardCallback(Callback):
         if self.policy == 'error':
             raise FloatingPointError(
                 f'non-finite gradient at epoch {trainer.current_epoch} '
-                f'global_step {trainer.global_step}; formal paired runs '
+                f'global_step {trainer.global_step}; strict runs '
                 'require every optimizer update to be valid'
             )
         if (
@@ -575,6 +605,12 @@ def matched_one_step_prediction(model, emb, act_emb, history_size: int):
 
 def lejepa_forward(self, batch, stage, cfg):
     """encode observations, predict next states, compute losses."""
+
+    if stage == 'fit':
+        # This is deliberately inside the custom forward rather than a callback
+        # hook: no intervening callback can consume RNG or update BatchNorm, so
+        # the saved state replays the exact stochastic computation.
+        capture_nonfinite_replay_state(self)
 
     if cfg.get('gpu_image_preprocess', False):
         batch = preprocess_pixels_on_device(batch, cfg.img_size)
@@ -1193,7 +1229,7 @@ def run(cfg):
             critwm_state_callback,
             *extra_callbacks,
             NonFiniteGradGuardCallback(
-                policy=str(cfg.get('nonfinite_grad_policy', 'skip')),
+                policy=str(cfg.get('nonfinite_grad_policy', 'error')),
                 max_skip_frac=float(
                     cfg.get('nonfinite_max_skip_frac', 0.01)
                 ),

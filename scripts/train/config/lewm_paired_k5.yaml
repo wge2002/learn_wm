@@ -19,10 +19,10 @@ data:
     num_steps: 8
 
 pairing_trace_batches: 3
-# Match K1's exact-skip numerical semantics and health thresholds.
-nonfinite_grad_policy: skip
-nonfinite_max_skip_frac: 0.0001
-nonfinite_max_total_skips: 3
+# Match K1's strict zero-nonfinite formal semantics.
+nonfinite_grad_policy: error
+nonfinite_max_skip_frac: 0.0
+nonfinite_max_total_skips: 0
 
 trainer:
   deterministic: true

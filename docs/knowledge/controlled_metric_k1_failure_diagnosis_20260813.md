@@ -19,10 +19,34 @@ and AdamW state were still finite. The DLC job status `Failed` means the strict
 formal process exited nonzero; it does not mean no usable checkpoint was made,
 nor does it prove standard LeWM is intrinsically unstable.
 
-Without the guard, the known bf16 failure chain is: one Inf gradient makes the
-global clip norm Inf; clipping multiplies it by zero; `Inf * 0` becomes NaN;
-AdamW then permanently contaminates both parameters and moments. With exact
-skip, that chain is cut before clipping.
+Without the guard, the known bf16 **propagation chain** is: one Inf gradient
+makes the global clip norm Inf; clipping multiplies it by zero; `Inf * 0`
+becomes NaN; AdamW then permanently contaminates both parameters and moments.
+This explains how one bad element kills the run, but it is not the generating
+root cause of that first Inf. v2 did not record the offending tensor or the
+pre-forward RNG/buffer state, so the exact operator that emitted it remains
+unknown.
+
+The distinction matters: a plain training objective producing an organic Inf
+is not accepted as “normal numerical noise.” The August guard prevented silent
+checkpoint corruption, but its skip mode was an operational workaround, not a
+scientific explanation.
+
+## Is skip part of standard LeWM?
+
+No. Git commit `44c45bd` (“Adding LeWM (#161)”, 2026-03-23) introduced the
+baseline with `precision: bf16` and `gradient_clip_val: 1.0`, but no non-finite
+gradient callback and no skipped-update policy. `NonFiniteGradGuardCallback`
+was added locally in commit `4b017b5` on 2026-08-09 after later experiments
+showed silent NaN contamination.
+
+Therefore the previous wording “ordinary LeWM uses exact skip” was wrong. The
+accurate statement is:
+
+- original LeWM: bf16 + clip, with no protection against a first Inf;
+- current instrumented code: fail before clipping and save evidence;
+- optional exact skip: diagnostic/operational only, never evidence that a
+  formal run was healthy.
 
 ## Why this was not actually a standard-LeWM control
 
@@ -36,7 +60,7 @@ the original LeWM training construction:
 - K1 made one predictor call while K5 made five;
 - K1 and K5 did not use the same target positions;
 - dropout was set to zero and the formal policy aborted on the first bad
-  gradient, whereas ordinary runs use exact skip.
+  gradient, whereas the original implementation had no such guard at all.
 
 The bitwise initialization, split and first-batch hashes were correctly paired,
 but those checks do not repair this objective/coverage mismatch. Consequently,
@@ -62,9 +86,22 @@ the v2 failures cannot be reported as “standard LeWM collapsed.”
 v3 replaces the prefix-only control with five teacher-forced one-step LeWM
 transitions over the same target positions used by recursive K5. Both arms now
 make five predictor calls; the only intervention after the first transition is
-true versus predicted context. Both arms use exact bf16 skip with a locked
-health gate (at most one skip per epoch and three total), and every event writes
-the offending parameter, NaN/Inf counts, losses, batch hash, and model/optimizer
-evidence bundle.
+true versus predicted context.
+
+Formal launch is paused until the first-Inf source is reproduced and fixed.
+Both arms now use strict `nonfinite_grad_policy=error`: a formal pair requires
+zero organic non-finite gradients. Every event writes the offending parameter,
+NaN/Inf counts, losses, batch hash, model/optimizer state, and opt-in exact
+pre-forward RNG/BatchNorm-buffer evidence. Skip mode remains available only for
+explicit diagnostics and cannot pass the pairing verifier.
+
+The next gate is a two-GPU expected-failure rerun of the exact superseded v2 K1
+construction at seeds 13 and 42 (`lewm_nonfinite_v2_k1_repro`). It reuses the
+original initialization artifacts and runs through epoch 13. The job counts as
+diagnostically successful only if both strict guards reproduce and each writes
+one replay bundle. The offending parameter identifies the branch; saved
+pre-forward RNG and BatchNorm buffers then support an operator-level replay.
+Only after a minimal numerical fix lets both seeds cross their old failure
+points with zero events may the six-model v3 formal wave launch.
 
 See [the v3 preregistration](controlled_metric_paired_protocol_v3_20260813.md).

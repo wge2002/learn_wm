@@ -183,9 +183,9 @@ def test_pairing_verifier_accepts_only_the_declared_objective_delta(
     )
     common = {
         'seed': 7,
-        'nonfinite_grad_policy': 'skip',
-        'nonfinite_max_skip_frac': 0.0001,
-        'nonfinite_max_total_skips': 3,
+        'nonfinite_grad_policy': 'error',
+        'nonfinite_max_skip_frac': 0.0,
+        'nonfinite_max_total_skips': 0,
         'init_weights_path': '/init.pt',
         'output_model_name': None,
         'subdir': None,
