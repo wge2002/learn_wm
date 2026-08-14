@@ -285,6 +285,17 @@ class NonFiniteGradGuardCallback(Callback):
         self.skipped = 0
         self.epoch_skipped = 0
         self.epoch_steps = 0
+        self.diagnostic_stop_after_step = None
+
+    def on_train_start(self, trainer, pl_module):
+        stop_after = os.environ.get('SWM_DIAGNOSTIC_STOP_AFTER_STEP')
+        if stop_after is None:
+            return
+        self.diagnostic_stop_after_step = int(stop_after)
+        if self.diagnostic_stop_after_step < 1:
+            raise ValueError(
+                'SWM_DIAGNOSTIC_STOP_AFTER_STEP must be a positive integer'
+            )
 
     def on_before_optimizer_step(self, trainer, pl_module, optimizer):
         # Runs after backward and BEFORE gradient_clip_val, which is the only
@@ -316,6 +327,14 @@ class NonFiniteGradGuardCallback(Callback):
             [torch.isfinite(g).all() for g in grads]
         ).all()
         if bool(finite):
+            if (
+                self.diagnostic_stop_after_step is not None
+                and trainer.global_step >= self.diagnostic_stop_after_step
+            ):
+                raise RuntimeError(
+                    '[grad-guard] diagnostic stop after crossing historical '
+                    f'failure window at global_step {trainer.global_step}'
+                )
             return
 
         # This branch is intentionally expensive: it only runs after a bad

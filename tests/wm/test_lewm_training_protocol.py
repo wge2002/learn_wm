@@ -150,6 +150,20 @@ def test_rootcause_evidence_keeps_pre_forward_rng_and_bn_buffers(
     )
 
 
+def test_diagnostic_stop_preserves_scheduler_horizon(monkeypatch):
+    model = torch.nn.Linear(2, 1)
+    optimizer = torch.optim.AdamW(model.parameters())
+    callback = NonFiniteGradGuardCallback()
+    trainer = SimpleNamespace(current_epoch=12, global_step=138000)
+    monkeypatch.setenv('SWM_DIAGNOSTIC_STOP_AFTER_STEP', '138000')
+    callback.on_train_start(trainer, model)
+    for parameter in model.parameters():
+        parameter.grad = torch.ones_like(parameter)
+
+    with pytest.raises(RuntimeError, match='historical failure window'):
+        callback.on_before_optimizer_step(trainer, model, optimizer)
+
+
 def test_initialization_export_is_immutable_and_bitwise_checked(tmp_path):
     torch.manual_seed(7)
     model = torch.nn.Linear(4, 3)

@@ -16,7 +16,8 @@ CKPT_ROOT=$STABLEWM_ROOT/checkpoints
 INIT_ROOT=$CKPT_ROOT/paired_initializations/controlled_metric_paired_20260810
 RUN_TAG=${RUN_TAG:-nonfinite_rootcause_v2k1_20260813_r1}
 OUT=${OUT:-$REPO/outputs/$RUN_TAG}
-EPOCHS=${EPOCHS:-13}
+EPOCHS=${EPOCHS:-30}
+DIAGNOSTIC_STOP_AFTER_STEP=${DIAGNOSTIC_STOP_AFTER_STEP:-138000}
 PREFLIGHT_MODE=${RBS_ROOTCAUSE_PREFLIGHT:-0}
 ROOTCAUSE_GPU_IDS=${ROOTCAUSE_GPU_IDS:-"0 1"}
 read -r GPU_SEED13 GPU_SEED42 extra_gpu <<< "$ROOTCAUSE_GPU_IDS"
@@ -45,7 +46,11 @@ cd "$REPO"
 test -x "$PY"
 test -f "$DS"
 if [ "$PREFLIGHT_MODE" != 1 ]; then
-  test "$EPOCHS" -ge 13
+  # Keep the original 30-epoch horizon because the epoch-based cosine
+  # scheduler depends on max_epochs. A shorter Trainer horizon changes the
+  # learning-rate trajectory and cannot reproduce the historical failures.
+  test "$EPOCHS" -eq 30
+  test "$DIAGNOSTIC_STOP_AFTER_STEP" -gt 137496
 fi
 visible_gpus=$(nvidia-smi -L | wc -l)
 test "$visible_gpus" -ge 2
@@ -93,6 +98,7 @@ for spec in $SPECS; do
       PYTHONHASHSEED="$seed" \
       SWM_NONFINITE_EVIDENCE_DIR="$evidence" \
       SWM_CAPTURE_NONFINITE_REPLAY=1 \
+      SWM_DIAGNOSTIC_STOP_AFTER_STEP="$DIAGNOSTIC_STOP_AFTER_STEP" \
     "$PY" scripts/train/lewm.py \
       --config-name lewm_nonfinite_v2_k1_repro \
       output_model_name="$name" subdir="$name" seed="$seed" \

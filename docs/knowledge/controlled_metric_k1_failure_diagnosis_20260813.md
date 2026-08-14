@@ -97,11 +97,21 @@ explicit diagnostics and cannot pass the pairing verifier.
 
 The next gate is a two-GPU expected-failure rerun of the exact superseded v2 K1
 construction at seeds 13 and 42 (`lewm_nonfinite_v2_k1_repro`). It reuses the
-original initialization artifacts and runs through epoch 13. The job counts as
+original initialization artifacts and preserves the original
+`trainer.max_epochs=30`, because that value controls the epoch-based cosine LR
+schedule. The job counts as
 diagnostically successful only if both strict guards reproduce and each writes
 one replay bundle. The offending parameter identifies the branch; saved
 pre-forward RNG and BatchNorm buffers then support an operator-level replay.
 Only after a minimal numerical fix lets both seeds cross their old failure
 points with zero events may the six-model v3 formal wave launch.
+
+An initial DSW attempt on 2026-08-13 incorrectly set `max_epochs=13`. Both seeds
+then completed with zero events, but their LR had already decayed to zero
+(versus roughly `3.3e-5`/`3.8e-5` near the historical failures). That run is a
+different optimization trajectory and is not stability evidence. The corrected
+reproduction keeps `max_epochs=30` and uses a callback-only diagnostic stop at
+global step 138000, just beyond both historical failure steps, so the scheduler
+is unchanged without spending the remaining epochs if reproduction fails.
 
 See [the v3 preregistration](controlled_metric_paired_protocol_v3_20260813.md).
