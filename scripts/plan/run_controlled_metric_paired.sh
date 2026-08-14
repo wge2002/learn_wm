@@ -2,7 +2,7 @@
 # Formal matched-training protocol for the controlled-metric K1/K5 test.
 #
 # Examples:
-#   PHASES=init,train NGPU=2 bash scripts/plan/run_controlled_metric_paired.sh
+#   PHASES=init,train NGPU=6 bash scripts/plan/run_controlled_metric_paired.sh
 #   PHASES=audit,summarize NGPU=2 bash scripts/plan/run_controlled_metric_paired.sh
 #
 # Every training seed gets one immutable initialization state_dict. Both arms
@@ -32,7 +32,7 @@ AUDIT_BANK_SEED=${AUDIT_BANK_SEED:-20260810}
 AUDIT_SAMPLES=${AUDIT_SAMPLES:-1024}
 JACOBIAN_SAMPLES=${JACOBIAN_SAMPLES:-64}
 BOOTSTRAPS=${BOOTSTRAPS:-20000}
-NGPU=${NGPU:-2}
+NGPU=${NGPU:-6}
 GPU_IDS=${GPU_IDS:-}
 WORKERS=${WORKERS:-2}
 PREFETCH=${PREFETCH:-1}
@@ -84,6 +84,105 @@ has_phase() {
     *) return 1 ;;
   esac
 }
+
+# --- Evidence gate for any phase that trains -------------------------------
+# There is no boolean bypass. Training requires LEWM_STABILITY_GATE to point at
+# the STABILITY_GATE_PASS.txt that MODE=stability actually produced, and every
+# field below must match the protocol this repository is currently at. Audit and
+# summarize-only phases run without the gate, because they only read
+# checkpoints that already exist.
+
+gate_field() { # KEY
+  local key=$1
+  local hits
+  hits=$(grep -c "^$key=" "$LEWM_STABILITY_GATE" || true)
+  if [ "$hits" -ne 1 ]; then
+    echo "stability gate: expected exactly one '$key=' line, found $hits" >&2
+    echo "gate file: $LEWM_STABILITY_GATE" >&2
+    exit 2
+  fi
+  sed -n "s/^$key=//p" "$LEWM_STABILITY_GATE"
+}
+
+gate_expect() { # KEY EXPECTED
+  local actual
+  actual=$(gate_field "$1")
+  if [ "$actual" != "$2" ]; then
+    echo "stability gate: $1='$actual', expected '$2'" >&2
+    echo "gate file: $LEWM_STABILITY_GATE" >&2
+    exit 2
+  fi
+}
+
+require_stability_gate() {
+  if [ "$EPOCHS" != "30" ]; then
+    echo "formal training blocked: EPOCHS=$EPOCHS, expected 30" >&2
+    exit 2
+  fi
+  if [ "$SEEDS" != "7 13 42" ]; then
+    echo "formal training blocked: SEEDS='$SEEDS', expected '7 13 42'" >&2
+    exit 2
+  fi
+  if [ "$NGPU" != "6" ]; then
+    echo "formal training blocked: NGPU=$NGPU, expected 6" >&2
+    exit 2
+  fi
+  if ! git -c "safe.directory=$PWD" diff --quiet \
+    || ! git -c "safe.directory=$PWD" diff --cached --quiet; then
+    echo "formal training blocked: tracked repository changes detected" >&2
+    echo "commit the exact code validated by the stability gate first" >&2
+    exit 2
+  fi
+
+  if [ -z "${LEWM_STABILITY_GATE:-}" ]; then
+    echo "formal training blocked: LEWM_STABILITY_GATE is not set" >&2
+    echo "point it at the STABILITY_GATE_PASS.txt written by" >&2
+    echo "  MODE=stability bash scripts/plan/run_lewm_nonfinite_rootcause_dlc.sh" >&2
+    echo "see docs/knowledge/controlled_metric_k1_failure_diagnosis_20260813.md" >&2
+    exit 2
+  fi
+  if [ ! -f "$LEWM_STABILITY_GATE" ]; then
+    echo "formal training blocked: no such gate file: $LEWM_STABILITY_GATE" >&2
+    exit 2
+  fi
+
+  gate_expect result PASS
+  gate_expect gate encoder_fp32_two_seed_stability
+  # Launcher order, not a sorted set: SPECS="13:... 42:..." writes "13 42".
+  gate_expect seeds "13 42"
+  gate_expect encoder_fp32 true
+  gate_expect max_epochs 30
+  gate_expect nonfinite_grad_policy error
+
+  local horizon
+  horizon=$(gate_field stop_horizon)
+  case "$horizon" in
+    ''|*[!0-9]*)
+      echo "stability gate: stop_horizon='$horizon' is not a number" >&2
+      exit 2
+      ;;
+  esac
+  if [ "$horizon" -le 137496 ]; then
+    echo "stability gate: stop_horizon=$horizon did not clear 137496" >&2
+    exit 2
+  fi
+
+  local gate_commit
+  local head_commit
+  gate_commit=$(gate_field commit)
+  head_commit=$(git -c "safe.directory=$PWD" rev-parse HEAD)
+  if [ "$gate_commit" != "$head_commit" ]; then
+    echo "stability gate: validated commit $gate_commit != HEAD $head_commit" >&2
+    echo "re-run MODE=stability on this commit before formal training" >&2
+    exit 2
+  fi
+
+  echo "STABILITY GATE OK $LEWM_STABILITY_GATE commit=$head_commit horizon=$horizon"
+}
+
+if has_phase train; then
+  require_stability_gate
+fi
 
 seed_tag() {
   printf '%04d' "$1"

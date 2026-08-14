@@ -12,6 +12,14 @@ wm:
   unroll_tf: null
   matched_one_step: true
 
+# Pinned false, NOT inherited. lewm_paired_k1 adopted encoder_fp32: true as the
+# common numerical protocol for the formal arms, and Hydra would propagate that
+# here through the defaults list -- which would silently give the reproduction
+# the very fix under test and leave lewm_encoder_fp32_stability with no
+# intervention at all. This arm must keep the historical bf16 numerics that
+# produced the two non-finite backwards.
+encoder_fp32: false
+
 nonfinite_grad_policy: error
 nonfinite_max_skip_frac: 0.0
 nonfinite_max_total_skips: 0

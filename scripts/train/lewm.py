@@ -286,20 +286,72 @@ class NonFiniteGradGuardCallback(Callback):
         self.epoch_skipped = 0
         self.epoch_steps = 0
         self.diagnostic_stop_after_step = None
+        self.stability_stop_after_step = None
+        self.stability_stop_reached = False
 
     def on_train_start(self, trainer, pl_module):
-        stop_after = os.environ.get('SWM_DIAGNOSTIC_STOP_AFTER_STEP')
-        if stop_after is None:
-            return
-        self.diagnostic_stop_after_step = int(stop_after)
-        if self.diagnostic_stop_after_step < 1:
+        # Two stop mechanisms with deliberately opposite exit semantics.
+        #
+        # SWM_DIAGNOSTIC_STOP_AFTER_STEP raises: a *reproduction* run that
+        # reaches the horizon without emitting an Inf has failed to reproduce,
+        # so a zero exit code would be a false negative.
+        #
+        # SWM_STABILITY_STOP_AFTER_STEP requests trainer.should_stop: a
+        # *validation* run that reaches the horizon with zero guard events has
+        # passed, so it must exit zero. It does NOT touch max_epochs, so the
+        # epoch-based cosine schedule is bit-identical to the 30-epoch recipe
+        # up to the stop -- which is the whole point of stopping this way
+        # rather than shortening the horizon.
+        self.diagnostic_stop_after_step = self._positive_step_env(
+            'SWM_DIAGNOSTIC_STOP_AFTER_STEP'
+        )
+        self.stability_stop_after_step = self._positive_step_env(
+            'SWM_STABILITY_STOP_AFTER_STEP'
+        )
+        if (
+            self.diagnostic_stop_after_step is not None
+            and self.stability_stop_after_step is not None
+        ):
             raise ValueError(
-                'SWM_DIAGNOSTIC_STOP_AFTER_STEP must be a positive integer'
+                'SWM_DIAGNOSTIC_STOP_AFTER_STEP and '
+                'SWM_STABILITY_STOP_AFTER_STEP are mutually exclusive: the '
+                'first fails the run at the horizon, the second passes it'
+            )
+        if self.stability_stop_after_step is not None and self.policy != 'error':
+            raise ValueError(
+                'SWM_STABILITY_STOP_AFTER_STEP requires '
+                f"nonfinite_grad_policy=error, got {self.policy!r}: a "
+                'validation run that skips bad steps proves nothing'
             )
 
-    def on_before_optimizer_step(self, trainer, pl_module, optimizer):
-        # Runs after backward and BEFORE gradient_clip_val, which is the only
-        # window where an inf can still be caught before it becomes a NaN.
+    @staticmethod
+    def _positive_step_env(name):
+        raw = os.environ.get(name)
+        if raw is None:
+            return None
+        value = int(raw)
+        if value < 1:
+            raise ValueError(f'{name} must be a positive integer')
+        return value
+
+    def on_raw_gradients(self, trainer, pl_module, optimizer):
+        """Inspect gradients between ``manual_backward`` and clipping.
+
+        Deliberately NOT ``on_before_optimizer_step``: with manual
+        optimization that Lightning hook fires from inside ``opt.step()``,
+        i.e. AFTER ``stable_pretraining.Module.training_step`` has already
+        called ``self.clip_gradients``. The v2 K1 evidence bundles show what
+        that costs -- every offending tensor was reported as
+        ``finite_max_abs=0`` with a pure NaN count, which is the *post-clip*
+        signature of ``inf * (1/inf) == inf * 0``, not the raw backward. The
+        raw norms were 1.4e7 (seed 42) and 1.9e6 (seed 13). ``RawGradientModule``
+        calls this from ``after_manual_backward``, the one window where an inf
+        is still an inf.
+
+        With ``accumulate_grad_batches > 1`` this runs once per micro-batch
+        rather than once per optimizer step, which is the stricter reading:
+        a non-finite micro-batch gradient is already unusable.
+        """
         self.epoch_steps += 1
         parameters = [
             p for p in pl_module.parameters() if p.grad is not None
@@ -335,6 +387,24 @@ class NonFiniteGradGuardCallback(Callback):
                     '[grad-guard] diagnostic stop after crossing historical '
                     f'failure window at global_step {trainer.global_step}'
                 )
+            if (
+                self.stability_stop_after_step is not None
+                and trainer.global_step >= self.stability_stop_after_step
+                and not self.stability_stop_reached
+            ):
+                # Printed exactly once, and the launcher greps for it: it is
+                # the only positive proof that the horizon was crossed with a
+                # finite gradient rather than that the process merely exited
+                # zero for some other reason.
+                self.stability_stop_reached = True
+                trainer.should_stop = True
+                print(
+                    '[grad-guard] stability stop: crossed step '
+                    f'{self.stability_stop_after_step} at global_step '
+                    f'{trainer.global_step} with all gradients finite and '
+                    f'{self.skipped} non-finite events',
+                    flush=True,
+                )
             return
 
         # This branch is intentionally expensive: it only runs after a bad
@@ -364,6 +434,35 @@ class NonFiniteGradGuardCallback(Callback):
                 f' -inf={int(torch.isneginf(grad).sum())}'
                 f' finite_max_abs={finite_max:.6g}'
             )
+        # Two norms, because they answer different questions. The raw norm is
+        # what clipping would have consumed (inf/NaN here by construction).
+        # The finite-only norm is the magnitude of the healthy remainder, and
+        # it is the number that distinguishes "one overflowing element" from
+        # "the whole backward exploded". A post-clip reading reports 0 for it,
+        # so a nonzero value here is also the regression witness that this
+        # hook ran before ``clip_gradients``.
+        #
+        # The finite norm must mask per ELEMENT, not per tensor. Masking whole
+        # tensors discards every healthy element that merely shares a tensor
+        # with the offender -- and the offender is always in the largest
+        # tensors, so that reading reports the magnitude of the parameters
+        # that did *not* overflow and calls it the healthy remainder. For one
+        # inf among ViT-tiny's encoder weights it would print roughly the bias
+        # norm and hide the very quantity it exists to measure.
+        #
+        # float64 accumulation: a finite bf16 gradient near 3.4e38 squares to
+        # inf in float32, which would inject a spurious non-finite value into
+        # the *finite* norm. Raw semantics are unchanged -- inf and NaN still
+        # propagate through the unmasked sum.
+        raw_squares = torch.zeros((), dtype=torch.float64, device=grads[0].device)
+        finite_squares = torch.zeros_like(raw_squares)
+        for grad in grads:
+            grad64 = grad.detach().double()
+            squares = grad64.pow(2)
+            raw_squares += squares.sum()
+            finite_squares += squares[torch.isfinite(grad64)].sum()
+        raw_grad_norm = float(raw_squares.sqrt())
+        finite_grad_norm = float(finite_squares.sqrt())
         losses = getattr(pl_module, '_swm_last_loss_components', {})
         loss_summary = ' '.join(
             f'{name}={float(value):.9g}' for name, value in losses.items()
@@ -379,6 +478,8 @@ class NonFiniteGradGuardCallback(Callback):
         print(
             f'[grad-guard] evidence epoch={trainer.current_epoch} '
             f'step={trainer.global_step} losses=({loss_summary}) '
+            f'raw_grad_norm={raw_grad_norm:.9g} '
+            f'finite_grad_norm={finite_grad_norm:.9g} '
             f'batch_sha256={batch_digest.hexdigest() if batch_fields else "n/a"}',
             flush=True,
         )
@@ -396,6 +497,8 @@ class NonFiniteGradGuardCallback(Callback):
                 {
                     'epoch': int(trainer.current_epoch),
                     'global_step': int(trainer.global_step),
+                    'raw_grad_norm': raw_grad_norm,
+                    'finite_grad_norm': finite_grad_norm,
                     'losses': {
                         name: value.detach().cpu()
                         for name, value in losses.items()
@@ -504,9 +607,10 @@ class DivergenceTraceCallback(Callback):
         self.dumped = False
         self.last_grad = None
 
-    def on_before_optimizer_step(self, trainer, pl_module, optimizer):
-        # Runs after backward, BEFORE gradient_clip_val is applied, so this is
-        # the raw gradient norm.
+    def on_raw_gradients(self, trainer, pl_module, optimizer):
+        # Dispatched from RawGradientModule.after_manual_backward, so this is
+        # the raw gradient norm. Lightning's on_before_optimizer_step would
+        # have measured the CLIPPED gradients under manual optimization.
         total, nonfinite = 0.0, 0
         for p in pl_module.parameters():
             if p.grad is None:
@@ -605,6 +709,36 @@ class PairingTraceCallback(Callback):
             f'keys={",".join(keys)} sha256={digest.hexdigest()}',
             flush=True,
         )
+
+
+class RawGradientModule(spt.Module):
+    """Expose the window between ``manual_backward`` and ``clip_gradients``.
+
+    ``stable_pretraining.Module`` uses manual optimization, so Lightning's
+    ``on_before_optimizer_step`` runs inside ``opt.step()`` -- after
+    ``training_step`` has already clipped. Upstream provides
+    ``after_manual_backward`` for exactly this purpose; this subclass forwards
+    it to any callback implementing ``on_raw_gradients``. Callbacks that need
+    raw gradients must implement that hook and must NOT implement
+    ``on_before_optimizer_step``.
+    """
+
+    def after_manual_backward(self):
+        trainer = self.trainer
+        optimizers = self.optimizers()
+        if not isinstance(optimizers, (list, tuple)):
+            optimizers = [optimizers]
+        # A mock optimizer means no real optimizer is configured; nothing has
+        # gradients worth inspecting and its state_dict is not meaningful.
+        optimizer = (
+            optimizers[0]
+            if optimizers and hasattr(optimizers[0], 'state_dict')
+            else None
+        )
+        for callback in getattr(trainer, 'callbacks', None) or []:
+            hook = getattr(callback, 'on_raw_gradients', None)
+            if hook is not None:
+                hook(trainer, self, optimizer)
 
 
 def matched_one_step_prediction(model, emb, act_emb, history_size: int):
@@ -1194,7 +1328,7 @@ def run(cfg):
     }
 
     data_module = spt.data.DataModule(train=train, val=val)
-    world_model = spt.Module(
+    world_model = RawGradientModule(
         model=world_model,
         sigreg=SIGReg(**cfg.loss.sigreg.kwargs),
         forward=partial(lejepa_forward, cfg=cfg),

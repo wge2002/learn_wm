@@ -24,11 +24,20 @@ export GPU_IMAGE_PREPROCESS=true
 export SWM_TORCH_THREADS=${SWM_TORCH_THREADS:-2}
 export HYDRA_FULL_ERROR=1
 
-if [ "${LEWM_FIRST_INF_ROOTCAUSE_RESOLVED:-0}" != 1 ]; then
-  echo "formal launch blocked: first-Inf root-cause gate is not resolved" >&2
+# Evidence, not a boolean. The path must be the STABILITY_GATE_PASS.txt written
+# by MODE=stability; run_controlled_metric_paired.sh re-validates every field and
+# the commit before it trains anything.
+if [ -z "${LEWM_STABILITY_GATE:-}" ]; then
+  echo "formal launch blocked: LEWM_STABILITY_GATE is not set" >&2
+  echo "pass the STABILITY_GATE_PASS.txt path from the MODE=stability run" >&2
   echo "see docs/knowledge/controlled_metric_k1_failure_diagnosis_20260813.md" >&2
   exit 2
 fi
+if [ ! -f "$LEWM_STABILITY_GATE" ]; then
+  echo "formal launch blocked: no such gate file: $LEWM_STABILITY_GATE" >&2
+  exit 2
+fi
+export LEWM_STABILITY_GATE
 
 cd "$REPO"
 test -f "$DS"

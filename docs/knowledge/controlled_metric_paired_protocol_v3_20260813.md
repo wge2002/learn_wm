@@ -1,7 +1,7 @@
 # K1/K5 受控度量：v3 正式成对训练协议
 
-日期：2026-08-13
-状态：**已修订；正式训练暂停，先完成 first-Inf 根因门**
+日期：2026-08-13（2026-08-15 修订）
+状态：**first-Inf 根因诊断已结案；正式启动改由两 seed 稳定性证据门控**
 
 ## 1. 为什么 v2 不能直接补跑
 
@@ -43,7 +43,9 @@ clipping 污染 AdamW，并不解释 first Inf 为什么产生。正式健康门
 
 - `nonfinite_grad_policy=error`；
 - 每 epoch 与全程允许的 organic non-finite event 都是 **0**；
-- guard 在 clipping 前保存证据后立即失败，避免污染参数和 optimizer state；
+- guard 现在通过 `RawGradientModule.after_manual_backward` 的 `on_raw_gradients`
+  实施，**真正在 `clip_gradients` 之前**看到原始梯度，因此保存的证据是未经 clip
+  的量，且失败发生在 clip/AdamW 污染参数与 optimizer state 之前；
 - 证据包括 epoch/step、loss components、non-pixel batch hash、offending parameter、
   NaN/Inf 数量、model/optimizer state；根因复现实验额外保存 pre-forward RNG 和
   BatchNorm buffers，以便 exact replay；
@@ -51,10 +53,48 @@ clipping 污染 AdamW，并不解释 first Inf 为什么产生。正式健康门
 - 正式六模型启动前，必须在历史失败构造上复现 first Inf、定位生成算子、实施最小修复，
   并让 seed 13/42 严格跨过原失败点而无 event。
 
+### 3.1 共同的 encoder-FP32 数值岛（两臂对称）
+
+根因诊断已结案：first Inf 由 bf16 下的 ViT encoder 产生，最小修复是把 encoder
+放在 `torch.autocast(enabled=False)` 内（`encoder_fp32`，projector/predictor/action
+encoder 仍是 bf16）。因此 `lewm_paired_k1.yaml` 与 `lewm_paired_k5.yaml` **都**显式
+写 `encoder_fp32: true`。
+
+这是**共同数值协议，不是 K1-TF/K5 科学干预**。只在一臂开启会把 numerics 差异混进
+因果对比；两臂之外的唯一差别仍然只有 `wm.unroll_tf: 5` 对 `wm.unroll: 5`。
+`tests/wm/test_controlled_metric_formal_gate.py` 静态断言这个对称性。
+
+### 3.2 两 seed 稳定性证据门（无布尔旁路）
+
+旧的 `LEWM_FIRST_INF_ROOTCAUSE_RESOLVED=1` 手工旁路已删除——一个可以随手 export 的
+布尔值不是证据。任何包含 `train` 的 `PHASES` 现在必须通过环境变量
+`LEWM_STABILITY_GATE` 指向 `MODE=stability` 真实产出的 `STABILITY_GATE_PASS.txt`。
+`run_controlled_metric_paired.sh` 在**任何 init/train 工作之前**校验该文件，逐项
+必须精确匹配，否则大声失败退出 2：
+
+| 字段 | 要求 |
+| --- | --- |
+| `result` | `PASS` |
+| `gate` | `encoder_fp32_two_seed_stability` |
+| `seeds` | `13 42`（launcher 的 `SPECS` 顺序，不是排序后的集合） |
+| `encoder_fp32` | `true` |
+| `max_epochs` | `30`（epoch-based cosine，改了就不是同一 recipe） |
+| `nonfinite_grad_policy` | `error` |
+| `stop_horizon` | 数值且 `> 137496`（跨过较晚的历史失败点） |
+| `commit` | 等于当前 `HEAD` |
+
+每个键必须恰好出现一行，重复或缺失都不放行。commit 相等这一条是关键：稳定性证据
+只对产出它的那个 commit 有效，改了代码就必须重跑 `MODE=stability`。DLC wrapper
+`run_controlled_metric_paired_dlc.sh` 要求并转发同一路径，自身不再有布尔旁路。
+
+`audit` / `summarize` 单独运行**不需要**这个门，它们只读已存在的 checkpoint。
+
 ## 4. 正式设计和判读
 
 - seeds：`7, 13, 42`，共 `3 × 2 = 6` 次单卡训练；
-- DLC 申请 6 GPU，不申请闲置的第 7/8 张；
+- DLC 申请**恰好 6 GPU**：6 个互相独立的单卡训练，每张卡一个进程
+  （`NGPU=6`、`GPU_IDS=0,1,2,3,4,5`、`trainer.devices=1`），
+  不申请闲置的第 7/8 张，也不把它当作整节点请求；
 - 唯一正式判决点 epoch 30；epoch 5/10/20 只用于轨迹解释；
 - 三个 seed pair 均须有 epoch-30 checkpoint、pairing proof 和健康门通过；
 - 仍使用 v2 预注册的 G2 pencil、H=5 shear、G1 和 sufficiency gates；
@@ -78,16 +118,23 @@ CEM 不是可选附录。三个 seed pair、六个 epoch-30 checkpoint 全部健
 
 正式报告完成条件是：training pairing proof、representation audit 和 CEM audit 三者齐全。
 
-## 6. 入口（根因门通过后启用）
+## 6. 入口
 
-默认入口：
+训练入口必须带证据门路径（见 3.2）：
 
 ```bash
-PHASES=init,train NGPU=6 \
+LEWM_STABILITY_GATE=<.../STABILITY_GATE_PASS.txt> \
+  PHASES=init,train NGPU=6 \
   bash scripts/plan/run_controlled_metric_paired.sh
+```
 
+分析入口不需要门：
+
+```bash
 PHASES=audit,summarize NGPU=2 \
   bash scripts/plan/run_controlled_metric_paired.sh
 ```
 
-默认 `RUN_TAG=controlled_metric_paired_v3_20260813`。
+默认 `RUN_TAG=controlled_metric_paired_v3_20260813`。CEM conversion audit 仍是
+强制项（见第 5 节）：只有 training pairing proof、representation audit 和 CEM audit
+三者齐全，正式报告才算完成。

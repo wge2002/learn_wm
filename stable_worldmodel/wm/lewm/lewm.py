@@ -1,3 +1,5 @@
+import contextlib
+
 import torch
 import torch.nn.functional as F
 from einops import rearrange
@@ -12,6 +14,7 @@ class LeWM(nn.Module):
         action_encoder,
         projector=None,
         pred_proj=None,
+        encoder_fp32: bool = False,
         **kwargs,
     ):
         super().__init__()
@@ -21,6 +24,34 @@ class LeWM(nn.Module):
         self.action_encoder = action_encoder
         self.projector = projector or nn.Identity()
         self.pred_proj = pred_proj or nn.Identity()
+        # Opt-in only: the default reproduces the historical bf16-everywhere
+        # numerics bit for bit, so no existing run changes behavior.
+        self.encoder_fp32 = bool(encoder_fp32)
+
+    def _encoder_precision(self, device):
+        """Optionally run the ViT encoder as an FP32 precision island.
+
+        Under ``precision: bf16`` the ViT *backward* is where the v2 K1 runs
+        lost numerical validity, and the damage is confined to the encoder.
+        Replaying the two exact failing steps (identical batch, RNG and
+        BatchNorm buffers) gives:
+
+        =====  ==================  =========================  ==========
+        seed   bf16 raw grad norm  encoder FP32 island        full FP32
+        =====  ==================  =========================  ==========
+        42     13982356            220.28                     242.60
+        13     1907000.9           14.916                     --
+        =====  ==================  =========================  ==========
+
+        The forward loss is finite and nearly identical in every variant, so
+        the defect is bf16 accumulation in the encoder backward rather than a
+        diverged model or a bad batch. Keeping the island around the encoder
+        alone leaves the projector, predictor and action encoder in bf16,
+        which the same replay shows to be well conditioned.
+        """
+        if not self.encoder_fp32:
+            return contextlib.nullcontext()
+        return torch.autocast(device_type=device.type, enabled=False)
 
     def encode(self, info):
         """Encode observations and actions into embeddings.
@@ -31,7 +62,8 @@ class LeWM(nn.Module):
         pixels = rearrange(
             pixels, 'b t ... -> (b t) ...'
         )  # flatten for encoding
-        output = self.encoder(pixels, interpolate_pos_encoding=True)
+        with self._encoder_precision(pixels.device):
+            output = self.encoder(pixels, interpolate_pos_encoding=True)
         pixels_emb = output.last_hidden_state[:, 0]  # cls token
         emb = self.projector(pixels_emb)
         info['emb'] = rearrange(emb, '(b t) d -> b t d', b=b)

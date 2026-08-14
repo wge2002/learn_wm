@@ -19,6 +19,12 @@ data:
     num_steps: 8
 
 pairing_trace_batches: 3
+# Common numerical protocol, NOT the K1-TF/K5 intervention: the ViT encoder runs
+# outside autocast in both arms. This is the minimal fix for the v2 first
+# non-finite gradient, validated by the two-seed step-138000 stability gate. The
+# line must stay identical in lewm_paired_k1.yaml -- an asymmetric precision
+# island would confound the causal comparison with a numerics difference.
+encoder_fp32: true
 # Match K1's strict zero-nonfinite formal semantics.
 nonfinite_grad_policy: error
 nonfinite_max_skip_frac: 0.0

@@ -1,0 +1,35 @@
+defaults:
+  - lewm_nonfinite_v2_k1_repro
+  - _self_
+
+# Two-seed stability validation of the encoder FP32 precision island against
+# the SAME superseded v2 prefix-only K1 construction that produced the two
+# non-finite backwards. Inheriting lewm_nonfinite_v2_k1_repro rather than
+# restating the recipe is deliberate: the intervention must be encoder_fp32
+# and nothing else, so the two configs cannot drift apart.
+#
+# Like its parent this is a diagnostic construction, NOT a formal control, and
+# must never be substituted for a paired arm.
+output_model_name: lewm_encoder_fp32_stability
+
+# The single intervention under test.
+encoder_fp32: true
+
+# Zero tolerated non-finite events. Restated rather than inherited because a
+# validation run whose guard could skip a bad step would report PASS while
+# hiding exactly the failure it exists to detect.
+nonfinite_grad_policy: error
+nonfinite_max_skip_frac: 0.0
+nonfinite_max_total_skips: 0
+
+trainer:
+  # Pinned, not inherited from lewm's 100 and not left to the launcher. The
+  # cosine schedule is epoch-based: scripts/train/lewm.py derives
+  # total_steps = max_epochs * steps_per_epoch and hands it to
+  # LinearWarmupCosineAnnealingLR as max_steps. Any other max_epochs changes
+  # the learning-rate trajectory at every step, so a 13-epoch horizon does not
+  # validate the 30-epoch recipe even if it crosses the same global_step.
+  # tests/wm/test_lewm_encoder_fp32_stability.py asserts this stays 30.
+  max_epochs: 30
+  deterministic: true
+  benchmark: false

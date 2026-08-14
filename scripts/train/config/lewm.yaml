@@ -38,6 +38,9 @@ gpu_image_preprocess: false
 patch_size: 14
 encoder_scale: tiny
 embed_dim: 192
+# The bf16 ViT backward is the only established source of the v2 K1 non-finite
+# gradients. Keep it off by default so no existing recipe silently changes.
+encoder_fp32: false
 encoder_resnet9: False
 train_value_function: False
 projector_loss_weight: 1e-3
@@ -70,6 +73,10 @@ wm:
 
 model:
   _target_: stable_worldmodel.wm.lewm.LeWM
+  # Run the ViT encoder as an FP32 precision island while the projector,
+  # predictor and action encoder stay in bf16. Explicit opt-in: false keeps
+  # the historical numerics exactly. See LeWM._encoder_precision.
+  encoder_fp32: ${encoder_fp32}
   encoder:
     _target_: stable_pretraining.backbone.utils.vit_hf
     size: ${encoder_scale}
